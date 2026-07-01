@@ -1,7 +1,7 @@
 <x-app-layout>
     <x-slot name="header">
         <h2 class="font-semibold text-xl text-gray-800 leading-tight">
-            {{ __('Application Form') }} — {{ $course->name }}
+            {{ __('Application Form') }} — {{ $course->name }} ({{ $course->session_year }})
         </h2>
     </x-slot>
 
@@ -45,7 +45,7 @@
                         <div>
                             <x-input-label for="phone" :value="__('Phone Number')" />
                             <x-text-input id="phone" class="block mt-1 w-full" type="text" name="phone"
-                                :value="old('phone')" required placeholder="e.g. 0712345678" />
+                                :value="old('phone', $user->phone)" required placeholder="e.g. 0712345678" />
                             <x-input-error :messages="$errors->get('phone')" class="mt-2" />
                         </div>
 
@@ -79,12 +79,13 @@
                                 <div>
                                     <x-input-label for="company_name" :value="__('Company Name')" />
                                     <x-text-input id="company_name" class="block mt-1 w-full" type="text" name="company_name"
-                                        :value="old('company_name')" />
+                                        :value="old('company_name')" x-bind:required="company_or_private === 'company'" />
                                     <x-input-error :messages="$errors->get('company_name')" class="mt-2" />
                                 </div>
                                 <div>
                                     <x-input-label for="company_address" :value="__('Company Address')" />
                                     <textarea id="company_address" name="company_address" rows="2"
+                                        x-bind:required="company_or_private === 'company'"
                                         class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">{{ old('company_address') }}</textarea>
                                     <x-input-error :messages="$errors->get('company_address')" class="mt-2" />
                                 </div>
@@ -138,6 +139,11 @@
                     @if($course->code)
                         <p class="text-sm text-gray-500 mt-1">{{ $course->code }}</p>
                     @endif
+                    <p class="text-sm text-gray-600 mt-2">{{ __('Session') }}: <span class="font-medium">{{ $course->session_year }}</span></p>
+                    <div class="mt-3 p-3 rounded-lg bg-gray-50 text-sm">
+                        <p><span class="font-medium">{{ __('Applications open') }}:</span> {{ $course->formattedApplicationOpensAt() ?? '—' }}</p>
+                        <p class="mt-1"><span class="font-medium">{{ __('Deadline') }}:</span> {{ $course->formattedApplicationDeadlineAt() ?? '—' }}</p>
+                    </div>
                     @if($course->description)
                         <p class="text-gray-600 mt-3 text-sm">{{ $course->description }}</p>
                     @endif

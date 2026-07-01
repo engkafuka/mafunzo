@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Support\ValidationRules;
 use Illuminate\Auth\Events\Registered;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -30,13 +31,19 @@ class RegisteredUserController extends Controller
     public function store(Request $request): RedirectResponse
     {
         $request->validate([
-            'first_name' => ['required', 'string', 'max:255'],
-            'middle_name' => ['nullable', 'string', 'max:255'],
-            'last_name' => ['required', 'string', 'max:255'],
-            'nida' => ['required', 'string', 'max:50'],
+            'first_name' => ValidationRules::personName(),
+            'middle_name' => ValidationRules::personName(false),
+            'last_name' => ValidationRules::personName(),
             'email' => ['required', 'string', 'lowercase', 'email', 'max:255', 'unique:'.User::class],
-            'phone' => ['required', 'string', 'max:50'],
+            'phone' => ValidationRules::phone(),
             'password' => ['required', 'confirmed', Rules\Password::defaults()],
+        ], ValidationRules::requiredMessages(), [
+            'first_name' => __('first name'),
+            'middle_name' => __('middle name'),
+            'last_name' => __('last name'),
+            'email' => __('email'),
+            'phone' => __('phone number'),
+            'password' => __('password'),
         ]);
 
         $name = trim($request->first_name . ' ' . ($request->middle_name ?? '') . ' ' . $request->last_name);
@@ -46,7 +53,6 @@ class RegisteredUserController extends Controller
             'first_name' => $request->first_name,
             'middle_name' => $request->middle_name,
             'last_name' => $request->last_name,
-            'nida' => $request->nida,
             'email' => $request->email,
             'phone' => $request->phone,
             'role' => 'trainee',

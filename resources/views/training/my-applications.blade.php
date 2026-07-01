@@ -13,6 +13,10 @@
                 </a>
             </div>
 
+            @if (session('error'))
+                <div class="mb-4 p-4 rounded-md bg-red-50 text-red-800">{{ session('error') }}</div>
+            @endif
+
             <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
                 <div class="p-6">
                     @forelse($applications as $app)
@@ -21,6 +25,7 @@
                                 <div>
                                     <h3 class="font-medium text-gray-900">{{ $app->course->name }}</h3>
                                     <p class="text-sm text-gray-500 mt-1">
+                                        {{ __('Session') }} {{ $app->course->session_year }} &middot;
                                         {{ $app->first_name }} {{ $app->last_name }} &middot;
                                         <span class="capitalize">{{ $app->status }}</span>
                                     </p>

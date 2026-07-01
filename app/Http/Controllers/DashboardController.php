@@ -15,22 +15,32 @@ class DashboardController extends Controller
         $currentApplication = null;
         $nextCourse = null;
 
+        $courseStats = null;
+
         if ($user && $user->role === 'trainee') {
             $currentApplication = TrainingApplication::with('course')
                 ->where('user_id', $user->id)
                 ->orderByDesc('created_at')
                 ->first();
-            $applications = TrainingApplication::with('course')->where('user_id', $user->id)->orderByDesc('created_at')->get();
-            $appliedCourseIds = $applications->pluck('course_id')->unique()->filter();
-            $nextCourse = Course::where('is_active', true)
-                ->whereNotIn('id', $appliedCourseIds)
+
+            $nextCourse = Course::acceptingApplications()
+                ->orderByDesc('session_year')
                 ->orderBy('name')
                 ->first();
+        }
+
+        if ($user && $user->isAdminOrSuperAdmin()) {
+            $courseStats = [
+                'total' => Course::count(),
+                'active' => Course::where('is_active', true)->count(),
+                'published' => Course::where('is_published', true)->count(),
+            ];
         }
 
         return view('dashboard', [
             'currentApplication' => $currentApplication,
             'nextCourse' => $nextCourse,
+            'courseStats' => $courseStats,
         ]);
     }
 }

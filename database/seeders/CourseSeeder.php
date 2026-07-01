@@ -2,26 +2,31 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
+use App\Models\Course;
 use Illuminate\Database\Seeder;
 
 class CourseSeeder extends Seeder
 {
-    /**
-     * Run the database seeds.
-     */
     public function run(): void
     {
+        $sessionYear = (int) date('Y');
         $courses = [
             ['name' => 'Weights and Measures Inspector', 'code' => 'WMI-101'],
             ['name' => 'Quality Assurance in Weighing', 'code' => 'QAW-102'],
             ['name' => 'Documentation and Compliance', 'code' => 'DOC-103'],
             ['name' => 'Store and Collateral Management', 'code' => 'SCM-104'],
         ];
+
         foreach ($courses as $c) {
-            \App\Models\Course::firstOrCreate(
-                ['code' => $c['code']],
-                ['name' => $c['name'], 'is_active' => true]
+            Course::firstOrCreate(
+                ['code' => $c['code'], 'session_year' => $sessionYear],
+                [
+                    'name' => $c['name'],
+                    'is_active' => true,
+                    'is_published' => false,
+                    'application_opens_at' => now()->startOfYear(),
+                    'application_deadline_at' => now()->endOfYear(),
+                ]
             );
         }
     }

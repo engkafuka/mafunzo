@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\ApplicationManagementController;
+use App\Http\Controllers\CourseController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\TraineeProfileController;
@@ -41,9 +42,13 @@ Route::middleware('auth')->group(function () {
         Route::get('/export', [TmxAuctionController::class, 'export'])->name('export');
     });
 
-    // User management: super_admin and admin only
+    // User and course management: super_admin and admin only
     Route::middleware('admin')->group(function () {
         Route::resource('users', UserController::class)->except(['show']);
+        Route::resource('courses', CourseController::class)->except(['show']);
+        Route::post('courses/{course}/publish', [CourseController::class, 'publish'])->name('courses.publish');
+        Route::post('courses/{course}/unpublish', [CourseController::class, 'unpublish'])->name('courses.unpublish');
+        Route::post('courses/{course}/new-session', [CourseController::class, 'newSession'])->name('courses.new-session');
     });
 
     // Application management: super_admin, admin, staff

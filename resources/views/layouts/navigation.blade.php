@@ -32,6 +32,9 @@
                         <x-nav-link :href="route('users.index')" :active="request()->routeIs('users.*')">
                             {{ __('User Management') }}
                         </x-nav-link>
+                        <x-nav-link :href="route('courses.index')" :active="request()->routeIs('courses.*')">
+                            {{ __('Course Management') }}
+                        </x-nav-link>
                     @endif
                     @if(in_array(Auth::user()->role, ['super_admin', 'admin', 'staff']))
                         <x-nav-link :href="route('app-management.index')" :active="request()->routeIs('app-management.*')">
@@ -117,6 +120,9 @@
             @if(in_array(Auth::user()->role, ['super_admin', 'admin']))
                 <x-responsive-nav-link :href="route('users.index')" :active="request()->routeIs('users.*')">
                     {{ __('User Management') }}
+                </x-responsive-nav-link>
+                <x-responsive-nav-link :href="route('courses.index')" :active="request()->routeIs('courses.*')">
+                    {{ __('Course Management') }}
                 </x-responsive-nav-link>
             @endif
             @if(in_array(Auth::user()->role, ['super_admin', 'admin', 'staff']))

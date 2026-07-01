@@ -40,11 +40,13 @@
                         @if(isset($nextCourse) && $nextCourse)
                             <p class="text-gray-900 font-semibold">{{ $nextCourse->name }}</p>
                             @if($nextCourse->code)
-                                <p class="text-sm text-gray-500 mt-1">{{ $nextCourse->code }}</p>
+                                <p class="text-sm text-gray-500 mt-1">{{ $nextCourse->code }} · {{ __('Session') }} {{ $nextCourse->session_year }}</p>
+                            @else
+                                <p class="text-sm text-gray-500 mt-1">{{ __('Session') }} {{ $nextCourse->session_year }}</p>
                             @endif
                             <a href="{{ route('training.apply', ['course_id' => $nextCourse->id]) }}" class="inline-block mt-3 text-sm text-indigo-600 hover:text-indigo-800 font-medium">{{ __('Apply for this course') }} &rarr;</a>
                         @else
-                            <p class="text-gray-500 text-sm">{{ __('You have applied for all available courses, or no other courses are open at the moment.') }}</p>
+                            <p class="text-gray-500 text-sm">{{ __('No courses are open for application at the moment.') }}</p>
                             <a href="{{ route('training.select-course') }}" class="inline-block mt-3 text-sm text-indigo-600 hover:text-indigo-800 font-medium">{{ __('View all courses') }} &rarr;</a>
                         @endif
                     </div>
@@ -53,7 +55,7 @@
                     <div class="dashboard-grid-item sm:col-span-2 sm:col-start-1 sm:row-start-2 bg-amber-50 border border-amber-200 overflow-hidden shadow-sm sm:rounded-lg p-6" role="group" aria-label="{{ __('Required information to apply') }}">
                         <h3 class="font-medium text-amber-900 mb-2">{{ __('Required information to apply') }}</h3>
                         <p class="text-amber-800 text-sm leading-relaxed">
-                            {{ __('To apply for a course you need: your full name, National ID (NIDA), email, phone, region, district, company or private, gender, date of birth, and position. You must also complete your profile with at least one education background and a certificate certified by an advocate. Ensure your profile is complete before applying.') }}
+                            {{ __('To apply for a course you need: your full name, email, phone, region, district, company or private, gender, date of birth, and position. You must also complete your profile with at least one education background and a certificate certified by an advocate. Ensure your profile is complete before applying.') }}
                         </p>
                         @if(!Auth::user()->profile_completed_at)
                             <a href="{{ route('trainee.profile.edit') }}" class="inline-block mt-3 text-sm font-medium text-amber-800 hover:text-amber-900">{{ __('Complete my profile') }} &rarr;</a>
@@ -74,12 +76,40 @@
                         </div>
                     </div>
                 </div>
+            @elseif(in_array(Auth::user()->role, ['super_admin', 'admin', 'staff']))
+                {{-- Admin / staff dashboard --}}
+                <div class="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+                    @if(in_array(Auth::user()->role, ['super_admin', 'admin']))
+                        <a href="{{ route('users.index') }}" class="block p-6 bg-white rounded-lg shadow hover:shadow-md border border-gray-200">
+                            <h3 class="text-lg font-semibold text-gray-900">{{ __('User Management') }}</h3>
+                            <p class="mt-1 text-sm text-gray-600">{{ __('Create and manage system users and roles.') }}</p>
+                        </a>
+                        <a href="{{ route('courses.index') }}" class="block p-6 bg-white rounded-lg shadow hover:shadow-md border border-gray-200">
+                            <h3 class="text-lg font-semibold text-gray-900">{{ __('Course Management') }}</h3>
+                            <p class="mt-1 text-sm text-gray-600">{{ __('Initialize training courses for trainees to apply.') }}</p>
+                            @if(isset($courseStats))
+                                <p class="mt-2 text-indigo-600 font-medium">{{ $courseStats['published'] }} {{ __('published') }} / {{ $courseStats['total'] }} {{ __('total') }}</p>
+                            @endif
+                        </a>
+                    @endif
+                    <a href="{{ route('app-management.index') }}" class="block p-6 bg-white rounded-lg shadow hover:shadow-md border border-gray-200">
+                        <h3 class="text-lg font-semibold text-gray-900">{{ __('Application Management') }}</h3>
+                        <p class="mt-1 text-sm text-gray-600">{{ __('Review applications, attendance, exams, and certificates.') }}</p>
+                    </a>
+                    @if(Auth::user()->role === 'super_admin')
+                        <a href="{{ route('wrms-api.index') }}" class="block p-6 bg-white rounded-lg shadow hover:shadow-md border border-gray-200">
+                            <h3 class="text-lg font-semibold text-gray-900">{{ __('WRMS API Data') }}</h3>
+                            <p class="mt-1 text-sm text-gray-600">{{ __('Browse warehouse receipt data from WRMS.') }}</p>
+                        </a>
+                        <a href="{{ route('tmx-auction.index') }}" class="block p-6 bg-white rounded-lg shadow hover:shadow-md border border-gray-200">
+                            <h3 class="text-lg font-semibold text-gray-900">{{ __('TMX Auction Data') }}</h3>
+                            <p class="mt-1 text-sm text-gray-600">{{ __('View and export TMX auction delivery data.') }}</p>
+                        </a>
+                    @endif
+                </div>
             @else
-                {{-- Non-trainee dashboard --}}
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg p-6 text-gray-900">
-                        <h3 class="font-medium text-gray-900 mb-2">{{ __("You're logged in!") }}</h3>
-                    </div>
+                <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg p-6 text-gray-900">
+                    <h3 class="font-medium text-gray-900 mb-2">{{ __("You're logged in!") }}</h3>
                 </div>
             @endif
         </div>

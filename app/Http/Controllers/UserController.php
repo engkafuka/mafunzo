@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\User;
+use App\Support\ValidationRules;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -52,12 +53,19 @@ class UserController extends Controller
     {
         $roles = array_keys($this->assignableRoles());
         $request->validate([
-            'first_name' => ['required', 'string', 'max:255'],
-            'middle_name' => ['nullable', 'string', 'max:255'],
-            'last_name' => ['required', 'string', 'max:255'],
+            'first_name' => ValidationRules::personName(),
+            'middle_name' => ValidationRules::personName(false),
+            'last_name' => ValidationRules::personName(),
             'email' => ['required', 'string', 'lowercase', 'email', 'max:255', 'unique:'.User::class],
             'role' => ['required', 'string', 'in:'.implode(',', $roles)],
             'password' => ['required', 'confirmed', Rules\Password::defaults()],
+        ], ValidationRules::requiredMessages(), [
+            'first_name' => __('first name'),
+            'middle_name' => __('middle name'),
+            'last_name' => __('last name'),
+            'email' => __('email'),
+            'role' => __('role'),
+            'password' => __('password'),
         ]);
 
         $name = trim($request->first_name . ' ' . ($request->middle_name ?? '') . ' ' . $request->last_name);
@@ -98,16 +106,23 @@ class UserController extends Controller
 
         $roles = array_keys($this->assignableRoles());
         $rules = [
-            'first_name' => ['required', 'string', 'max:255'],
-            'middle_name' => ['nullable', 'string', 'max:255'],
-            'last_name' => ['required', 'string', 'max:255'],
+            'first_name' => ValidationRules::personName(),
+            'middle_name' => ValidationRules::personName(false),
+            'last_name' => ValidationRules::personName(),
             'email' => ['required', 'string', 'lowercase', 'email', 'max:255', 'unique:users,email,'.$user->id],
             'role' => ['required', 'string', 'in:'.implode(',', $roles)],
         ];
         if ($request->filled('password')) {
-            $rules['password'] = ['confirmed', Rules\Password::defaults()];
+            $rules['password'] = ['required', 'confirmed', Rules\Password::defaults()];
         }
-        $request->validate($rules);
+        $request->validate($rules, ValidationRules::requiredMessages(), [
+            'first_name' => __('first name'),
+            'middle_name' => __('middle name'),
+            'last_name' => __('last name'),
+            'email' => __('email'),
+            'role' => __('role'),
+            'password' => __('password'),
+        ]);
 
         $name = trim($request->first_name . ' ' . ($request->middle_name ?? '') . ' ' . $request->last_name);
 

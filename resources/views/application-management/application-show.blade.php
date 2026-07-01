@@ -32,7 +32,6 @@
                     <div class="p-6">
                         <dl class="grid gap-x-6 gap-y-3 sm:grid-cols-2">
                             <div><dt class="text-sm font-medium text-gray-500">{{ __('Name') }}</dt><dd class="mt-0.5">{{ $application->first_name }} {{ $application->middle_name ?? '' }} {{ $application->last_name }}</dd></div>
-                            <div><dt class="text-sm font-medium text-gray-500">{{ __('National ID (NIDA)') }}</dt><dd class="mt-0.5">{{ $application->user->nida ?? '—' }}</dd></div>
                             <div><dt class="text-sm font-medium text-gray-500">{{ __('Email') }}</dt><dd class="mt-0.5">{{ $application->email }}</dd></div>
                             <div><dt class="text-sm font-medium text-gray-500">{{ __('Phone') }}</dt><dd class="mt-0.5">{{ $application->phone ?? $application->user->phone ?? '—' }}</dd></div>
                             <div><dt class="text-sm font-medium text-gray-500">{{ __('Region') }}</dt><dd class="mt-0.5">{{ $application->region ?? '—' }}</dd></div>

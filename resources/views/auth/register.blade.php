@@ -23,13 +23,6 @@
             <x-input-error :messages="$errors->get('last_name')" class="mt-2" />
         </div>
 
-        <!-- National ID (NIDA) -->
-        <div class="mt-4">
-            <x-input-label for="nida" :value="__('National ID (NIDA)')" />
-            <x-text-input id="nida" class="block mt-1 w-full" type="text" name="nida" :value="old('nida')" required placeholder="e.g. 19900101-12345-67890-12" />
-            <x-input-error :messages="$errors->get('nida')" class="mt-2" />
-        </div>
-
         <!-- Email Address -->
         <div class="mt-4">
             <x-input-label for="email" :value="__('Email')" />

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\EducationBackground;
+use App\Support\ValidationRules;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -70,11 +71,17 @@ class TraineeProfileController extends Controller
         }
 
         $request->validate([
-            'level' => ['required', 'string', 'in:certificate,diploma,degree,secondary'],
-            'program' => ['required', 'string', 'in:agriculture,others'],
+            'level' => ['required', 'string', 'in:'.implode(',', array_keys(EducationBackground::levelOptions()))],
+            'program' => ['required', 'string', 'in:'.implode(',', array_keys(EducationBackground::programOptions()))],
             'program_other' => ['required_if:program,others', 'nullable', 'string', 'max:255'],
             'institution' => ['required', 'string', 'max:255'],
             'certificate' => ['required', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:5120'],
+        ], ValidationRules::requiredMessages(), [
+            'level' => __('level'),
+            'program' => __('program'),
+            'program_other' => __('program specification'),
+            'institution' => __('institution'),
+            'certificate' => __('certificate'),
         ]);
 
         $path = $request->file('certificate')->store('certificates', 'local');

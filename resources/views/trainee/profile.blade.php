@@ -31,10 +31,6 @@
                         <dd class="mt-0.5 text-gray-900">{{ $user->last_name ?? '—' }}</dd>
                     </div>
                     <div>
-                        <dt class="text-sm font-medium text-gray-500">{{ __('National ID (NIDA)') }}</dt>
-                        <dd class="mt-0.5 text-gray-900">{{ $user->nida ?? '—' }}</dd>
-                    </div>
-                    <div>
                         <dt class="text-sm font-medium text-gray-500">{{ __('Email') }}</dt>
                         <dd class="mt-0.5 text-gray-900">{{ $user->email }}</dd>
                     </div>
@@ -136,7 +132,7 @@
                         </div>
                         <div x-show="program === 'others'" x-cloak class="mt-4">
                             <x-input-label for="program_other" :value="__('Specify (if Others)')" />
-                            <x-text-input id="program_other" class="block mt-1 w-full" type="text" name="program_other" :value="old('program_other')" />
+                            <x-text-input id="program_other" class="block mt-1 w-full" type="text" name="program_other" :value="old('program_other')" x-bind:required="program === 'others'" />
                             <x-input-error :messages="$errors->get('program_other')" class="mt-2" />
                         </div>
                     </div>
