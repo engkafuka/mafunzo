@@ -6,7 +6,7 @@
                 <!-- Logo -->
                 <div class="shrink-0 flex items-center">
                     <a href="{{ route('dashboard') }}">
-                        <x-application-logo class="block h-9 w-auto fill-current text-gray-800" />
+                        <x-application-logo class="h-12 w-12 sm:h-14 sm:w-14" />
                     </a>
                 </div>
 
@@ -20,6 +20,7 @@
                             {{ __('My profile') }}
                         </x-nav-link>
                     @endif
+                    {{-- WRMS / TMX modules hidden for now
                     @if(Auth::user()->role === 'super_admin')
                         <x-nav-link :href="route('wrms-api.index')" :active="request()->routeIs('wrms-api.*')">
                             {{ __('WRMS API Data') }}
@@ -28,6 +29,7 @@
                             {{ __('TMX Auction Data') }}
                         </x-nav-link>
                     @endif
+                    --}}
                     @if(in_array(Auth::user()->role, ['super_admin', 'admin']))
                         <x-nav-link :href="route('users.index')" :active="request()->routeIs('users.*')">
                             {{ __('User Management') }}
@@ -109,6 +111,7 @@
                     {{ __('My profile') }}
                 </x-responsive-nav-link>
             @endif
+            {{-- WRMS / TMX modules hidden for now
             @if(Auth::user()->role === 'super_admin')
                 <x-responsive-nav-link :href="route('wrms-api.index')" :active="request()->routeIs('wrms-api.*')">
                     {{ __('WRMS API Data') }}
@@ -117,6 +120,7 @@
                     {{ __('TMX Auction Data') }}
                 </x-responsive-nav-link>
             @endif
+            --}}
             @if(in_array(Auth::user()->role, ['super_admin', 'admin']))
                 <x-responsive-nav-link :href="route('users.index')" :active="request()->routeIs('users.*')">
                     {{ __('User Management') }}

@@ -96,6 +96,7 @@
                         <h3 class="text-lg font-semibold text-gray-900">{{ __('Application Management') }}</h3>
                         <p class="mt-1 text-sm text-gray-600">{{ __('Review applications, attendance, exams, and certificates.') }}</p>
                     </a>
+                    {{-- WRMS / TMX modules hidden for now
                     @if(Auth::user()->role === 'super_admin')
                         <a href="{{ route('wrms-api.index') }}" class="block p-6 bg-white rounded-lg shadow hover:shadow-md border border-gray-200">
                             <h3 class="text-lg font-semibold text-gray-900">{{ __('WRMS API Data') }}</h3>
@@ -106,6 +107,7 @@
                             <p class="mt-1 text-sm text-gray-600">{{ __('View and export TMX auction delivery data.') }}</p>
                         </a>
                     @endif
+                    --}}
                 </div>
             @else
                 <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg p-6 text-gray-900">
