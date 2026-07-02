@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\EducationBackground;
+use App\Support\PaginationHelper;
 use App\Support\ValidationRules;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -22,8 +23,11 @@ class TraineeProfileController extends Controller
             return redirect()->route('dashboard');
         }
 
-        $user->load('educationBackgrounds');
-        $educationBackgrounds = $user->educationBackgrounds()->orderByDesc('created_at')->get();
+        $educationBackgrounds = $user->educationBackgrounds()
+            ->orderByDesc('created_at')
+            ->paginate(PaginationHelper::PER_PAGE)
+            ->withQueryString();
+
         return view('trainee.profile', compact('user', 'educationBackgrounds'));
     }
 

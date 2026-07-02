@@ -12,7 +12,9 @@
             @endif
 
             <div class="mb-4">
-                <a href="{{ route('app-management.index') }}" class="text-indigo-600 hover:text-indigo-800">{{ __('&larr; Back to Application Management') }}</a>
+                <a href="{{ $isTrainerPortal ?? false ? route('dashboard') : route('app-management.index') }}" class="text-indigo-600 hover:text-indigo-800">
+                    {{ ($isTrainerPortal ?? false) ? __('&larr; Back to dashboard') : __('&larr; Back to Application Management') }}
+                </a>
             </div>
 
             <form method="GET" class="mb-6">
@@ -25,8 +27,8 @@
                 </select>
             </form>
 
-            @if($courseId && $applications->isNotEmpty())
-                <form method="POST" action="{{ route('app-management.exam-results.save') }}">
+            @if($courseId && $applications->total() > 0)
+                <form method="POST" action="{{ ($isTrainerPortal ?? false) ? route('trainer.exam-results.save') : route('app-management.exam-results.save') }}">
                     @csrf
                     <div class="bg-white shadow-sm sm:rounded-lg overflow-hidden">
                         <table class="min-w-full divide-y divide-gray-200">
@@ -60,6 +62,7 @@
                                 @endforeach
                             </tbody>
                         </table>
+                        <x-table-pagination :paginator="$applications" />
                         <div class="px-4 py-3 bg-gray-50 border-t">
                             <button type="submit" class="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 text-sm font-medium">{{ __('Save exam results') }}</button>
                         </div>

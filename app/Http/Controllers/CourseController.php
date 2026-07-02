@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Course;
 use App\Support\ValidationRules;
+use App\Support\PaginationHelper;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -16,7 +17,7 @@ class CourseController extends Controller
         $courses = Course::withCount('trainingApplications')
             ->orderByDesc('session_year')
             ->orderBy('name')
-            ->paginate(15);
+            ->paginate(PaginationHelper::PER_PAGE);
 
         return view('courses.index', compact('courses'));
     }

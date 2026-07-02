@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Course;
 use App\Models\TrainingApplication;
+use App\Support\PaginationHelper;
 use App\Support\ValidationRules;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -21,7 +22,8 @@ class TrainingApplicationController extends Controller
         $courses = Course::publishedForTrainees()
             ->orderByDesc('session_year')
             ->orderBy('name')
-            ->get();
+            ->paginate(PaginationHelper::PER_PAGE)
+            ->withQueryString();
 
         $pendingApplications = $request->user()
             ->trainingApplications()
@@ -176,8 +178,35 @@ class TrainingApplicationController extends Controller
     public function index(Request $request): View
     {
         $this->authorizeTrainee();
-        $applications = $request->user()->trainingApplications()->with('course')->latest()->get();
+        $applications = $request->user()->trainingApplications()->with('course')->latest()
+            ->paginate(PaginationHelper::PER_PAGE)
+            ->withQueryString();
         return view('training.my-applications', compact('applications'));
+    }
+
+    public function examResults(Request $request): View
+    {
+        $this->authorizeTrainee();
+
+        $publishedResults = $request->user()
+            ->trainingApplications()
+            ->with('course')
+            ->where('status', 'payment_completed')
+            ->whereNotNull('exam_uploaded_at')
+            ->latest()
+            ->paginate(PaginationHelper::PER_PAGE, ['*'], 'published_page')
+            ->withQueryString();
+
+        $awaitingResults = $request->user()
+            ->trainingApplications()
+            ->with('course')
+            ->where('status', 'payment_completed')
+            ->whereNull('exam_uploaded_at')
+            ->latest()
+            ->paginate(PaginationHelper::PER_PAGE, ['*'], 'awaiting_page')
+            ->withQueryString();
+
+        return view('training.exam-results', compact('publishedResults', 'awaitingResults'));
     }
 
     private function hasPendingApplicationForCourse($user, int $courseId): bool

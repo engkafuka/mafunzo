@@ -84,6 +84,7 @@
                     </div>
                 @endforelse
             </div>
+            <x-table-pagination :paginator="$courses" />
         </div>
     </div>
 </x-app-layout>

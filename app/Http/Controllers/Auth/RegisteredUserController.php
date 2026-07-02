@@ -7,6 +7,7 @@ use App\Models\Course;
 use App\Models\EducationBackground;
 use App\Models\TrainingApplication;
 use App\Models\User;
+use App\Support\NewApplicantRegistrationRules;
 use App\Support\ValidationRules;
 use Illuminate\Auth\Events\Registered;
 use Illuminate\Http\RedirectResponse;
@@ -14,7 +15,6 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Validation\Rules;
 use Illuminate\View\View;
 
 class RegisteredUserController extends Controller
@@ -38,7 +38,11 @@ class RegisteredUserController extends Controller
         $rules = $this->baseRules($category);
         $attributes = $this->attributeNames();
 
-        $validated = $request->validate($rules, ValidationRules::requiredMessages(), $attributes);
+        $validated = $request->validate($rules, ValidationRules::registrationMessages(), $attributes);
+
+        if ($category === 'new_applicant') {
+            NewApplicantRegistrationRules::validateEducationRows($request);
+        }
 
         $user = DB::transaction(function () use ($request, $validated, $category) {
             $name = trim($validated['first_name'].' '.$validated['middle_name'].' '.$validated['last_name']);
@@ -66,16 +70,18 @@ class RegisteredUserController extends Controller
             ]);
 
             if ($category === 'new_applicant') {
-                $educationPath = $request->file('education_certificate')->store('certificates', 'local');
+                foreach ($validated['education'] as $index => $education) {
+                    $educationPath = $request->file("education.$index.certificate")->store('certificates', 'local');
 
-                EducationBackground::create([
-                    'user_id' => $user->id,
-                    'level' => $validated['education_level'],
-                    'program' => $validated['education_program'],
-                    'program_other' => $validated['education_program'] === 'others' ? $validated['education_program_other'] : null,
-                    'institution' => $validated['education_institution'],
-                    'certificate_path' => $educationPath,
-                ]);
+                    EducationBackground::create([
+                        'user_id' => $user->id,
+                        'level' => $education['level'],
+                        'program' => $education['program'],
+                        'program_other' => $education['program'] === 'others' ? ($education['program_other'] ?? null) : null,
+                        'institution' => $education['institution'],
+                        'certificate_path' => $educationPath,
+                    ]);
+                }
             }
 
             if ($category === 'trained_person') {
@@ -123,25 +129,21 @@ class RegisteredUserController extends Controller
             'first_name' => ValidationRules::personName(),
             'middle_name' => ValidationRules::personName(),
             'last_name' => ValidationRules::personName(),
-            'email' => ['required', 'string', 'lowercase', 'email', 'max:255', 'unique:'.User::class],
+            'email' => ValidationRules::registrationEmail(),
             'phone' => ValidationRules::phone(),
-            'password' => ['required', 'confirmed', Rules\Password::defaults()],
+            'password' => ValidationRules::password(),
             'region' => ['required', 'string', 'max:255'],
             'district' => ['required', 'string', 'max:255'],
             'gender' => ['required', 'in:male,female,other'],
             'date_of_birth' => ['required', 'date', 'before:today'],
             'position' => ['required', 'string', 'in:'.implode(',', array_keys(TrainingApplication::positionOptions()))],
             'company_or_private' => ['required', 'in:company,private'],
-            'company_name' => ['required_if:company_or_private,company', 'string', 'max:255'],
-            'company_address' => ['required_if:company_or_private,company', 'string', 'max:500'],
+            'company_name' => ['required_if:company_or_private,company', 'nullable', 'string', 'max:255'],
+            'company_address' => ['required_if:company_or_private,company', 'nullable', 'string', 'max:500'],
         ];
 
         if ($category === 'new_applicant') {
-            $rules['education_level'] = ['required', 'string', 'in:'.implode(',', array_keys(EducationBackground::levelOptions()))];
-            $rules['education_program'] = ['required', 'string', 'in:'.implode(',', array_keys(EducationBackground::programOptions()))];
-            $rules['education_program_other'] = ['required_if:education_program,others', 'string', 'max:255'];
-            $rules['education_institution'] = ['required', 'string', 'max:255'];
-            $rules['education_certificate'] = ['required', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:5120'];
+            $rules = array_merge($rules, NewApplicantRegistrationRules::educationRules());
         }
 
         if ($category === 'trained_person') {
@@ -156,31 +158,13 @@ class RegisteredUserController extends Controller
 
     private function attributeNames(): array
     {
-        return [
+        return array_merge(NewApplicantRegistrationRules::attributeNames(), [
             'registration_category' => __('registration category'),
-            'first_name' => __('first name'),
-            'middle_name' => __('middle name'),
-            'last_name' => __('last name'),
-            'email' => __('email'),
-            'phone' => __('phone number'),
             'password' => __('password'),
-            'region' => __('region'),
-            'district' => __('district'),
-            'gender' => __('gender'),
-            'date_of_birth' => __('date of birth'),
-            'position' => __('position'),
-            'company_or_private' => __('company / private'),
-            'company_name' => __('company name'),
-            'company_address' => __('company address'),
-            'education_level' => __('education level'),
-            'education_program' => __('education program'),
-            'education_program_other' => __('program specification'),
-            'education_institution' => __('institution'),
-            'education_certificate' => __('education certificate'),
             'course_id' => __('course trained'),
             'trained_year' => __('year trained'),
             'legacy_registration_number' => __('previous registration number'),
             'training_certificate' => __('training certificate'),
-        ];
+        ]);
     }
 }

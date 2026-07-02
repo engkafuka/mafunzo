@@ -3,8 +3,10 @@
 use App\Http\Controllers\ApplicationManagementController;
 use App\Http\Controllers\CourseController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\ExamResultsController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\RegistrationPendingController;
+use App\Http\Controllers\RegistrationResubmissionController;
 use App\Http\Controllers\RegistrationVerificationController;
 use App\Http\Controllers\TraineeProfileController;
 use App\Http\Controllers\TrainingApplicationController;
@@ -25,6 +27,8 @@ Route::get('/dashboard', DashboardController::class)->middleware(['auth', 'verif
 
 Route::middleware('auth')->group(function () {
     Route::get('/registration/pending', RegistrationPendingController::class)->name('registration.pending');
+    Route::get('/registration/resubmit', [RegistrationResubmissionController::class, 'edit'])->name('registration.resubmit');
+    Route::put('/registration/resubmit', [RegistrationResubmissionController::class, 'update'])->name('registration.resubmit.update');
 
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
@@ -44,7 +48,13 @@ Route::middleware('auth')->group(function () {
             Route::get('/payment/{application}', [TrainingApplicationController::class, 'payment'])->name('payment');
             Route::post('/payment/{application}/confirm', [TrainingApplicationController::class, 'confirmPayment'])->name('payment.confirm');
             Route::get('/confirmation/{application}', [TrainingApplicationController::class, 'confirmation'])->name('confirmation');
+            Route::get('/exam-results', [TrainingApplicationController::class, 'examResults'])->name('exam-results');
         });
+    });
+
+    Route::middleware('exam_management')->prefix('trainer')->name('trainer.')->group(function () {
+        Route::get('/exam-results', [ExamResultsController::class, 'index'])->name('exam-results');
+        Route::post('/exam-results', [ExamResultsController::class, 'store'])->name('exam-results.save');
     });
 
     // WRMS API data: super_admin only
@@ -84,8 +94,8 @@ Route::middleware('auth')->group(function () {
         Route::post('/attendance', [ApplicationManagementController::class, 'attendanceCreate'])->name('attendance.store');
         Route::get('/attendance/{session}', [ApplicationManagementController::class, 'attendanceShow'])->name('attendance.show');
         Route::get('/attendance/scan/{token}', fn ($token) => redirect()->route('app-management.attendance.scan-page', ['token' => $token]))->name('attendance.scan');
-        Route::get('/exam-results', [ApplicationManagementController::class, 'examResults'])->name('exam-results');
-        Route::post('/exam-results', [ApplicationManagementController::class, 'examResultsSave'])->name('exam-results.save');
+        Route::get('/exam-results', [ExamResultsController::class, 'index'])->name('exam-results');
+        Route::post('/exam-results', [ExamResultsController::class, 'store'])->name('exam-results.save');
         Route::get('/certificates', [ApplicationManagementController::class, 'certificates'])->name('certificates');
         Route::get('/certificates/{application}', [ApplicationManagementController::class, 'certificateShow'])->name('certificates.show');
         Route::post('/certificates/{application}/issue', [ApplicationManagementController::class, 'certificateIssue'])->name('certificates.issue');

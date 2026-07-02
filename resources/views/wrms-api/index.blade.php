@@ -1,9 +1,6 @@
 @php
-            $warehouseReceipts = $warehouseReceipts ?? [];
-            $warehouses = $warehouses ?? [];
-            $operators = $operators ?? [];
             $hasAnyError = !empty($errorReceipts) || !empty($errorWarehouses) || !empty($errorOperators);
-            $hasAnyData = count($warehouseReceipts) > 0 || count($warehouses) > 0 || count($operators) > 0;
+            $hasAnyData = $warehouseReceipts->total() > 0 || $warehouses->total() > 0 || $operators->total() > 0;
             $noDataNoError = !$hasAnyData && !$hasAnyError;
         @endphp
 <x-app-layout>
@@ -58,7 +55,7 @@
             @endif
 
             <p class="text-sm text-gray-500">
-                {{ __('Loaded:') }} {{ count($warehouseReceipts) }} {{ __('receipts') }}, {{ count($warehouses) }} {{ __('warehouses') }}, {{ count($operators) }} {{ __('operators') }}.
+                {{ __('Loaded:') }} {{ $warehouseReceipts->total() }} {{ __('receipts') }}, {{ $warehouses->total() }} {{ __('warehouses') }}, {{ $operators->total() }} {{ __('operators') }}.
             </p>
 
             {{-- Warehouse Receipts --}}
@@ -69,7 +66,7 @@
                         <p class="p-6 text-amber-700 text-sm">
                             {{ __('API error:') }} {{ $errorReceipts }}
                         </p>
-                    @elseif(count($warehouseReceipts) > 0)
+                    @elseif($warehouseReceipts->total() > 0)
                         <table class="min-w-full divide-y divide-gray-200">
                             <thead class="bg-gray-50">
                                 <tr>
@@ -106,6 +103,7 @@
                                 @endforeach
                             </tbody>
                         </table>
+                        <x-table-pagination :paginator="$warehouseReceipts" />
                     @else
                         <p class="p-6 text-gray-500 text-sm">
                             {{ __('No warehouse receipts returned.') }}
@@ -127,7 +125,7 @@
                         <p class="p-6 text-amber-700 text-sm">
                             {{ __('API error:') }} {{ $errorWarehouses }}
                         </p>
-                    @elseif(count($warehouses) > 0)
+                    @elseif($warehouses->total() > 0)
                         <table class="min-w-full divide-y divide-gray-200">
                             <thead class="bg-gray-50">
                                 <tr>
@@ -156,6 +154,7 @@
                                 @endforeach
                             </tbody>
                         </table>
+                        <x-table-pagination :paginator="$warehouses" />
                     @else
                         <p class="p-6 text-gray-500 text-sm">
                             {{ __('No warehouses returned.') }}
@@ -173,7 +172,7 @@
                         <p class="p-6 text-amber-700 text-sm">
                             {{ __('API error:') }} {{ $errorOperators }}
                         </p>
-                    @elseif(count($operators) > 0)
+                    @elseif($operators->total() > 0)
                         <table class="min-w-full divide-y divide-gray-200">
                             <thead class="bg-gray-50">
                                 <tr>
@@ -202,6 +201,7 @@
                                 @endforeach
                             </tbody>
                         </table>
+                        <x-table-pagination :paginator="$operators" />
                     @else
                         <p class="p-6 text-gray-500 text-sm">
                             {{ __('No operators returned.') }}

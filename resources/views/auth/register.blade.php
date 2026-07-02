@@ -10,33 +10,92 @@
     </style>
     @php
         $initialStep = 1;
+        $hasEducationErrors = collect($errors->keys())->contains(fn ($key) => str_starts_with($key, 'education'));
         if ($errors->hasAny(['password', 'password_confirmation'])) {
             $initialStep = 4;
-        } elseif ($errors->hasAny(['education_level', 'education_program', 'education_program_other', 'education_institution', 'education_certificate', 'course_id', 'trained_year', 'legacy_registration_number', 'training_certificate'])) {
+        } elseif ($hasEducationErrors || $errors->hasAny(['course_id', 'trained_year', 'legacy_registration_number', 'training_certificate'])) {
             $initialStep = 3;
         } elseif ($errors->hasAny(['first_name', 'middle_name', 'last_name', 'email', 'phone', 'region', 'district', 'gender', 'date_of_birth', 'position', 'company_or_private', 'company_name', 'company_address'])) {
             $initialStep = 2;
         } elseif ($errors->has('registration_category')) {
             $initialStep = 1;
         }
+
+        $oldEducation = old('education', []);
+        if ($oldEducation === [] || $oldEducation === null) {
+            $oldEducation = [['level' => '', 'program' => '', 'program_other' => '', 'institution' => '']];
+        }
+        $educationInitial = collect($oldEducation)->values()->map(function ($row, $index) {
+            return [
+                'id' => $index,
+                'record_id' => $row['id'] ?? '',
+                'level' => $row['level'] ?? '',
+                'program' => $row['program'] ?? '',
+                'program_other' => $row['program_other'] ?? '',
+                'institution' => $row['institution'] ?? '',
+                'filename' => '',
+                'existing_certificate' => false,
+            ];
+        })->all();
     @endphp
     <div class="bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden"
-         x-data="{
+         x-data='{
              step: {{ $initialStep }},
-             category: '{{ old('registration_category', 'new_applicant') }}',
-             company_or_private: '{{ old('company_or_private', '') }}',
-             education_program: '{{ old('education_program', '') }}',
+             category: @json(old('registration_category', 'new_applicant')),
+             company_or_private: @json(old('company_or_private', '')),
+             educationEntries: @json($educationInitial),
+             educationNextId: {{ count($educationInitial) }},
+             addEducation() {
+                 this.educationEntries.push({
+                     id: this.educationNextId++,
+                     record_id: "",
+                     level: "",
+                     program: "",
+                     program_other: "",
+                     institution: "",
+                     filename: "",
+                     existing_certificate: false,
+                 });
+             },
+             removeEducation(index) {
+                 if (this.educationEntries.length > 1) {
+                     this.educationEntries.splice(index, 1);
+                 }
+             },
              validateStep(current) {
                  const form = this.$refs.regForm;
-                 const fields = form.querySelectorAll('[data-step=\'' + current + '\']');
+                 const fields = form.querySelectorAll("[data-step=\"" + current + "\"]");
+                 const checkedRadioGroups = new Set();
+
                  for (const field of fields) {
                      if (field.disabled) continue;
+
+                     if (field.type === "radio") {
+                         if (checkedRadioGroups.has(field.name)) continue;
+                         checkedRadioGroups.add(field.name);
+                         if (!form.querySelector("[name=\"" + field.name + "\"]:checked")) {
+                             field.reportValidity();
+                             return false;
+                         }
+                         continue;
+                     }
+
                      if (!field.checkValidity()) {
                          field.reportValidity();
                          return false;
                      }
                  }
                  return true;
+             },
+             submitRegistration() {
+                 for (let s = 1; s <= 4; s++) {
+                     if (!this.validateStep(s)) {
+                         this.step = s;
+                         return;
+                     }
+                 }
+
+                 this.$refs.regForm.submit();
              },
              nextStep() {
                  if (this.validateStep(this.step)) {
@@ -51,7 +110,7 @@
                      this.step = n;
                  }
              }
-         }">
+         }'>
 
         {{-- Card header --}}
         <div class="px-6 py-5 sm:px-8 bg-[#0a71ab] text-white text-center">
@@ -87,8 +146,19 @@
             </div>
         </div>
 
-        <form method="POST" action="{{ route('register') }}" enctype="multipart/form-data" x-ref="regForm" class="px-6 sm:px-8 pb-8">
+        <form method="POST" action="{{ route('register') }}" enctype="multipart/form-data" x-ref="regForm" novalidate @submit.prevent="submitRegistration" class="px-6 sm:px-8 pb-8">
             @csrf
+
+            @if ($errors->any())
+                <div class="mb-4 rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-800">
+                    <p class="font-medium">{{ __('Please fix the following and try again:') }}</p>
+                    <ul class="mt-2 list-disc list-inside space-y-1">
+                        @foreach ($errors->all() as $error)
+                            <li>{{ $error }}</li>
+                        @endforeach
+                    </ul>
+                </div>
+            @endif
 
             {{-- Step 1: Category --}}
             <div x-show="step === 1" x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0 translate-x-4" x-transition:enter-end="opacity-100 translate-x-0">
@@ -162,6 +232,10 @@
                     <div>
                         <x-input-label for="email" :value="__('Email')" />
                         <x-text-input id="email" class="block mt-1 w-full" type="email" name="email" :value="old('email')" required autocomplete="username" data-step="2" />
+                        <p class="mt-1 text-xs text-gray-500">
+                            {{ __('Each applicant can register only once using a unique email address.') }}
+                            <a href="{{ route('login') }}" class="text-[#0a71ab] hover:underline">{{ __('Already registered? Log in') }}</a>
+                        </p>
                         <x-input-error :messages="$errors->get('email')" class="mt-2" />
                     </div>
                     <div>
@@ -251,60 +325,7 @@
             <div x-show="step === 3" x-cloak x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0 translate-x-4" x-transition:enter-end="opacity-100 translate-x-0">
                 {{-- New applicant --}}
                 <div x-show="category === 'new_applicant'" x-transition>
-                    <h2 class="text-sm font-semibold text-gray-900">{{ __('Education background') }}</h2>
-                    <p class="mt-1 text-sm text-gray-500">{{ __('Provide your highest relevant qualification.') }}</p>
-
-                    <div class="mt-4 grid gap-4 sm:grid-cols-2">
-                        <div>
-                            <x-input-label for="education_level" :value="__('Education level')" />
-                            <select id="education_level" name="education_level" data-step="3"
-                                    x-bind:required="category === 'new_applicant'" x-bind:disabled="category !== 'new_applicant'"
-                                    class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-[#0a71ab] focus:ring-[#0a71ab]">
-                                <option value="">{{ __('Select level') }}</option>
-                                @foreach(\App\Models\EducationBackground::levelOptions() as $value => $label)
-                                    <option value="{{ $value }}" {{ old('education_level') === $value ? 'selected' : '' }}>{{ __($label) }}</option>
-                                @endforeach
-                            </select>
-                            <x-input-error :messages="$errors->get('education_level')" class="mt-2" />
-                        </div>
-                        <div>
-                            <x-input-label for="education_institution" :value="__('Institution')" />
-                            <x-text-input id="education_institution" class="block mt-1 w-full" type="text" name="education_institution" :value="old('education_institution')"
-                                          x-bind:required="category === 'new_applicant'" x-bind:disabled="category !== 'new_applicant'" data-step="3" />
-                            <x-input-error :messages="$errors->get('education_institution')" class="mt-2" />
-                        </div>
-                    </div>
-                    <div class="mt-4">
-                        <x-input-label for="education_program" :value="__('Program')" />
-                        <select id="education_program" name="education_program" x-model="education_program" data-step="3"
-                                x-bind:required="category === 'new_applicant'" x-bind:disabled="category !== 'new_applicant'"
-                                class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-[#0a71ab] focus:ring-[#0a71ab]">
-                            <option value="">{{ __('Select program') }}</option>
-                            @foreach(\App\Models\EducationBackground::programOptions() as $value => $label)
-                                <option value="{{ $value }}" {{ old('education_program') === $value ? 'selected' : '' }}>{{ __($label) }}</option>
-                            @endforeach
-                        </select>
-                        <x-input-error :messages="$errors->get('education_program')" class="mt-2" />
-                    </div>
-                    <div x-show="education_program === 'others'" x-cloak x-transition class="mt-4">
-                        <x-input-label for="education_program_other" :value="__('Program specification')" />
-                        <x-text-input id="education_program_other" class="block mt-1 w-full" type="text" name="education_program_other" :value="old('education_program_other')"
-                                      x-bind:required="category === 'new_applicant' && education_program === 'others'" x-bind:disabled="category !== 'new_applicant'" data-step="3" />
-                        <x-input-error :messages="$errors->get('education_program_other')" class="mt-2" />
-                    </div>
-                    <div class="mt-4">
-                        <x-input-label for="education_certificate" :value="__('Education certificate (certified by advocate)')" />
-                        <label class="mt-2 flex cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed border-gray-300 bg-gray-50 px-4 py-6 transition hover:border-[#0a71ab]/60 hover:bg-[#0a71ab]/5">
-                            <svg class="h-8 w-8 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/></svg>
-                            <span class="mt-2 text-sm text-gray-600">{{ __('Click to upload certificate') }}</span>
-                            <span class="mt-1 text-xs text-gray-400">{{ __('PDF or image, max 5MB') }}</span>
-                            <input id="education_certificate" name="education_certificate" type="file" accept=".pdf,.jpg,.jpeg,.png" data-step="3"
-                                   x-bind:required="category === 'new_applicant'" x-bind:disabled="category !== 'new_applicant'"
-                                   class="sr-only" onchange="this.closest('label').querySelector('[data-filename]').textContent = this.files[0]?.name || ''">
-                            <span data-filename class="mt-2 text-xs font-medium text-[#0a71ab]"></span>
-                        </label>
-                        <x-input-error :messages="$errors->get('education_certificate')" class="mt-2" />
-                    </div>
+                    <x-education-background-repeater />
                 </div>
 
                 {{-- Trained person --}}
@@ -343,15 +364,13 @@
                     </div>
                     <div class="mt-4">
                         <x-input-label for="training_certificate" :value="__('Training certificate')" />
-                        <label class="mt-2 flex cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed border-gray-300 bg-gray-50 px-4 py-6 transition hover:border-[#0a71ab]/60 hover:bg-[#0a71ab]/5">
-                            <svg class="h-8 w-8 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/></svg>
-                            <span class="mt-2 text-sm text-gray-600">{{ __('Click to upload certificate') }}</span>
-                            <span class="mt-1 text-xs text-gray-400">{{ __('PDF or image, max 5MB') }}</span>
-                            <input id="training_certificate" name="training_certificate" type="file" accept=".pdf,.jpg,.jpeg,.png" data-step="3"
-                                   x-bind:required="category === 'trained_person'" x-bind:disabled="category !== 'trained_person'"
-                                   class="sr-only" onchange="this.closest('label').querySelector('[data-filename]').textContent = this.files[0]?.name || ''">
-                            <span data-filename class="mt-2 text-xs font-medium text-[#0a71ab]"></span>
-                        </label>
+                        <x-certificate-upload-field
+                            id="training_certificate"
+                            name="training_certificate"
+                            :step="3"
+                            x-bind:required="category === 'trained_person'"
+                            x-bind:disabled="category !== 'trained_person'"
+                        />
                         <x-input-error :messages="$errors->get('training_certificate')" class="mt-2" />
                     </div>
                 </div>
@@ -361,6 +380,7 @@
             <div x-show="step === 4" x-cloak x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0 translate-x-4" x-transition:enter-end="opacity-100 translate-x-0">
                 <h2 class="text-sm font-semibold text-gray-900">{{ __('Create your account') }}</h2>
                 <p class="mt-1 text-sm text-gray-500">{{ __('Choose a secure password for login.') }}</p>
+                <x-password-requirements class="mt-2" />
 
                 <div class="mt-4 space-y-4">
                     <div>

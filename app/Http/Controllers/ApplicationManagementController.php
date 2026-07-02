@@ -8,6 +8,7 @@ use App\Models\Course;
 use App\Models\TrainingApplication;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
+use App\Support\PaginationHelper;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
 
@@ -49,7 +50,7 @@ class ApplicationManagementController extends Controller
             $query->where('course_id', $request->course_id);
         }
 
-        $applications = $query->paginate(15)->withQueryString();
+        $applications = $query->paginate(PaginationHelper::PER_PAGE)->withQueryString();
         $courses = Course::orderBy('name')->get();
 
         return view('application-management.applications', compact('applications', 'courses'));
@@ -111,7 +112,7 @@ class ApplicationManagementController extends Controller
         if ($request->filled('course_id')) {
             $query->where('course_id', $request->course_id);
         }
-        $sessions = $query->paginate(15)->withQueryString();
+        $sessions = $query->paginate(PaginationHelper::PER_PAGE)->withQueryString();
         $courses = Course::orderBy('name')->get();
         return view('application-management.attendance', compact('sessions', 'courses'));
     }
@@ -140,11 +141,17 @@ class ApplicationManagementController extends Controller
     /**
      * Show session and QR code for scanning.
      */
-    public function attendanceShow(AttendanceSession $session): View
+    public function attendanceShow(Request $request, AttendanceSession $session): View
     {
-        $session->load(['course', 'attendanceRecords.trainingApplication']);
+        $session->load('course');
+        $attendanceRecords = $session->attendanceRecords()
+            ->with('trainingApplication')
+            ->orderByDesc('scanned_at')
+            ->paginate(PaginationHelper::PER_PAGE)
+            ->withQueryString();
         $scanUrl = url('/attendance/scan?token=' . $session->qr_token);
-        return view('application-management.attendance-show', compact('session', 'scanUrl'));
+
+        return view('application-management.attendance-show', compact('session', 'scanUrl', 'attendanceRecords'));
     }
 
     /**
@@ -197,54 +204,6 @@ class ApplicationManagementController extends Controller
     }
 
     /**
-     * Exam results: list applications by course, upload results (score, pass/fail).
-     */
-    public function examResults(Request $request): View
-    {
-        $courseId = $request->query('course_id');
-        $courses = Course::orderBy('name')->get();
-        $applications = collect();
-        if ($courseId) {
-            $applications = TrainingApplication::with('course')
-                ->where('course_id', $courseId)
-                ->where('status', 'payment_completed')
-                ->orderBy('registration_number')
-                ->get();
-        }
-        return view('application-management.exam-results', compact('applications', 'courses', 'courseId'));
-    }
-
-    /**
-     * Save exam results (scores and pass/fail per application).
-     */
-    public function examResultsSave(Request $request): RedirectResponse
-    {
-        $request->validate([
-            'results' => 'required|array',
-            'results.*.id' => 'required|exists:training_applications,id',
-            'results.*.exam_score' => 'nullable|numeric|min:0|max:100',
-            'results.*.exam_passed' => 'nullable|boolean',
-        ]);
-
-        $courseId = null;
-        foreach ($request->results as $row) {
-            $app = TrainingApplication::find($row['id'] ?? 0);
-            if (! $app) {
-                continue;
-            }
-            $courseId = $app->course_id;
-            $app->update([
-                'exam_score' => isset($row['exam_score']) && $row['exam_score'] !== '' ? (float) $row['exam_score'] : null,
-                'exam_passed' => isset($row['exam_passed']) && $row['exam_passed'] !== '' ? (bool) (int) $row['exam_passed'] : null,
-                'exam_uploaded_at' => now(),
-            ]);
-        }
-
-        return redirect()->route('app-management.exam-results', ['course_id' => $courseId])
-            ->with('status', __('Exam results saved.'));
-    }
-
-    /**
      * Certificates: list eligible trainees, generate certificate.
      */
     public function certificates(Request $request): View
@@ -259,7 +218,7 @@ class ApplicationManagementController extends Controller
         if ($request->filled('course_id')) {
             $query->where('course_id', $request->course_id);
         }
-        $applications = $query->orderBy('registration_number')->paginate(20)->withQueryString();
+        $applications = $query->orderBy('registration_number')->paginate(PaginationHelper::PER_PAGE)->withQueryString();
         $courses = Course::orderBy('name')->get();
         return view('application-management.certificates', compact('applications', 'courses'));
     }

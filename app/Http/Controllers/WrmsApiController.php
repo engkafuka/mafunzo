@@ -3,6 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Services\WrmsApiService;
+use App\Support\PaginationHelper;
+use Illuminate\Http\Request;
 use Illuminate\View\View;
 
 class WrmsApiController extends Controller
@@ -14,11 +16,11 @@ class WrmsApiController extends Controller
     /**
      * Display WRMS API data (Warehouse Receipts, Warehouses, Operators). Super Admin only.
      */
-    public function index(): View
+    public function index(Request $request): View
     {
         set_time_limit(120);
 
-        $limit = 100;
+        $limit = 500;
 
         $warehouseReceipts = $this->wrmsApi->getWarehouseReceipts(0, $limit);
         $errorReceipts = $this->wrmsApi->getLastError();
@@ -29,19 +31,23 @@ class WrmsApiController extends Controller
         $operators = $this->wrmsApi->getOperators(0, $limit);
         $errorOperators = $this->wrmsApi->getLastError();
 
-        if (! is_array($warehouseReceipts)) {
-            $warehouseReceipts = [];
-        }
-        if (! is_array($warehouses)) {
-            $warehouses = [];
-        }
-        if (! is_array($operators)) {
-            $operators = [];
-        }
+        $warehouseReceipts = PaginationHelper::paginateCollection(
+            $this->normalizeRows(is_array($warehouseReceipts) ? $warehouseReceipts : []),
+            $request,
+            'receipts_page',
+        );
 
-        $warehouseReceipts = $this->normalizeRows($warehouseReceipts);
-        $warehouses = $this->normalizeRows($warehouses);
-        $operators = $this->normalizeRows($operators);
+        $warehouses = PaginationHelper::paginateCollection(
+            $this->normalizeRows(is_array($warehouses) ? $warehouses : []),
+            $request,
+            'warehouses_page',
+        );
+
+        $operators = PaginationHelper::paginateCollection(
+            $this->normalizeRows(is_array($operators) ? $operators : []),
+            $request,
+            'operators_page',
+        );
 
         return view('wrms-api.index', [
             'warehouseReceipts' => $warehouseReceipts,
@@ -63,6 +69,7 @@ class WrmsApiController extends Controller
             $row = is_array($row) ? $row : (array) $row;
             $out[] = array_change_key_case($row, CASE_LOWER);
         }
+
         return $out;
     }
 }

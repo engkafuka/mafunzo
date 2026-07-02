@@ -15,6 +15,16 @@
 
         <!-- Scripts -->
         @vite(['resources/css/app.css', 'resources/js/app.js'])
+        <style>
+            .reg-resubmit-btn {
+                background-color: #086090 !important;
+                color: #ffffff !important;
+            }
+            .reg-resubmit-btn:hover {
+                background-color: #065078 !important;
+                color: #ffffff !important;
+            }
+        </style>
     </head>
     <body class="font-sans antialiased">
         <div class="min-h-screen bg-gray-100">

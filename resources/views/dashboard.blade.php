@@ -8,17 +8,26 @@
     <div class="py-12">
         <div class="max-w-7xl mx-auto sm:px-6 lg:px-8 space-y-6">
             @if(Auth::user()->role === 'trainee')
-                @if(Auth::user()->hasPendingRegistration())
+                @if(Auth::user()->canResubmitRegistration())
+                    <div class="mb-6 p-4 rounded-lg bg-red-50 border border-red-200 text-red-900">
+                        <p class="font-medium">{{ __('Registration rejected') }}</p>
+                        @if(Auth::user()->registration_rejection_reason)
+                            <p class="mt-1 text-sm">{{ Auth::user()->registration_rejection_reason }}</p>
+                        @else
+                            <p class="mt-1 text-sm">{{ __('Your registration could not be approved.') }}</p>
+                        @endif
+                        <div class="mt-3 flex flex-wrap items-center gap-3">
+                            <x-registration-resubmit-button>
+                                {{ __('Update application') }}
+                            </x-registration-resubmit-button>
+                            <a href="{{ route('registration.pending') }}" class="text-sm font-medium text-red-800 hover:text-red-900 underline">{{ __('View details') }}</a>
+                        </div>
+                    </div>
+                @elseif(Auth::user()->hasPendingRegistration())
                     <div class="mb-6 p-4 rounded-lg bg-amber-50 border border-amber-200 text-amber-900">
                         <p class="font-medium">{{ __('Registration pending verification') }}</p>
                         <p class="mt-1 text-sm">{{ __('Your registration is awaiting staff approval. Training applications will be available once approved.') }}</p>
                         <a href="{{ route('registration.pending') }}" class="inline-block mt-2 text-sm font-medium text-amber-800 hover:text-amber-900">{{ __('View status') }} &rarr;</a>
-                    </div>
-                @elseif(Auth::user()->hasRejectedRegistration())
-                    <div class="mb-6 p-4 rounded-lg bg-red-50 border border-red-200 text-red-900">
-                        <p class="font-medium">{{ __('Registration rejected') }}</p>
-                        <p class="mt-1 text-sm">{{ __('Your registration could not be approved.') }}</p>
-                        <a href="{{ route('registration.pending') }}" class="inline-block mt-2 text-sm font-medium text-red-800 hover:text-red-900">{{ __('View details') }} &rarr;</a>
                     </div>
                 @else
                 {{-- CSS Grid Layout: 5 grid items — row 1: 3 columns, row 2: 2 columns --}}
@@ -40,6 +49,15 @@
                                 <p class="text-sm text-gray-500 mt-1">{{ __('Registration number') }}: {{ $currentApplication->registration_number }}</p>
                             @endif
                             <p class="text-sm text-gray-500 mt-1">{{ __('Status') }}: {{ $currentApplication->application_review_status ?? $currentApplication->status }}</p>
+                            @if($currentApplication->hasPublishedExamResults())
+                                <p class="text-sm mt-1">
+                                    <span class="font-medium text-gray-700">{{ __('Exam') }}:</span>
+                                    {{ $currentApplication->examResultStatusLabel() }}
+                                    @if($currentApplication->exam_score !== null)
+                                        ({{ number_format((float) $currentApplication->exam_score, 2) }}%)
+                                    @endif
+                                </p>
+                            @endif
                             <a href="{{ route('training.my-applications') }}" class="inline-block mt-3 text-sm text-indigo-600 hover:text-indigo-800 font-medium">{{ __('View my applications') }} &rarr;</a>
                         @else
                             <p class="text-gray-500 text-sm">{{ __('You have not applied for any course yet.') }}</p>
@@ -81,6 +99,12 @@
                         <div class="flex flex-col gap-2">
                             <a href="{{ route('training.select-course') }}" class="text-indigo-600 hover:text-indigo-800 font-medium text-sm">{{ __('Apply for training') }}</a>
                             <a href="{{ route('training.my-applications') }}" class="text-indigo-600 hover:text-indigo-800 font-medium text-sm">{{ __('My applications') }}</a>
+                            <a href="{{ route('training.exam-results') }}" class="text-indigo-600 hover:text-indigo-800 font-medium text-sm">
+                                {{ __('My examination results') }}
+                                @if(($publishedExamResultsCount ?? 0) > 0)
+                                    <span class="text-green-700">({{ $publishedExamResultsCount }})</span>
+                                @endif
+                            </a>
                             @if(Auth::user()->profile_completed_at)
                                 <a href="{{ route('trainee.profile.edit') }}" class="text-indigo-600 hover:text-indigo-800 font-medium text-sm">{{ __('My profile') }}</a>
                             @else
@@ -90,6 +114,13 @@
                     </div>
                 </div>
                 @endif
+            @elseif(Auth::user()->isTrainer())
+                <div class="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+                    <a href="{{ route('trainer.exam-results') }}" class="block p-6 bg-white rounded-lg shadow hover:shadow-md border border-gray-200">
+                        <h3 class="text-lg font-semibold text-gray-900">{{ __('Examination marks') }}</h3>
+                        <p class="mt-1 text-sm text-gray-600">{{ __('Select a course and record examination scores and pass/fail results for trainees.') }}</p>
+                    </a>
+                </div>
             @elseif(in_array(Auth::user()->role, ['super_admin', 'admin', 'staff']))
                 {{-- Admin / staff dashboard --}}
                 <div class="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">

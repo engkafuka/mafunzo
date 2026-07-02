@@ -7,7 +7,19 @@
 
     <div class="py-12">
         <div class="max-w-3xl mx-auto sm:px-6 lg:px-8">
-            @if($user->hasRejectedRegistration())
+            @if (session('status'))
+                <div class="mb-6 rounded-lg border border-green-200 bg-green-50 p-4 text-sm text-green-800">
+                    {{ session('status') }}
+                </div>
+            @endif
+
+            @if (session('error'))
+                <div class="mb-6 rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-800">
+                    {{ session('error') }}
+                </div>
+            @endif
+
+            @if($user->canResubmitRegistration())
                 <div class="bg-white shadow-sm sm:rounded-lg p-6 border-l-4 border-red-500">
                     <h3 class="text-lg font-semibold text-red-800">{{ __('Registration rejected') }}</h3>
                     <p class="mt-2 text-gray-700">{{ __('Your registration was reviewed and could not be approved.') }}</p>
@@ -17,9 +29,12 @@
                             <p class="mt-1">{{ $user->registration_rejection_reason }}</p>
                         </div>
                     @endif
-                    <p class="mt-4 text-sm text-gray-600">{{ __('Please contact WRRB staff if you need assistance, or register again with corrected information.') }}</p>
+                    <p class="mt-4 text-sm text-gray-700">{{ __('You may update your application based on the feedback above and resubmit it for staff review.') }}</p>
+                    <x-registration-resubmit-button class="mt-4">
+                        {{ __('Update and resubmit application') }}
+                    </x-registration-resubmit-button>
                 </div>
-            @else
+            @elseif($user->hasPendingRegistration())
                 <div class="bg-white shadow-sm sm:rounded-lg p-6 border-l-4 border-amber-500">
                     <h3 class="text-lg font-semibold text-amber-900">{{ __('Registration pending verification') }}</h3>
                     <p class="mt-2 text-gray-700">

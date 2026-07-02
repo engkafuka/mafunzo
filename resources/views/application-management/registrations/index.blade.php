@@ -73,7 +73,7 @@
                     </table>
                 </div>
                 @if($registrations->hasPages())
-                    <div class="px-4 py-3 border-t">{{ $registrations->links() }}</div>
+                    <x-table-pagination :paginator="$registrations" />
                 @endif
             </div>
         </div>

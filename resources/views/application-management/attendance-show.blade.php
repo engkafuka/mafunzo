@@ -21,18 +21,35 @@
                     <p class="mt-4 text-xs text-gray-500 break-all">{{ $scanUrl }}</p>
                 </div>
 
-                <div class="bg-white shadow-sm sm:rounded-lg p-6">
-                    <h3 class="font-medium text-gray-900 mb-4">{{ __('Attendance recorded') }} ({{ $session->attendanceRecords->count() }})</h3>
-                    <ul class="space-y-2">
-                        @forelse($session->attendanceRecords as $rec)
-                            <li class="text-sm flex justify-between">
-                                <span>{{ $rec->trainingApplication->registration_number }} — {{ $rec->trainingApplication->first_name }} {{ $rec->trainingApplication->last_name }}</span>
-                                <span class="text-gray-500">{{ $rec->scanned_at->format('H:i') }}</span>
-                            </li>
-                        @empty
-                            <li class="text-gray-500">{{ __('No attendance recorded yet.') }}</li>
-                        @endforelse
-                    </ul>
+                <div class="bg-white shadow-sm sm:rounded-lg overflow-hidden">
+                    <div class="px-6 py-4 border-b border-gray-100">
+                        <h3 class="font-medium text-gray-900">{{ __('Attendance recorded') }} ({{ $attendanceRecords->total() }})</h3>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full divide-y divide-gray-200">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">{{ __('Registration') }}</th>
+                                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">{{ __('Name') }}</th>
+                                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">{{ __('Time') }}</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-gray-200">
+                                @forelse($attendanceRecords as $rec)
+                                    <tr>
+                                        <td class="px-4 py-3 text-sm font-mono">{{ $rec->trainingApplication->registration_number }}</td>
+                                        <td class="px-4 py-3 text-sm">{{ $rec->trainingApplication->first_name }} {{ $rec->trainingApplication->last_name }}</td>
+                                        <td class="px-4 py-3 text-sm text-gray-500">{{ $rec->scanned_at->format('Y-m-d H:i') }}</td>
+                                    </tr>
+                                @empty
+                                    <tr>
+                                        <td colspan="3" class="px-4 py-6 text-sm text-gray-500">{{ __('No attendance recorded yet.') }}</td>
+                                    </tr>
+                                @endforelse
+                            </tbody>
+                        </table>
+                    </div>
+                    <x-table-pagination :paginator="$attendanceRecords" />
                 </div>
             </div>
         </div>

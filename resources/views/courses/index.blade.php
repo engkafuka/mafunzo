@@ -101,7 +101,7 @@
                     </table>
                 </div>
                 @if($courses->hasPages())
-                    <div class="px-4 py-3 border-t border-gray-200">{{ $courses->links() }}</div>
+                    <x-table-pagination :paginator="$courses" />
                 @endif
             </div>
         </div>

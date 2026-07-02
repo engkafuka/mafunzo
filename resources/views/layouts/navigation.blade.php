@@ -43,13 +43,28 @@
                             {{ __('Application Management') }}
                         </x-nav-link>
                     @endif
+                    @if(Auth::user()->isTrainer())
+                        <x-nav-link :href="route('trainer.exam-results')" :active="request()->routeIs('trainer.*')">
+                            {{ __('Examination marks') }}
+                        </x-nav-link>
+                    @endif
                     @if(Auth::user()->role === 'trainee')
+                        @if(Auth::user()->canResubmitRegistration())
+                            <x-nav-link :href="route('registration.resubmit')" :active="request()->routeIs('registration.resubmit')">
+                                {{ __('Update application') }}
+                            </x-nav-link>
+                        @endif
                         <x-nav-link :href="route('training.select-course')" :active="request()->routeIs('training.*')">
                             {{ __('Apply for Training') }}
                         </x-nav-link>
                         <x-nav-link :href="route('training.my-applications')" :active="request()->routeIs('training.my-applications')">
                             {{ __('My Applications') }}
                         </x-nav-link>
+                        @if(Auth::user()->hasApprovedRegistration())
+                            <x-nav-link :href="route('training.exam-results')" :active="request()->routeIs('training.exam-results')">
+                                {{ __('Exam results') }}
+                            </x-nav-link>
+                        @endif
                     @endif
                 </div>
             </div>
@@ -134,13 +149,28 @@
                     {{ __('Application Management') }}
                 </x-responsive-nav-link>
             @endif
+            @if(Auth::user()->isTrainer())
+                <x-responsive-nav-link :href="route('trainer.exam-results')" :active="request()->routeIs('trainer.*')">
+                    {{ __('Examination marks') }}
+                </x-responsive-nav-link>
+            @endif
             @if(Auth::user()->role === 'trainee')
+                @if(Auth::user()->canResubmitRegistration())
+                    <x-responsive-nav-link :href="route('registration.resubmit')" :active="request()->routeIs('registration.resubmit')">
+                        {{ __('Update application') }}
+                    </x-responsive-nav-link>
+                @endif
                 <x-responsive-nav-link :href="route('training.select-course')" :active="request()->routeIs('training.*')">
                     {{ __('Apply for Training') }}
                 </x-responsive-nav-link>
                 <x-responsive-nav-link :href="route('training.my-applications')" :active="request()->routeIs('training.my-applications')">
                     {{ __('My Applications') }}
                 </x-responsive-nav-link>
+                @if(Auth::user()->hasApprovedRegistration())
+                    <x-responsive-nav-link :href="route('training.exam-results')" :active="request()->routeIs('training.exam-results')">
+                        {{ __('Exam results') }}
+                    </x-responsive-nav-link>
+                @endif
             @endif
         </div>
 

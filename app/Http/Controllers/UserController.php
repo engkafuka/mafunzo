@@ -5,9 +5,9 @@ namespace App\Http\Controllers;
 use App\Models\User;
 use App\Support\ValidationRules;
 use Illuminate\Http\RedirectResponse;
+use App\Support\PaginationHelper;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Validation\Rules;
 use Illuminate\View\View;
 
 class UserController extends Controller
@@ -32,7 +32,7 @@ class UserController extends Controller
             });
         }
 
-        $users = $query->paginate(15)->withQueryString();
+        $users = $query->paginate(PaginationHelper::PER_PAGE)->withQueryString();
 
         return view('users.index', compact('users'));
     }
@@ -58,7 +58,7 @@ class UserController extends Controller
             'last_name' => ValidationRules::personName(),
             'email' => ['required', 'string', 'lowercase', 'email', 'max:255', 'unique:'.User::class],
             'role' => ['required', 'string', 'in:'.implode(',', $roles)],
-            'password' => ['required', 'confirmed', Rules\Password::defaults()],
+            'password' => ValidationRules::password(),
         ], ValidationRules::requiredMessages(), [
             'first_name' => __('first name'),
             'middle_name' => __('middle name'),
@@ -113,7 +113,7 @@ class UserController extends Controller
             'role' => ['required', 'string', 'in:'.implode(',', $roles)],
         ];
         if ($request->filled('password')) {
-            $rules['password'] = ['required', 'confirmed', Rules\Password::defaults()];
+            $rules['password'] = ValidationRules::password();
         }
         $request->validate($rules, ValidationRules::requiredMessages(), [
             'first_name' => __('first name'),

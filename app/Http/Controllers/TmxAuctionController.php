@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Services\TmxAuctionApiService;
 use App\Services\TmxAuctionDataService;
+use App\Support\PaginationHelper;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
 use Symfony\Component\HttpFoundation\StreamedResponse;
@@ -81,9 +82,28 @@ class TmxAuctionController extends Controller
         }
         $dataItemsForView = array_merge($dataItems, $previousDataItems);
 
+        $auctionRows = [];
+        foreach ($dataItemsForView as $idx => $item) {
+            $requestId = $item['request_id'] ?? ('Item ' . ($idx + 1));
+            foreach ($item['auctions'] ?? [] as $aIdx => $auction) {
+                $auctionRows[] = [
+                    'row_id' => 'auction-' . $idx . '-' . $aIdx,
+                    'request_id' => $requestId,
+                    'auction' => $auction,
+                ];
+            }
+        }
+
+        $paginatedAuctions = PaginationHelper::paginateCollection(
+            $auctionRows,
+            $request,
+            'auctions_page',
+        );
+
         return view('tmx-auction.index', [
             'result' => $result,
             'dataItems' => $dataItemsForView,
+            'paginatedAuctions' => $paginatedAuctions,
             'stats' => $stats,
             'storedCount' => $storedCount,
             'error' => $error,

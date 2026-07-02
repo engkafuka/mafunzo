@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\TrainingApplication;
 use App\Models\User;
+use App\Support\PaginationHelper;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -27,7 +28,7 @@ class RegistrationVerificationController extends Controller
             $query->where('registration_category', $request->category);
         }
 
-        $registrations = $query->paginate(15)->withQueryString();
+        $registrations = $query->paginate(PaginationHelper::PER_PAGE)->withQueryString();
 
         $pendingCount = User::where('role', 'trainee')->where('registration_status', 'pending')->count();
 

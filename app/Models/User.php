@@ -106,6 +106,15 @@ class User extends Authenticatable
         return $this->role === 'trainee' && $this->registration_status === 'rejected';
     }
 
+    public function canResubmitRegistration(): bool
+    {
+        if ($this->role !== 'trainee' || $this->hasApprovedRegistration()) {
+            return false;
+        }
+
+        return $this->hasRejectedRegistration() || filled($this->registration_rejection_reason);
+    }
+
     public function educationBackgrounds()
     {
         return $this->hasMany(EducationBackground::class);
@@ -162,5 +171,15 @@ class User extends Authenticatable
     public function isAdminOrSuperAdmin(): bool
     {
         return in_array($this->role, ['super_admin', 'admin'], true);
+    }
+
+    public function isTrainer(): bool
+    {
+        return $this->role === 'trainer';
+    }
+
+    public function canManageExamResults(): bool
+    {
+        return in_array($this->role, ['super_admin', 'admin', 'staff', 'trainer'], true);
     }
 }

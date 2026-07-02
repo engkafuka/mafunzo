@@ -42,8 +42,26 @@
                                     @if($app->registration_number)
                                         <span class="text-sm font-mono font-semibold text-green-600">{{ $app->registration_number }}</span>
                                     @endif
+                                    @if($app->hasPublishedExamResults())
+                                        <a href="{{ route('training.exam-results') }}" class="text-sm font-medium text-indigo-600 hover:text-indigo-800">
+                                            {{ __('View exam result') }}
+                                        </a>
+                                    @endif
                                 </div>
                             </div>
+                            @if($app->status === 'payment_completed')
+                                <p class="mt-2 text-sm text-gray-600">
+                                    <span class="font-medium">{{ __('Examination') }}:</span>
+                                    @if($app->hasPublishedExamResults())
+                                        {{ $app->examResultStatusLabel() }}
+                                        @if($app->exam_score !== null)
+                                            · {{ number_format((float) $app->exam_score, 2) }}%
+                                        @endif
+                                    @else
+                                        {{ __('Awaiting results') }}
+                                    @endif
+                                </p>
+                            @endif
                         </div>
                     @empty
                         <p class="text-gray-500">{{ __('You have no training applications yet.') }}</p>
@@ -52,6 +70,7 @@
                         </p>
                     @endforelse
                 </div>
+                <x-table-pagination :paginator="$applications" class="border-t-0" />
             </div>
         </div>
     </div>

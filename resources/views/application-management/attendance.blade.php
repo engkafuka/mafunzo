@@ -72,7 +72,7 @@
                     </tbody>
                 </table>
                 @if($sessions->hasPages())
-                    <div class="px-4 py-3 border-t">{{ $sessions->links() }}</div>
+                    <x-table-pagination :paginator="$sessions" />
                 @endif
             </div>
         </div>

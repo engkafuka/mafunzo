@@ -2,8 +2,39 @@
 
 namespace App\Support;
 
+use App\Models\User;
+use Illuminate\Validation\Rule;
+use Illuminate\Validation\Rules\Password;
+
 class ValidationRules
 {
+    public static function registrationEmail(?int $ignoreUserId = null): array
+    {
+        $unique = $ignoreUserId
+            ? Rule::unique(User::class, 'email')->ignore($ignoreUserId)
+            : Rule::unique(User::class, 'email');
+
+        return ['required', 'string', 'lowercase', 'email', 'max:255', $unique];
+    }
+
+    public static function password(bool $required = true): array
+    {
+        $rules = ['string', Password::defaults(), 'confirmed'];
+
+        return $required ? array_merge(['required'], $rules) : array_merge(['nullable'], $rules);
+    }
+
+    public static function passwordRequirementsDescription(): string
+    {
+        $requirements = __('At least 6 characters, with uppercase and lowercase letters, a number, and a symbol.');
+
+        if (! app()->environment('local', 'testing')) {
+            $requirements .= ' '.__('Must not be a commonly used or compromised password.');
+        }
+
+        return $requirements;
+    }
+
     public static function phone(): array
     {
         return ['required', 'string', 'max:50', 'regex:/^[0-9+\-\s()]+$/'];
@@ -33,5 +64,12 @@ class ValidationRules
             'mimes' => __('The :attribute must be a file of type: :values.'),
             'max.file' => __('The :attribute must not be greater than :max kilobytes.'),
         ];
+    }
+
+    public static function registrationMessages(): array
+    {
+        return array_merge(self::requiredMessages(), [
+            'email.unique' => __('This email address is already registered. Each applicant may register only once. Please log in with your existing account.'),
+        ]);
     }
 }

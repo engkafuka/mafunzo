@@ -85,6 +85,28 @@ class TrainingApplication extends Model
             && $this->exam_passed === true;
     }
 
+    public function hasPublishedExamResults(): bool
+    {
+        return $this->exam_uploaded_at !== null;
+    }
+
+    public function examResultStatusLabel(): string
+    {
+        if (! $this->hasPublishedExamResults()) {
+            return __('Awaiting results');
+        }
+
+        if ($this->exam_passed === true) {
+            return __('Passed');
+        }
+
+        if ($this->exam_passed === false) {
+            return __('Not passed');
+        }
+
+        return __('Results published');
+    }
+
     public static function positionOptions(): array
     {
         return [

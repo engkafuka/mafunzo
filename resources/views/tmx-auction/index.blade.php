@@ -101,7 +101,7 @@
                 </div>
             @endif
 
-            @if(!empty($dataItems))
+            @if(isset($paginatedAuctions) && $paginatedAuctions->total() > 0)
                 {{-- Auctions dashboard: table + expandable lot details --}}
                 <div class="bg-white overflow-hidden shadow-sm sm:rounded-xl border border-gray-200" x-data="{ expanded: {} }">
                     <div class="px-6 py-4 border-b border-gray-200">
@@ -124,13 +124,12 @@
                                 </tr>
                             </thead>
                             <tbody class="bg-white divide-y divide-gray-200">
-                                @foreach($dataItems as $idx => $item)
+                                @foreach($paginatedAuctions as $row)
                                     @php
-                                        $auctions = $item['auctions'] ?? [];
-                                        $requestId = $item['request_id'] ?? ('Item ' . ($idx + 1));
+                                        $rowId = $row['row_id'];
+                                        $auction = $row['auction'];
+                                        $requestId = $row['request_id'];
                                     @endphp
-                                    @foreach($auctions as $aIdx => $auction)
-                                        @php $rowId = 'auction-' . $idx . '-' . $aIdx; @endphp
                                         <tr class="hover:bg-gray-50 transition"
                                             @click="expanded['{{ $rowId }}'] = !expanded['{{ $rowId }}']"
                                             x-bind:class="expanded['{{ $rowId }}'] ? 'bg-indigo-50/50' : ''">
@@ -260,13 +259,13 @@
                                                 </div>
                                             </td>
                                         </tr>
-                                    @endforeach
                                 @endforeach
                             </tbody>
                         </table>
+                        <x-table-pagination :paginator="$paginatedAuctions" />
                     </div>
                 </div>
-            @elseif(isset($result) && is_array($result) && empty($dataItems) && !$error)
+            @elseif(isset($result) && is_array($result) && ($paginatedAuctions->total() ?? 0) === 0 && !$error)
                 <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-8 text-center">
                     <p class="text-gray-500">{{ __('No auction data in response.') }}</p>
                 </div>

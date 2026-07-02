@@ -11,7 +11,6 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Password;
 use Illuminate\Support\Str;
-use Illuminate\Validation\Rules;
 use Illuminate\View\View;
 
 class NewPasswordController extends Controller
@@ -34,7 +33,7 @@ class NewPasswordController extends Controller
         $request->validate([
             'token' => ['required'],
             'email' => ['required', 'string', 'email', 'max:255'],
-            'password' => ['required', 'confirmed', Rules\Password::defaults()],
+            'password' => ValidationRules::password(),
         ], ValidationRules::requiredMessages(), [
             'email' => __('email'),
             'password' => __('password'),

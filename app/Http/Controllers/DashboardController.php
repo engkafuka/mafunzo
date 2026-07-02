@@ -14,6 +14,7 @@ class DashboardController extends Controller
         $user = $request->user();
         $currentApplication = null;
         $nextCourse = null;
+        $publishedExamResultsCount = 0;
 
         $courseStats = null;
 
@@ -27,6 +28,12 @@ class DashboardController extends Controller
                 ->orderByDesc('session_year')
                 ->orderBy('name')
                 ->first();
+
+            $publishedExamResultsCount = TrainingApplication::query()
+                ->where('user_id', $user->id)
+                ->where('status', 'payment_completed')
+                ->whereNotNull('exam_uploaded_at')
+                ->count();
         }
 
         if ($user && $user->isAdminOrSuperAdmin()) {
@@ -41,6 +48,7 @@ class DashboardController extends Controller
             'currentApplication' => $currentApplication,
             'nextCourse' => $nextCourse,
             'courseStats' => $courseStats,
+            'publishedExamResultsCount' => $publishedExamResultsCount,
         ]);
     }
 }

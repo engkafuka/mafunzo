@@ -95,6 +95,7 @@
                             </div>
                         @endforeach
                     </div>
+                    <x-table-pagination :paginator="$educationBackgrounds" />
                 </div>
             @endif
 

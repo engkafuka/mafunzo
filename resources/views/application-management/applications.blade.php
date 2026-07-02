@@ -66,7 +66,7 @@
                     </table>
                 </div>
                 @if($applications->hasPages())
-                    <div class="px-4 py-3 border-t">{{ $applications->links() }}</div>
+                    <x-table-pagination :paginator="$applications" />
                 @endif
             </div>
         </div>
