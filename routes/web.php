@@ -4,6 +4,8 @@ use App\Http\Controllers\ApplicationManagementController;
 use App\Http\Controllers\CourseController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\RegistrationPendingController;
+use App\Http\Controllers\RegistrationVerificationController;
 use App\Http\Controllers\TraineeProfileController;
 use App\Http\Controllers\TrainingApplicationController;
 use App\Http\Controllers\UserController;
@@ -22,14 +24,28 @@ Route::post('/attendance/scan', [ApplicationManagementController::class, 'attend
 Route::get('/dashboard', DashboardController::class)->middleware(['auth', 'verified'])->name('dashboard');
 
 Route::middleware('auth')->group(function () {
+    Route::get('/registration/pending', RegistrationPendingController::class)->name('registration.pending');
+
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 
-    // Trainee: complete profile (education background + certificate)
-    Route::get('/trainee/profile', [TraineeProfileController::class, 'edit'])->name('trainee.profile.edit');
-    Route::post('/trainee/profile', [TraineeProfileController::class, 'store'])->name('trainee.profile.store');
-    Route::get('/trainee/profile/certificate/{educationBackground}', [TraineeProfileController::class, 'showCertificate'])->name('trainee.profile.certificate');
+    // Trainee profile and training (requires staff-approved registration)
+    Route::middleware('registration.approved')->group(function () {
+        Route::get('/trainee/profile', [TraineeProfileController::class, 'edit'])->name('trainee.profile.edit');
+        Route::post('/trainee/profile', [TraineeProfileController::class, 'store'])->name('trainee.profile.store');
+        Route::get('/trainee/profile/certificate/{educationBackground}', [TraineeProfileController::class, 'showCertificate'])->name('trainee.profile.certificate');
+
+        Route::prefix('training')->name('training.')->group(function () {
+            Route::get('/', [TrainingApplicationController::class, 'selectCourse'])->name('select-course');
+            Route::get('/apply', [TrainingApplicationController::class, 'create'])->name('apply');
+            Route::post('/apply', [TrainingApplicationController::class, 'store'])->name('apply.store');
+            Route::get('/my-applications', [TrainingApplicationController::class, 'index'])->name('my-applications');
+            Route::get('/payment/{application}', [TrainingApplicationController::class, 'payment'])->name('payment');
+            Route::post('/payment/{application}/confirm', [TrainingApplicationController::class, 'confirmPayment'])->name('payment.confirm');
+            Route::get('/confirmation/{application}', [TrainingApplicationController::class, 'confirmation'])->name('confirmation');
+        });
+    });
 
     // WRMS API data: super_admin only
     Route::middleware('super_admin')->prefix('wrms-api')->name('wrms-api.')->group(function () {
@@ -54,6 +70,11 @@ Route::middleware('auth')->group(function () {
     // Application management: super_admin, admin, staff
     Route::middleware('app_management')->prefix('application-management')->name('app-management.')->group(function () {
         Route::get('/', [ApplicationManagementController::class, 'index'])->name('index');
+        Route::get('/registrations', [RegistrationVerificationController::class, 'index'])->name('registrations.index');
+        Route::get('/registrations/{user}', [RegistrationVerificationController::class, 'show'])->name('registrations.show');
+        Route::post('/registrations/{user}/approve', [RegistrationVerificationController::class, 'approve'])->name('registrations.approve');
+        Route::post('/registrations/{user}/reject', [RegistrationVerificationController::class, 'reject'])->name('registrations.reject');
+        Route::get('/registrations/training-certificate/{application}', [RegistrationVerificationController::class, 'trainingCertificate'])->name('registrations.training-certificate');
         Route::get('/applications', [ApplicationManagementController::class, 'applications'])->name('applications');
         Route::get('/applications/{application}', [ApplicationManagementController::class, 'applicationShow'])->name('applications.show');
         Route::post('/applications/{application}/review', [ApplicationManagementController::class, 'applicationReview'])->name('applications.review');
@@ -70,16 +91,7 @@ Route::middleware('auth')->group(function () {
         Route::post('/certificates/{application}/issue', [ApplicationManagementController::class, 'certificateIssue'])->name('certificates.issue');
     });
 
-    // Trainee: apply for training
-    Route::prefix('training')->name('training.')->group(function () {
-        Route::get('/', [TrainingApplicationController::class, 'selectCourse'])->name('select-course');
-        Route::get('/apply', [TrainingApplicationController::class, 'create'])->name('apply');
-        Route::post('/apply', [TrainingApplicationController::class, 'store'])->name('apply.store');
-        Route::get('/my-applications', [TrainingApplicationController::class, 'index'])->name('my-applications');
-        Route::get('/payment/{application}', [TrainingApplicationController::class, 'payment'])->name('payment');
-        Route::post('/payment/{application}/confirm', [TrainingApplicationController::class, 'confirmPayment'])->name('payment.confirm');
-        Route::get('/confirmation/{application}', [TrainingApplicationController::class, 'confirmation'])->name('confirmation');
-    });
+    // Trainee profile routes moved to registration.approved group above
 });
 
 require __DIR__.'/auth.php';

@@ -8,6 +8,19 @@
     <div class="py-12">
         <div class="max-w-7xl mx-auto sm:px-6 lg:px-8 space-y-6">
             @if(Auth::user()->role === 'trainee')
+                @if(Auth::user()->hasPendingRegistration())
+                    <div class="mb-6 p-4 rounded-lg bg-amber-50 border border-amber-200 text-amber-900">
+                        <p class="font-medium">{{ __('Registration pending verification') }}</p>
+                        <p class="mt-1 text-sm">{{ __('Your registration is awaiting staff approval. Training applications will be available once approved.') }}</p>
+                        <a href="{{ route('registration.pending') }}" class="inline-block mt-2 text-sm font-medium text-amber-800 hover:text-amber-900">{{ __('View status') }} &rarr;</a>
+                    </div>
+                @elseif(Auth::user()->hasRejectedRegistration())
+                    <div class="mb-6 p-4 rounded-lg bg-red-50 border border-red-200 text-red-900">
+                        <p class="font-medium">{{ __('Registration rejected') }}</p>
+                        <p class="mt-1 text-sm">{{ __('Your registration could not be approved.') }}</p>
+                        <a href="{{ route('registration.pending') }}" class="inline-block mt-2 text-sm font-medium text-red-800 hover:text-red-900">{{ __('View details') }} &rarr;</a>
+                    </div>
+                @else
                 {{-- CSS Grid Layout: 5 grid items — row 1: 3 columns, row 2: 2 columns --}}
                 <div class="dashboard-grid grid grid-cols-1 sm:grid-cols-3 sm:grid-rows-2 gap-6" role="grid" aria-label="{{ __('Dashboard cards') }}">
                     {{-- Grid item 1 --}}
@@ -76,6 +89,7 @@
                         </div>
                     </div>
                 </div>
+                @endif
             @elseif(in_array(Auth::user()->role, ['super_admin', 'admin', 'staff']))
                 {{-- Admin / staff dashboard --}}
                 <div class="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">

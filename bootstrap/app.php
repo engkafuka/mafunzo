@@ -15,6 +15,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'admin' => \App\Http\Middleware\EnsureUserIsAdminOrSuperAdmin::class,
             'app_management' => \App\Http\Middleware\EnsureUserCanManageApplications::class,
             'super_admin' => \App\Http\Middleware\EnsureUserIsSuperAdmin::class,
+            'registration.approved' => \App\Http\Middleware\EnsureRegistrationApproved::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

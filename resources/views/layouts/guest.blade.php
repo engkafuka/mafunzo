@@ -17,16 +17,31 @@
         @vite(['resources/css/app.css', 'resources/js/app.js'])
     </head>
     <body class="font-sans text-gray-900 antialiased">
-        <div class="min-h-screen flex flex-col sm:justify-center items-center pt-6 sm:pt-0 bg-gray-100">
-            <div>
-                <a href="/">
-                    <x-application-logo class="h-12 w-12 sm:h-14 sm:w-14" />
-                </a>
+        @if($register ?? false)
+            <div class="min-h-screen flex flex-col items-center justify-center py-8 px-4 sm:px-6 bg-gradient-to-br from-slate-100 via-gray-50 to-[#0a71ab]/10">
+                <h1 class="w-full max-w-xl text-center text-lg sm:text-xl font-bold uppercase tracking-wide text-[#0a71ab]">
+                    {{ __('WRRB TRAINING REGISTRATION FORM') }}
+                </h1>
+                <div class="w-full max-w-xl mt-4">
+                    {{ $slot }}
+                </div>
             </div>
+        @else
+            <div class="min-h-screen flex flex-col sm:justify-center items-center pt-6 sm:pt-0 bg-gray-100">
+                <div>
+                    <a href="/">
+                        <x-application-logo class="h-12 w-12 sm:h-14 sm:w-14" />
+                    </a>
+                </div>
 
-            <div class="w-full sm:max-w-md mt-6 px-6 py-4 bg-white shadow-md overflow-hidden sm:rounded-lg">
-                {{ $slot }}
+                <div @class([
+                    'w-full mt-6 px-6 py-4 bg-white shadow-md overflow-hidden sm:rounded-lg',
+                    'sm:max-w-3xl' => $wide ?? false,
+                    'sm:max-w-md' => ! ($wide ?? false),
+                ])>
+                    {{ $slot }}
+                </div>
             </div>
-        </div>
+        @endif
     </body>
 </html>

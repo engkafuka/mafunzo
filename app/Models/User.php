@@ -26,6 +26,19 @@ class User extends Authenticatable
         'phone',
         'password',
         'role',
+        'registration_category',
+        'registration_status',
+        'registration_reviewed_at',
+        'registration_reviewed_by',
+        'registration_rejection_reason',
+        'region',
+        'district',
+        'gender',
+        'date_of_birth',
+        'position',
+        'company_or_private',
+        'company_name',
+        'company_address',
         'profile_completed_at',
     ];
 
@@ -50,7 +63,47 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
             'profile_completed_at' => 'datetime',
+            'registration_reviewed_at' => 'datetime',
+            'date_of_birth' => 'date',
         ];
+    }
+
+    public function registrationReviewer()
+    {
+        return $this->belongsTo(User::class, 'registration_reviewed_by');
+    }
+
+    public static function registrationCategoryOptions(): array
+    {
+        return [
+            'new_applicant' => __('New applicant'),
+            'trained_person' => __('Previously trained person'),
+        ];
+    }
+
+    public function isNewApplicant(): bool
+    {
+        return $this->registration_category === 'new_applicant';
+    }
+
+    public function isTrainedPerson(): bool
+    {
+        return $this->registration_category === 'trained_person';
+    }
+
+    public function hasApprovedRegistration(): bool
+    {
+        return $this->role !== 'trainee' || $this->registration_status === 'approved';
+    }
+
+    public function hasPendingRegistration(): bool
+    {
+        return $this->role === 'trainee' && $this->registration_status === 'pending';
+    }
+
+    public function hasRejectedRegistration(): bool
+    {
+        return $this->role === 'trainee' && $this->registration_status === 'rejected';
     }
 
     public function educationBackgrounds()

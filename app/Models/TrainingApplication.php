@@ -9,6 +9,9 @@ class TrainingApplication extends Model
     protected $fillable = [
         'user_id',
         'course_id',
+        'application_type',
+        'trained_year',
+        'legacy_registration_number',
         'first_name',
         'middle_name',
         'last_name',
@@ -42,6 +45,7 @@ class TrainingApplication extends Model
     {
         return [
             'date_of_birth' => 'date',
+            'trained_year' => 'integer',
             'payment_completed_at' => 'datetime',
             'application_reviewed_at' => 'datetime',
             'account_verified_at' => 'datetime',
@@ -65,6 +69,11 @@ class TrainingApplication extends Model
     public function attendanceRecords()
     {
         return $this->hasMany(AttendanceRecord::class);
+    }
+
+    public function isLegacyExpert(): bool
+    {
+        return $this->application_type === 'legacy_expert';
     }
 
     public function isEligibleForCertificate(): bool

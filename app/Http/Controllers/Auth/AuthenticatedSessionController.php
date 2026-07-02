@@ -41,8 +41,14 @@ class AuthenticatedSessionController extends Controller
             }
         }
 
-        if ($user && $user->role === 'trainee' && ! $user->hasCompletedTraineeProfile()) {
-            return redirect()->intended(route('trainee.profile.edit', absolute: false));
+        if ($user && $user->role === 'trainee') {
+            if (! $user->hasApprovedRegistration()) {
+                return redirect()->route('registration.pending');
+            }
+
+            if (! $user->hasCompletedTraineeProfile()) {
+                return redirect()->intended(route('trainee.profile.edit', absolute: false));
+            }
         }
 
         return redirect()->intended($defaultUrl);

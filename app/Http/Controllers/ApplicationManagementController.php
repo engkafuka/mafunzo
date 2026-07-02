@@ -6,6 +6,7 @@ use App\Models\AttendanceRecord;
 use App\Models\AttendanceSession;
 use App\Models\Course;
 use App\Models\TrainingApplication;
+use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -18,6 +19,7 @@ class ApplicationManagementController extends Controller
     public function index(): View
     {
         $stats = [
+            'pending_registrations' => User::where('role', 'trainee')->where('registration_status', 'pending')->count(),
             'pending_review' => TrainingApplication::where('application_review_status', 'pending')->where('status', 'payment_completed')->count(),
             'pending_account_verify' => TrainingApplication::whereNull('account_verified_at')->where('status', 'payment_completed')->count(),
             'pending_payment_verify' => TrainingApplication::whereNotNull('payment_completed_at')->where('status', 'pending_payment')->count(),
@@ -30,7 +32,9 @@ class ApplicationManagementController extends Controller
      */
     public function applications(Request $request): View
     {
-        $query = TrainingApplication::with(['course', 'user'])->orderByDesc('created_at');
+        $query = TrainingApplication::with(['course', 'user'])
+            ->where('status', '!=', 'pending_registration')
+            ->orderByDesc('created_at');
 
         if ($request->filled('status_filter')) {
             if ($request->status_filter === 'pending_review') {
