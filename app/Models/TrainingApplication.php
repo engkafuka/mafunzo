@@ -116,7 +116,26 @@ class TrainingApplication extends Model
             'documentation' => 'Documentation',
             'store_keeper' => 'Store Keeper',
             'collateral_manager' => 'Collateral Manager',
-            'other' => 'Other',
+            'managing_director' => 'Managing Director',
         ];
+    }
+
+    public static function positionLabel(?string $position): ?string
+    {
+        if ($position === null || $position === '') {
+            return null;
+        }
+
+        $options = self::positionOptions();
+
+        if (isset($options[$position])) {
+            return $options[$position];
+        }
+
+        if ($position === 'other') {
+            return 'Managing Director';
+        }
+
+        return str_replace('_', ' ', ucwords($position, '_'));
     }
 }

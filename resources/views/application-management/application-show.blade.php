@@ -43,7 +43,7 @@
                             @endif
                             <div><dt class="text-sm font-medium text-gray-500">{{ __('Gender') }}</dt><dd class="mt-0.5">{{ $application->gender ? __(ucfirst($application->gender)) : '—' }}</dd></div>
                             <div><dt class="text-sm font-medium text-gray-500">{{ __('Date of birth') }}</dt><dd class="mt-0.5">{{ $application->date_of_birth?->format('Y-m-d') ?? '—' }}</dd></div>
-                            <div><dt class="text-sm font-medium text-gray-500">{{ __('Position') }}</dt><dd class="mt-0.5">{{ $application->position ? __(str_replace('_', ' ', ucfirst($application->position))) : '—' }}</dd></div>
+                            <div><dt class="text-sm font-medium text-gray-500">{{ __('Position') }}</dt><dd class="mt-0.5">{{ \App\Models\TrainingApplication::positionLabel($application->position) ?? '—' }}</dd></div>
                         </dl>
                         <div class="mt-4 pt-4 border-t border-gray-200 space-y-1">
                             <div><span class="text-sm font-medium text-gray-500">{{ __('Course') }}:</span> {{ $application->course->name }}</div>

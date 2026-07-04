@@ -34,7 +34,7 @@
                             <div><dt class="font-medium text-gray-500">{{ __('District') }}</dt><dd class="mt-0.5">{{ $user->district ?? '—' }}</dd></div>
                             <div><dt class="font-medium text-gray-500">{{ __('Gender') }}</dt><dd class="mt-0.5">{{ $user->gender ? __(ucfirst($user->gender)) : '—' }}</dd></div>
                             <div><dt class="font-medium text-gray-500">{{ __('Date of birth') }}</dt><dd class="mt-0.5">{{ $user->date_of_birth?->format('Y-m-d') ?? '—' }}</dd></div>
-                            <div><dt class="font-medium text-gray-500">{{ __('Position') }}</dt><dd class="mt-0.5">{{ $user->position ? __(str_replace('_', ' ', ucfirst($user->position))) : '—' }}</dd></div>
+                            <div><dt class="font-medium text-gray-500">{{ __('Position') }}</dt><dd class="mt-0.5">{{ \App\Models\TrainingApplication::positionLabel($user->position) ?? '—' }}</dd></div>
                             <div><dt class="font-medium text-gray-500">{{ __('Company / Private') }}</dt><dd class="mt-0.5">{{ $user->company_or_private ? __(ucfirst($user->company_or_private)) : '—' }}</dd></div>
                             @if($user->company_name)
                                 <div class="sm:col-span-2"><dt class="font-medium text-gray-500">{{ __('Company name') }}</dt><dd class="mt-0.5">{{ $user->company_name }}</dd></div>
