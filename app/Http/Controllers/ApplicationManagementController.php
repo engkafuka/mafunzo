@@ -22,8 +22,12 @@ class ApplicationManagementController extends Controller
         $stats = [
             'pending_registrations' => User::where('role', 'trainee')->where('registration_status', 'pending')->count(),
             'pending_review' => TrainingApplication::where('application_review_status', 'pending')->where('status', 'payment_completed')->count(),
-            'pending_account_verify' => TrainingApplication::whereNull('account_verified_at')->where('status', 'payment_completed')->count(),
-            'pending_payment_verify' => TrainingApplication::whereNotNull('payment_completed_at')->where('status', 'pending_payment')->count(),
+            'pending_account_verify' => TrainingApplication::whereNull('account_verified_at')
+                ->whereIn('status', ['pending_payment', 'payment_completed'])
+                ->count(),
+            'pending_payment_verify' => TrainingApplication::whereNull('payment_verified_at')
+                ->whereIn('status', ['pending_payment', 'payment_completed'])
+                ->count(),
         ];
         return view('application-management.index', compact('stats'));
     }
@@ -41,9 +45,11 @@ class ApplicationManagementController extends Controller
             if ($request->status_filter === 'pending_review') {
                 $query->where('application_review_status', 'pending')->where('status', 'payment_completed');
             } elseif ($request->status_filter === 'pending_account') {
-                $query->whereNull('account_verified_at')->where('status', 'payment_completed');
+                $query->whereNull('account_verified_at')
+                    ->whereIn('status', ['pending_payment', 'payment_completed']);
             } elseif ($request->status_filter === 'pending_payment') {
-                $query->where('status', 'pending_payment');
+                $query->whereNull('payment_verified_at')
+                    ->whereIn('status', ['pending_payment', 'payment_completed']);
             }
         }
         if ($request->filled('course_id')) {
@@ -86,7 +92,13 @@ class ApplicationManagementController extends Controller
      */
     public function verifyAccount(TrainingApplication $application): RedirectResponse
     {
+        if ($application->status === 'pending_registration') {
+            return redirect()->route('app-management.applications.show', $application)
+                ->with('error', __('This application is not ready for account verification yet.'));
+        }
+
         $application->update(['account_verified_at' => now()]);
+
         return redirect()->route('app-management.applications.show', $application)->with('status', __('Account verified.'));
     }
 
@@ -95,11 +107,23 @@ class ApplicationManagementController extends Controller
      */
     public function verifyPayment(TrainingApplication $application): RedirectResponse
     {
-        $application->update([
+        if ($application->status === 'pending_registration') {
+            return redirect()->route('app-management.applications.show', $application)
+                ->with('error', __('This application is not ready for payment verification yet.'));
+        }
+
+        $updates = [
             'payment_verified_at' => now(),
             'status' => 'payment_completed',
             'payment_completed_at' => $application->payment_completed_at ?? now(),
-        ]);
+        ];
+
+        if (! $application->registration_number) {
+            $updates['registration_number'] = TrainingApplication::generateRegistrationNumber();
+        }
+
+        $application->update($updates);
+
         return redirect()->route('app-management.applications.show', $application)->with('status', __('Payment verified.'));
     }
 

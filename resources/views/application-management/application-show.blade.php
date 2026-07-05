@@ -10,6 +10,9 @@
             @if (session('status'))
                 <div class="mb-4 p-4 rounded-md bg-green-50 text-green-800">{{ session('status') }}</div>
             @endif
+            @if (session('error'))
+                <div class="mb-4 p-4 rounded-md bg-red-50 text-red-800">{{ session('error') }}</div>
+            @endif
 
             <div class="mb-4">
                 <a href="{{ route('app-management.applications') }}" class="text-indigo-600 hover:text-indigo-800">{{ __('&larr; Back to list') }}</a>
@@ -121,7 +124,7 @@
                     <div class="bg-white shadow-sm sm:rounded-lg overflow-hidden">
                         <h3 class="px-6 py-3 bg-gray-50 border-b font-medium text-gray-900">{{ __('Actions') }}</h3>
                         <div class="px-6 py-4 bg-gray-50 border-t flex flex-wrap gap-3">
-                            @if($application->status === 'payment_completed' && $application->application_review_status === 'pending')
+                            @if($application->canBeReviewedByStaff())
                                 <form method="POST" action="{{ route('app-management.applications.review', $application) }}" class="inline">
                                     @csrf
                                     <input type="hidden" name="action" value="approve">
@@ -133,17 +136,20 @@
                                     <x-danger-button type="submit">{{ __('Reject application') }}</x-danger-button>
                                 </form>
                             @endif
-                            @if($application->status === 'payment_completed' && !$application->account_verified_at)
+                            @if($application->needsAccountVerification())
                                 <form method="POST" action="{{ route('app-management.applications.verify-account', $application) }}" class="inline">
                                     @csrf
                                     <button type="submit" class="px-4 py-2 bg-amber-600 text-white rounded-md hover:bg-amber-700 text-sm">{{ __('Verify account') }}</button>
                                 </form>
                             @endif
-                            @if($application->payment_completed_at && !$application->payment_verified_at)
+                            @if($application->needsPaymentVerification())
                                 <form method="POST" action="{{ route('app-management.applications.verify-payment', $application) }}" class="inline">
                                     @csrf
                                     <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-sm">{{ __('Verify payment') }}</button>
                                 </form>
+                            @endif
+                            @if(!$application->canBeReviewedByStaff() && !$application->needsAccountVerification() && !$application->needsPaymentVerification())
+                                <p class="text-sm text-gray-500">{{ __('No pending actions. Application review, account, and payment are complete.') }}</p>
                             @endif
                         </div>
                     </div>

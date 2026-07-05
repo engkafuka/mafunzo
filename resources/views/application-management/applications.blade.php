@@ -22,7 +22,7 @@
                     <option value="">{{ __('All statuses') }}</option>
                     <option value="pending_review" {{ request('status_filter') === 'pending_review' ? 'selected' : '' }}>{{ __('Pending review') }}</option>
                     <option value="pending_account" {{ request('status_filter') === 'pending_account' ? 'selected' : '' }}>{{ __('Pending account verify') }}</option>
-                    <option value="pending_payment" {{ request('status_filter') === 'pending_payment' ? 'selected' : '' }}>{{ __('Pending payment') }}</option>
+                    <option value="pending_payment" {{ request('status_filter') === 'pending_payment' ? 'selected' : '' }}>{{ __('Pending payment verify') }}</option>
                 </select>
                 <button type="submit" class="px-3 py-1.5 bg-gray-200 rounded-md text-sm hover:bg-gray-300">{{ __('Filter') }}</button>
             </form>
@@ -50,8 +50,8 @@
                                         @if($app->application_review_status !== 'pending')
                                             <span class="text-gray-500">/ {{ $app->application_review_status }}</span>
                                         @endif
-                                        @if(!$app->account_verified_at)<span class="text-amber-600">· No account verify</span>@endif
-                                        @if(!$app->payment_verified_at && $app->payment_completed_at)<span class="text-amber-600">· No payment verify</span>@endif
+                                        @if(!$app->account_verified_at && $app->status !== 'pending_registration')<span class="text-amber-600">· {{ __('No account verify') }}</span>@endif
+                                        @if(!$app->payment_verified_at && in_array($app->status, ['pending_payment', 'payment_completed'], true))<span class="text-amber-600">· {{ __('No payment verify') }}</span>@endif
                                     </td>
                                     <td class="px-4 py-3 text-right">
                                         <a href="{{ route('app-management.applications.show', $app) }}" class="text-indigo-600 hover:text-indigo-800 font-medium text-sm">{{ __('View') }}</a>

@@ -107,6 +107,29 @@ class TrainingApplication extends Model
         return __('Results published');
     }
 
+    public function isStaffActionable(): bool
+    {
+        return $this->status !== 'pending_registration';
+    }
+
+    public function needsAccountVerification(): bool
+    {
+        return $this->isStaffActionable() && $this->account_verified_at === null;
+    }
+
+    public function needsPaymentVerification(): bool
+    {
+        return $this->isStaffActionable()
+            && $this->payment_verified_at === null
+            && in_array($this->status, ['pending_payment', 'payment_completed'], true);
+    }
+
+    public function canBeReviewedByStaff(): bool
+    {
+        return $this->status === 'payment_completed'
+            && $this->application_review_status === 'pending';
+    }
+
     public static function positionOptions(): array
     {
         return [
