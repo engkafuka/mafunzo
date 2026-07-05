@@ -8,6 +8,7 @@ use App\Support\PaginationHelper;
 use App\Support\ValidationRules;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\View\View;
 
@@ -51,7 +52,16 @@ class TrainingApplicationController extends Controller
             return redirect()->route('training.my-applications')->with('error', __('You already have a pending application for this course. Complete payment first.'));
         }
 
-        $user = $request->user();
+        $user = $request->user()->load('educationBackgrounds');
+
+        $missing = $user->missingFieldsForCourseApplication();
+        if ($missing !== []) {
+            return redirect()->route('trainee.profile.edit')
+                ->with('error', __('Complete your profile before applying. Missing: :items.', [
+                    'items' => implode(', ', $missing),
+                ]));
+        }
+
         return view('training.application-form', [
             'course' => $course,
             'user' => $user,
@@ -59,7 +69,7 @@ class TrainingApplicationController extends Controller
     }
 
     /**
-     * Store application, generate control number, redirect to payment.
+     * Store application from registration profile snapshot, redirect to payment.
      */
     public function store(Request $request): RedirectResponse
     {
@@ -75,47 +85,29 @@ class TrainingApplicationController extends Controller
             return redirect()->route('training.my-applications')->with('error', __('You already have a pending application for this course. Complete payment first.'));
         }
 
-        $validated = $request->validate([
+        $request->validate([
             'course_id' => ['required', 'exists:courses,id'],
-            'first_name' => ValidationRules::personName(),
-            'middle_name' => ValidationRules::personName(false),
-            'last_name' => ValidationRules::personName(),
-            'email' => ['required', 'email', 'max:255'],
-            'phone' => ValidationRules::phone(),
-            'region' => ['required', 'string', 'max:255'],
-            'district' => ['required', 'string', 'max:255'],
-            'company_or_private' => ['required', 'in:company,private'],
-            'company_name' => ['required_if:company_or_private,company', 'nullable', 'string', 'max:255'],
-            'company_address' => ['required_if:company_or_private,company', 'nullable', 'string', 'max:500'],
-            'gender' => ['required', 'in:male,female,other'],
-            'date_of_birth' => ['required', 'date', 'before:today'],
-            'position' => ['required', 'string', 'in:'.implode(',', array_keys(TrainingApplication::positionOptions()))],
+            'confirm_details' => ['accepted'],
         ], ValidationRules::requiredMessages(), [
-            'first_name' => __('first name'),
-            'middle_name' => __('middle name'),
-            'last_name' => __('last name'),
-            'email' => __('email'),
-            'phone' => __('phone number'),
-            'region' => __('region'),
-            'district' => __('district'),
-            'company_or_private' => __('company / private'),
-            'company_name' => __('company name'),
-            'company_address' => __('company address'),
-            'gender' => __('gender'),
-            'date_of_birth' => __('date of birth'),
-            'position' => __('position'),
+            'course_id' => __('course'),
+            'confirm_details' => __('confirmation'),
         ]);
 
-        $validated['user_id'] = $user->id;
-        $validated['status'] = 'pending_payment';
-        $validated['control_number'] = $this->generateControlNumber();
-
-        if (($validated['company_or_private'] ?? '') === 'private') {
-            $validated['company_name'] = null;
-            $validated['company_address'] = null;
+        $missing = $user->missingFieldsForCourseApplication();
+        if ($missing !== []) {
+            return redirect()->route('trainee.profile.edit')
+                ->with('error', __('Complete your profile before applying. Missing: :items.', [
+                    'items' => implode(', ', $missing),
+                ]));
         }
 
-        $application = TrainingApplication::create($validated);
+        $application = TrainingApplication::create([
+            ...$user->applicationSnapshotAttributes(),
+            'user_id' => $user->id,
+            'course_id' => $course->id,
+            'status' => 'pending_payment',
+            'control_number' => $this->generateControlNumber(),
+        ]);
 
         return redirect()->route('training.payment', $application);
     }
@@ -144,17 +136,26 @@ class TrainingApplicationController extends Controller
         if ($application->user_id !== auth()->id()) {
             abort(403);
         }
-        if ($application->status === 'payment_completed') {
-            return redirect()->route('training.confirmation', $application);
-        }
 
-        $application->update([
-            'status' => 'payment_completed',
-            'payment_completed_at' => now(),
-            'registration_number' => $this->generateRegistrationNumber(),
-        ]);
+        DB::transaction(function () use ($application) {
+            $application = TrainingApplication::query()
+                ->whereKey($application->id)
+                ->lockForUpdate()
+                ->firstOrFail();
 
-        return redirect()->route('training.confirmation', $application);
+            if ($application->status === 'payment_completed') {
+                return;
+            }
+
+            $application->update([
+                'status' => 'payment_completed',
+                'payment_completed_at' => now(),
+                'registration_number' => $application->registration_number
+                    ?? TrainingApplication::generateRegistrationNumber(),
+            ]);
+        });
+
+        return redirect()->route('training.confirmation', $application->fresh());
     }
 
     /**
@@ -233,16 +234,5 @@ class TrainingApplicationController extends Controller
             $number = strtoupper(Str::random(2)) . date('Ymd') . str_pad((string) random_int(0, 9999), 4, '0', STR_PAD_LEFT);
         } while (TrainingApplication::where('control_number', $number)->exists());
         return $number;
-    }
-
-    private function generateRegistrationNumber(): string
-    {
-        $year = date('Y');
-        $last = TrainingApplication::whereNotNull('registration_number')
-            ->whereYear('payment_completed_at', $year)
-            ->orderByDesc('id')
-            ->first();
-        $seq = $last ? (int) substr($last->registration_number, -4) + 1 : 1;
-        return sprintf('WRRB/%s/1/%04d', $year, $seq);
     }
 }

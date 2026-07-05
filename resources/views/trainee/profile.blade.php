@@ -10,6 +10,9 @@
             @if (session('status'))
                 <div class="mb-4 p-4 rounded-md bg-green-50 text-green-800">{{ session('status') }}</div>
             @endif
+            @if (session('error'))
+                <div class="mb-4 p-4 rounded-md bg-red-50 text-red-800">{{ session('error') }}</div>
+            @endif
 
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 {{-- Left column: Personal info + Education list --}}
@@ -17,28 +20,8 @@
             {{-- Personal information --}}
             <div class="bg-white shadow-sm sm:rounded-lg p-6">
                 <h3 class="font-medium text-gray-900 mb-4">{{ __('Personal information') }}</h3>
-                <dl class="grid gap-3 sm:grid-cols-2">
-                    <div>
-                        <dt class="text-sm font-medium text-gray-500">{{ __('First name') }}</dt>
-                        <dd class="mt-0.5 text-gray-900">{{ $user->first_name ?? '—' }}</dd>
-                    </div>
-                    <div>
-                        <dt class="text-sm font-medium text-gray-500">{{ __('Middle name') }}</dt>
-                        <dd class="mt-0.5 text-gray-900">{{ $user->middle_name ?? '—' }}</dd>
-                    </div>
-                    <div>
-                        <dt class="text-sm font-medium text-gray-500">{{ __('Last name') }}</dt>
-                        <dd class="mt-0.5 text-gray-900">{{ $user->last_name ?? '—' }}</dd>
-                    </div>
-                    <div>
-                        <dt class="text-sm font-medium text-gray-500">{{ __('Email') }}</dt>
-                        <dd class="mt-0.5 text-gray-900">{{ $user->email }}</dd>
-                    </div>
-                    <div>
-                        <dt class="text-sm font-medium text-gray-500">{{ __('Phone') }}</dt>
-                        <dd class="mt-0.5 text-gray-900">{{ $user->phone ?? '—' }}</dd>
-                    </div>
-                </dl>
+                <p class="text-sm text-gray-500 mb-4">{{ __('Saved from your registration. Used when you apply for training courses.') }}</p>
+                <x-trainee-profile-summary :user="$user" :show-education="false" />
             </div>
 
             {{-- Education backgrounds --}}

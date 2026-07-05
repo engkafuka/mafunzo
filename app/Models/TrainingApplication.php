@@ -138,4 +138,27 @@ class TrainingApplication extends Model
 
         return str_replace('_', ' ', ucwords($position, '_'));
     }
+
+    /**
+     * Next unique registration number for the current year (WRRB/YYYY/1/XXXX).
+     */
+    public static function generateRegistrationNumber(): string
+    {
+        $year = date('Y');
+        $prefix = "WRRB/{$year}/1/";
+
+        $maxSeq = static::query()
+            ->whereNotNull('registration_number')
+            ->where('registration_number', 'like', $prefix.'%')
+            ->pluck('registration_number')
+            ->map(fn (string $number) => (int) substr($number, -4))
+            ->max() ?? 0;
+
+        do {
+            $maxSeq++;
+            $candidate = sprintf('WRRB/%s/1/%04d', $year, $maxSeq);
+        } while (static::where('registration_number', $candidate)->exists());
+
+        return $candidate;
+    }
 }

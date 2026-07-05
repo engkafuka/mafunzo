@@ -28,7 +28,7 @@ class ValidationRules
     {
         $requirements = __('At least 6 characters, with uppercase and lowercase letters, a number, and a symbol.');
 
-        if (! app()->environment('local', 'testing')) {
+        if (filter_var(env('PASSWORD_UNCOMPROMISED', false), FILTER_VALIDATE_BOOL)) {
             $requirements .= ' '.__('Must not be a commonly used or compromised password.');
         }
 

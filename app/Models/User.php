@@ -125,10 +125,91 @@ class User extends Authenticatable
         if ($this->role !== 'trainee') {
             return true;
         }
-        if ($this->profile_completed_at) {
-            return true;
+
+        return $this->isReadyToApplyForCourse();
+    }
+
+    /**
+     * Personal profile fields required before applying for a course.
+     *
+     * @return list<string> Human-readable missing field labels
+     */
+    public function missingFieldsForCourseApplication(): array
+    {
+        if ($this->role !== 'trainee') {
+            return [];
         }
-        return $this->educationBackgrounds()->whereNotNull('certificate_path')->exists();
+
+        $missing = [];
+
+        $required = [
+            'first_name' => __('first name'),
+            'last_name' => __('last name'),
+            'email' => __('email'),
+            'phone' => __('phone number'),
+            'region' => __('region'),
+            'district' => __('district'),
+            'gender' => __('gender'),
+            'date_of_birth' => __('date of birth'),
+            'position' => __('position'),
+            'company_or_private' => __('company / private'),
+        ];
+
+        foreach ($required as $field => $label) {
+            if (! filled($this->{$field})) {
+                $missing[] = $label;
+            }
+        }
+
+        if ($this->company_or_private === 'company') {
+            if (! filled($this->company_name)) {
+                $missing[] = __('company name');
+            }
+            if (! filled($this->company_address)) {
+                $missing[] = __('company address');
+            }
+        }
+
+        if ($this->position && ! array_key_exists($this->position, TrainingApplication::positionOptions())) {
+            $missing[] = __('valid position');
+        }
+
+        if ($this->isNewApplicant() && ! $this->educationBackgrounds()->whereNotNull('certificate_path')->exists()) {
+            $missing[] = __('education background with certificate');
+        }
+
+        return $missing;
+    }
+
+    public function isReadyToApplyForCourse(): bool
+    {
+        return $this->missingFieldsForCourseApplication() === [];
+    }
+
+    /**
+     * Copy current user profile into a new training application snapshot.
+     *
+     * @return array<string, mixed>
+     */
+    public function applicationSnapshotAttributes(): array
+    {
+        $isCompany = $this->company_or_private === 'company';
+
+        return [
+            'first_name' => $this->first_name,
+            'middle_name' => $this->middle_name,
+            'last_name' => $this->last_name,
+            'email' => $this->email,
+            'phone' => $this->phone,
+            'region' => $this->region,
+            'district' => $this->district,
+            'company_or_private' => $this->company_or_private,
+            'company_name' => $isCompany ? $this->company_name : null,
+            'company_address' => $isCompany ? $this->company_address : null,
+            'gender' => $this->gender,
+            'date_of_birth' => $this->date_of_birth,
+            'position' => $this->position,
+        ];
     }
 
     public function trainingApplications()

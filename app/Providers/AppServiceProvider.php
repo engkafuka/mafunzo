@@ -27,7 +27,9 @@ class AppServiceProvider extends ServiceProvider
                 ->numbers()
                 ->symbols();
 
-            if (! $this->app->environment('local', 'testing')) {
+            // Optional: checks Have I Been Pwned over HTTPS. Disable on servers without
+            // outbound internet or CA certificates (otherwise registration/user forms may hang → 504).
+            if (filter_var(env('PASSWORD_UNCOMPROMISED', false), FILTER_VALIDATE_BOOL)) {
                 $rule->uncompromised();
             }
 
