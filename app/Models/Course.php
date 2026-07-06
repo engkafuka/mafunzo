@@ -2,12 +2,14 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\Auditable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Carbon;
 
 class Course extends Model
 {
+    use Auditable;
     protected $fillable = [
         'name',
         'code',

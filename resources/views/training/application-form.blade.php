@@ -5,8 +5,8 @@
         </h2>
     </x-slot>
 
-    <div class="py-12">
-        <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
+    <div class="page-shell">
+        <div class="page-inner-7xl">
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
                     <div class="px-6 py-4 bg-gray-50 border-b border-gray-200">
@@ -40,8 +40,8 @@
                             </label>
                             <x-input-error :messages="$errors->get('confirm_details')" class="mt-1" />
 
-                            <div class="flex items-center justify-between pt-2">
-                                <a href="{{ route('training.select-course') }}" class="text-gray-600 hover:text-gray-900">
+                            <div class="form-actions pt-2">
+                                <a href="{{ route('training.select-course') }}" class="text-gray-600 hover:text-gray-900 text-center sm:text-left">
                                     {{ __('Back to courses') }}
                                 </a>
                                 <x-primary-button type="submit">{{ __('Submit Application') }}</x-primary-button>

@@ -4,10 +4,14 @@ namespace App\Http\Controllers;
 
 use App\Models\Course;
 use App\Models\TrainingApplication;
+use App\Support\AuditLogger;
+use App\Support\ExamResultsExporter;
 use App\Support\PaginationHelper;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
 use Illuminate\View\View;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class ExamResultsController extends Controller
 {
@@ -16,6 +20,7 @@ class ExamResultsController extends Controller
         $courseId = $request->query('course_id');
         $courses = Course::orderBy('name')->get();
         $applications = collect();
+        $examStats = null;
 
         if ($courseId) {
             $applications = TrainingApplication::with('course')
@@ -24,11 +29,32 @@ class ExamResultsController extends Controller
                 ->orderBy('registration_number')
                 ->paginate(PaginationHelper::PER_PAGE)
                 ->withQueryString();
+
+            $baseQuery = TrainingApplication::query()
+                ->where('course_id', $courseId)
+                ->where('status', 'payment_completed');
+
+            $examStats = [
+                'recorded' => (clone $baseQuery)->whereNotNull('exam_uploaded_at')->count(),
+                'awaiting_publish' => (clone $baseQuery)
+                    ->whereNotNull('exam_uploaded_at')
+                    ->whereNull('exam_results_published_at')
+                    ->count(),
+                'published' => (clone $baseQuery)->whereNotNull('exam_results_published_at')->count(),
+            ];
         }
 
         $isTrainerPortal = $request->routeIs('trainer.*');
+        $canPublish = auth()->user()?->isAdminOrSuperAdmin() ?? false;
 
-        return view('application-management.exam-results', compact('applications', 'courses', 'courseId', 'isTrainerPortal'));
+        return view('application-management.exam-results', compact(
+            'applications',
+            'courses',
+            'courseId',
+            'isTrainerPortal',
+            'canPublish',
+            'examStats',
+        ));
     }
 
     public function store(Request $request): RedirectResponse
@@ -41,6 +67,7 @@ class ExamResultsController extends Controller
         ]);
 
         $courseId = null;
+        $savedCount = 0;
 
         foreach ($request->results as $row) {
             $application = TrainingApplication::find($row['id'] ?? 0);
@@ -51,16 +78,99 @@ class ExamResultsController extends Controller
 
             $courseId = $application->course_id;
 
+            $score = isset($row['exam_score']) && $row['exam_score'] !== '' ? (float) $row['exam_score'] : null;
+            $passed = isset($row['exam_passed']) && $row['exam_passed'] !== '' ? (bool) (int) $row['exam_passed'] : null;
+
+            $scoreChanged = $application->exam_score != $score;
+            $passedChanged = $application->exam_passed !== $passed;
+
             $application->update([
-                'exam_score' => isset($row['exam_score']) && $row['exam_score'] !== '' ? (float) $row['exam_score'] : null,
-                'exam_passed' => isset($row['exam_passed']) && $row['exam_passed'] !== '' ? (bool) (int) $row['exam_passed'] : null,
+                'exam_score' => $score,
+                'exam_passed' => $passed,
                 'exam_uploaded_at' => now(),
+                'exam_results_published_at' => ($scoreChanged || $passedChanged)
+                    ? null
+                    : $application->exam_results_published_at,
             ]);
+
+            $savedCount++;
         }
 
         $redirectRoute = $request->routeIs('trainer.*') ? 'trainer.exam-results' : 'app-management.exam-results';
 
+        $message = auth()->user()?->isAdminOrSuperAdmin()
+            ? __('Exam results saved. Publish when ready for trainees to view them.')
+            : __('Exam results saved. An administrator must publish them before trainees can view the results.');
+
+        if ($savedCount === 0) {
+            $message = __('No exam results were saved.');
+        }
+
         return redirect()->route($redirectRoute, ['course_id' => $courseId])
-            ->with('status', __('Exam results saved.'));
+            ->with('status', $message);
+    }
+
+    public function publish(Request $request): RedirectResponse
+    {
+        $this->authorizeAdmin();
+
+        $request->validate([
+            'course_id' => ['required', 'exists:courses,id'],
+        ]);
+
+        $course = Course::findOrFail($request->integer('course_id'));
+
+        $updated = TrainingApplication::query()
+            ->where('course_id', $course->id)
+            ->where('status', 'payment_completed')
+            ->whereNotNull('exam_uploaded_at')
+            ->whereNull('exam_results_published_at')
+            ->update(['exam_results_published_at' => now()]);
+
+        if ($updated === 0) {
+            return redirect()
+                ->route('app-management.exam-results', ['course_id' => $course->id])
+                ->with('error', __('No saved examination results are waiting to be published for this course.'));
+        }
+
+        AuditLogger::logAction(
+            __('Published examination results for :course', ['course' => $course->name]),
+            $course,
+            null,
+            ['published_count' => $updated],
+        );
+
+        return redirect()
+            ->route('app-management.exam-results', ['course_id' => $course->id])
+            ->with('status', __(':count examination result(s) published. Trainees can now view their results.', ['count' => $updated]));
+    }
+
+    public function exportPdf(Request $request): Response
+    {
+        $this->authorizeAdmin();
+
+        $request->validate([
+            'course_id' => ['required', 'exists:courses,id'],
+        ]);
+
+        return ExamResultsExporter::exportPdf($request->integer('course_id'));
+    }
+
+    public function exportExcel(Request $request): StreamedResponse
+    {
+        $this->authorizeAdmin();
+
+        $request->validate([
+            'course_id' => ['required', 'exists:courses,id'],
+        ]);
+
+        return ExamResultsExporter::exportExcel($request->integer('course_id'));
+    }
+
+    private function authorizeAdmin(): void
+    {
+        if (! auth()->user()?->isAdminOrSuperAdmin()) {
+            abort(403);
+        }
     }
 }

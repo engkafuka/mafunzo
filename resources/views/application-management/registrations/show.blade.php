@@ -5,8 +5,8 @@
         </h2>
     </x-slot>
 
-    <div class="py-12">
-        <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
+    <div class="page-shell">
+        <div class="page-inner-7xl">
             @if (session('status'))
                 <div class="mb-4 p-4 rounded-md bg-green-50 text-green-800">{{ session('status') }}</div>
             @endif

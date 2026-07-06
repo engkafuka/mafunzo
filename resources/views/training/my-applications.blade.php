@@ -5,8 +5,8 @@
         </h2>
     </x-slot>
 
-    <div class="py-12">
-        <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
+    <div class="page-shell">
+        <div class="page-inner-7xl">
             <div class="mb-4">
                 <a href="{{ route('training.select-course') }}" class="inline-flex items-center px-4 py-2 bg-indigo-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-indigo-700">
                     {{ __('Apply for new training') }}
@@ -57,6 +57,8 @@
                                         @if($app->exam_score !== null)
                                             · {{ number_format((float) $app->exam_score, 2) }}%
                                         @endif
+                                    @elseif($app->hasRecordedExamResults())
+                                        {{ __('Results recorded — pending publication') }}
                                     @else
                                         {{ __('Awaiting results') }}
                                     @endif

@@ -5,8 +5,8 @@
         </h2>
     </x-slot>
 
-    <div class="py-12">
-        <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
+    <div class="page-shell">
+        <div class="page-inner-7xl">
             <div class="mb-4">
                 <a href="{{ route('app-management.index') }}" class="text-indigo-600 hover:text-indigo-800">{{ __('&larr; Back to Application Management') }}</a>
             </div>
@@ -45,6 +45,7 @@
             </form>
 
             <div class="bg-white shadow-sm sm:rounded-lg overflow-hidden">
+                <x-responsive-table>
                 <table class="min-w-full divide-y divide-gray-200">
                     <thead class="bg-gray-50">
                         <tr>
@@ -71,6 +72,7 @@
                         @endforelse
                     </tbody>
                 </table>
+                </x-responsive-table>
                 @if($sessions->hasPages())
                     <x-table-pagination :paginator="$sessions" />
                 @endif

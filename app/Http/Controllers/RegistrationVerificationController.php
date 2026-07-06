@@ -80,6 +80,7 @@ class RegistrationVerificationController extends Controller
                     'payment_completed_at' => now(),
                     'exam_passed' => true,
                     'exam_uploaded_at' => now(),
+                    'exam_results_published_at' => now(),
                     'registration_number' => $legacyApplication->legacy_registration_number,
                     'certificate_issued_at' => now(),
                 ]);

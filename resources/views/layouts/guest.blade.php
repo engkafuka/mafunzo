@@ -18,24 +18,24 @@
     </head>
     <body class="font-sans text-gray-900 antialiased">
         @if($register ?? false)
-            <div class="min-h-screen flex flex-col items-center justify-center py-8 px-4 sm:px-6 bg-gradient-to-br from-slate-100 via-gray-50 to-[#0a71ab]/10">
-                <h1 class="w-full max-w-xl text-center text-lg sm:text-xl font-bold uppercase tracking-wide text-[#0a71ab]">
+            <div class="min-h-screen flex flex-col items-center justify-center py-6 sm:py-8 px-4 sm:px-6 bg-gradient-to-br from-slate-100 via-gray-50 to-[#0a71ab]/10">
+                <h1 class="w-full max-w-3xl text-center text-base sm:text-lg md:text-xl font-bold uppercase tracking-wide text-[#0a71ab] px-2">
                     {{ __('WRRB TRAINING REGISTRATION FORM') }}
                 </h1>
-                <div class="w-full max-w-xl mt-4">
+                <div class="w-full max-w-3xl mt-4 min-w-0">
                     {{ $slot }}
                 </div>
             </div>
         @else
-            <div class="min-h-screen flex flex-col sm:justify-center items-center pt-6 sm:pt-0 bg-gray-100">
+            <div class="min-h-screen flex flex-col sm:justify-center items-center pt-6 sm:pt-0 px-4 sm:px-0 bg-gray-100">
                 <div>
                     <a href="/">
-                        <x-application-logo class="h-12 w-12 sm:h-14 sm:w-14" />
+                        <x-application-logo class="h-11 w-11 sm:h-14 sm:w-14" />
                     </a>
                 </div>
 
                 <div @class([
-                    'w-full mt-6 px-6 py-4 bg-white shadow-md overflow-hidden sm:rounded-lg',
+                    'w-full min-w-0 mt-6 px-4 sm:px-6 py-4 bg-white shadow-md overflow-hidden sm:rounded-lg',
                     'sm:max-w-3xl' => $wide ?? false,
                     'sm:max-w-md' => ! ($wide ?? false),
                 ])>

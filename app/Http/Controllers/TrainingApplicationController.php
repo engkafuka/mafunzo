@@ -193,7 +193,7 @@ class TrainingApplicationController extends Controller
             ->trainingApplications()
             ->with('course')
             ->where('status', 'payment_completed')
-            ->whereNotNull('exam_uploaded_at')
+            ->whereNotNull('exam_results_published_at')
             ->latest()
             ->paginate(PaginationHelper::PER_PAGE, ['*'], 'published_page')
             ->withQueryString();
@@ -202,7 +202,7 @@ class TrainingApplicationController extends Controller
             ->trainingApplications()
             ->with('course')
             ->where('status', 'payment_completed')
-            ->whereNull('exam_uploaded_at')
+            ->whereNull('exam_results_published_at')
             ->latest()
             ->paginate(PaginationHelper::PER_PAGE, ['*'], 'awaiting_page')
             ->withQueryString();

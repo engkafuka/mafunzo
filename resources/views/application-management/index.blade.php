@@ -5,9 +5,9 @@
         </h2>
     </x-slot>
 
-    <div class="py-12">
-        <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
-            <div class="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+    <div class="page-shell">
+        <div class="page-inner-7xl">
+            <div class="card-grid-4">
                 <a href="{{ route('app-management.registrations.index') }}" class="block p-6 bg-white rounded-lg shadow hover:shadow-md border border-gray-200">
                     <h3 class="text-lg font-semibold text-gray-900">{{ __('Registration verification') }}</h3>
                     <p class="mt-1 text-sm text-gray-600">{{ __('Review and approve new trainee registrations.') }}</p>

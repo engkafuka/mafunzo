@@ -53,8 +53,8 @@
         $hasExistingTrainingCertificate = $legacyApplication?->certificate_path;
     @endphp
 
-    <div class="py-12">
-        <div class="max-w-3xl mx-auto sm:px-6 lg:px-8">
+    <div class="page-shell">
+        <div class="page-inner-3xl">
             <div class="bg-white shadow-sm sm:rounded-lg overflow-hidden"
                  @if($user->isNewApplicant())
                  x-data='{

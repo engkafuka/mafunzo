@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\ApplicationManagementController;
+use App\Http\Controllers\AuditLogController;
 use App\Http\Controllers\CourseController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ExamResultsController;
@@ -37,6 +38,7 @@ Route::middleware('auth')->group(function () {
     // Trainee profile and training (requires staff-approved registration)
     Route::middleware('registration.approved')->group(function () {
         Route::get('/trainee/profile', [TraineeProfileController::class, 'edit'])->name('trainee.profile.edit');
+        Route::put('/trainee/profile', [TraineeProfileController::class, 'update'])->name('trainee.profile.update');
         Route::post('/trainee/profile', [TraineeProfileController::class, 'store'])->name('trainee.profile.store');
         Route::get('/trainee/profile/certificate/{educationBackground}', [TraineeProfileController::class, 'showCertificate'])->name('trainee.profile.certificate');
 
@@ -75,6 +77,11 @@ Route::middleware('auth')->group(function () {
         Route::post('courses/{course}/publish', [CourseController::class, 'publish'])->name('courses.publish');
         Route::post('courses/{course}/unpublish', [CourseController::class, 'unpublish'])->name('courses.unpublish');
         Route::post('courses/{course}/new-session', [CourseController::class, 'newSession'])->name('courses.new-session');
+        Route::get('audit-logs', [AuditLogController::class, 'index'])->name('audit-logs.index');
+        Route::get('audit-logs/{auditLog}', [AuditLogController::class, 'show'])->name('audit-logs.show');
+        Route::post('application-management/exam-results/publish', [ExamResultsController::class, 'publish'])->name('app-management.exam-results.publish');
+        Route::get('application-management/exam-results/export/pdf', [ExamResultsController::class, 'exportPdf'])->name('app-management.exam-results.export.pdf');
+        Route::get('application-management/exam-results/export/excel', [ExamResultsController::class, 'exportExcel'])->name('app-management.exam-results.export.excel');
     });
 
     // Application management: super_admin, admin, staff

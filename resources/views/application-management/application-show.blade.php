@@ -5,8 +5,8 @@
         </h2>
     </x-slot>
 
-    <div class="py-12">
-        <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
+    <div class="page-shell">
+        <div class="page-inner-7xl">
             @if (session('status'))
                 <div class="mb-4 p-4 rounded-md bg-green-50 text-green-800">{{ session('status') }}</div>
             @endif
@@ -123,7 +123,7 @@
 
                     <div class="bg-white shadow-sm sm:rounded-lg overflow-hidden">
                         <h3 class="px-6 py-3 bg-gray-50 border-b font-medium text-gray-900">{{ __('Actions') }}</h3>
-                        <div class="px-6 py-4 bg-gray-50 border-t flex flex-wrap gap-3">
+                        <div class="px-4 sm:px-6 py-4 bg-gray-50 border-t form-actions">
                             @if($application->canBeReviewedByStaff())
                                 <form method="POST" action="{{ route('app-management.applications.review', $application) }}" class="inline">
                                     @csrf

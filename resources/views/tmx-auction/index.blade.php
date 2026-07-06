@@ -6,7 +6,7 @@
     </x-slot>
 
     <div class="py-8">
-        <div class="max-w-7xl mx-auto sm:px-6 lg:px-8 space-y-6">
+        <div class="page-inner-7xl space-y-6">
             <p class="text-gray-600 text-sm">
                 {{ __('Pull auction updates from TMX (Mode B). Use filters and click Fetch to load data.') }}
             </p>

@@ -6,7 +6,7 @@
                 <!-- Logo -->
                 <div class="shrink-0 flex items-center">
                     <a href="{{ route('dashboard') }}">
-                        <x-application-logo class="h-12 w-12 sm:h-14 sm:w-14" />
+                        <x-application-logo class="h-10 w-10 sm:h-12 sm:w-12 md:h-14 md:w-14" />
                     </a>
                 </div>
 
@@ -36,6 +36,9 @@
                         </x-nav-link>
                         <x-nav-link :href="route('courses.index')" :active="request()->routeIs('courses.*')">
                             {{ __('Course Management') }}
+                        </x-nav-link>
+                        <x-nav-link :href="route('audit-logs.index')" :active="request()->routeIs('audit-logs.*')">
+                            {{ __('Audit Trail') }}
                         </x-nav-link>
                     @endif
                     @if(in_array(Auth::user()->role, ['super_admin', 'admin', 'staff']))
@@ -142,6 +145,9 @@
                 </x-responsive-nav-link>
                 <x-responsive-nav-link :href="route('courses.index')" :active="request()->routeIs('courses.*')">
                     {{ __('Course Management') }}
+                </x-responsive-nav-link>
+                <x-responsive-nav-link :href="route('audit-logs.index')" :active="request()->routeIs('audit-logs.*')">
+                    {{ __('Audit Trail') }}
                 </x-responsive-nav-link>
             @endif
             @if(in_array(Auth::user()->role, ['super_admin', 'admin', 'staff']))

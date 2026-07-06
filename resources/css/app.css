@@ -1,3 +1,101 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@layer base {
+    html {
+        -webkit-text-size-adjust: 100%;
+        text-size-adjust: 100%;
+    }
+
+    body {
+        @apply overflow-x-hidden;
+    }
+
+    img,
+    video,
+    iframe {
+        @apply max-w-full h-auto;
+    }
+}
+
+@layer components {
+    /* Standard authenticated page wrapper */
+    .page-shell {
+        @apply py-6 sm:py-8 lg:py-12;
+    }
+
+    .page-inner {
+        @apply mx-auto w-full min-w-0 px-4 sm:px-6 lg:px-8;
+    }
+
+    .page-inner-7xl {
+        @apply page-inner max-w-7xl;
+    }
+
+    .page-inner-6xl {
+        @apply page-inner max-w-6xl;
+    }
+
+    .page-inner-4xl {
+        @apply page-inner max-w-4xl;
+    }
+
+    .page-inner-3xl {
+        @apply page-inner max-w-3xl;
+    }
+
+    /* Horizontal scroll for wide tables on phones */
+    .table-responsive {
+        @apply w-full overflow-x-auto overscroll-x-contain;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .table-responsive table {
+        @apply min-w-full;
+    }
+
+    /* Card grids for dashboards */
+    .card-grid {
+        @apply grid grid-cols-1 gap-4 sm:gap-6 sm:grid-cols-2 lg:grid-cols-3;
+    }
+
+    .card-grid-4 {
+        @apply grid grid-cols-1 gap-4 sm:gap-6 sm:grid-cols-2 lg:grid-cols-4;
+    }
+
+    /* Touch-friendly actions */
+    .btn-touch {
+        @apply min-h-[44px] inline-flex items-center justify-center;
+    }
+
+    /* Stack form actions on narrow screens */
+    .form-actions {
+        @apply flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-between;
+    }
+
+    /* Filter bars */
+    .filter-bar {
+        @apply flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center;
+    }
+
+    .filter-bar select,
+    .filter-bar input[type="search"],
+    .filter-bar input[type="text"] {
+        @apply w-full sm:w-auto min-w-0;
+    }
+
+    /* Page title in layout header */
+    .page-title {
+        @apply text-lg sm:text-xl font-semibold text-gray-800 leading-snug break-words;
+    }
+
+    /* Pagination row on small screens */
+    .pagination-responsive {
+        @apply overflow-x-auto overscroll-x-contain;
+    }
+
+    .pagination-responsive nav {
+        @apply flex justify-start sm:justify-end min-w-max sm:min-w-0;
+    }
+}

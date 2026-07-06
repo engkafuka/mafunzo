@@ -5,8 +5,8 @@
         </h2>
     </x-slot>
 
-    <div class="py-12">
-        <div class="max-w-7xl mx-auto sm:px-6 lg:px-8 space-y-6">
+    <div class="page-shell">
+        <div class="page-inner-7xl space-y-6">
             @if(Auth::user()->role === 'trainee')
                 @if(Auth::user()->canResubmitRegistration())
                     <div class="mb-6 p-4 rounded-lg bg-red-50 border border-red-200 text-red-900">
@@ -115,7 +115,7 @@
                 </div>
                 @endif
             @elseif(Auth::user()->isTrainer())
-                <div class="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+                <div class="grid gap-4 sm:gap-6 sm:grid-cols-2 lg:grid-cols-3">
                     <a href="{{ route('trainer.exam-results') }}" class="block p-6 bg-white rounded-lg shadow hover:shadow-md border border-gray-200">
                         <h3 class="text-lg font-semibold text-gray-900">{{ __('Examination marks') }}</h3>
                         <p class="mt-1 text-sm text-gray-600">{{ __('Select a course and record examination scores and pass/fail results for trainees.') }}</p>
@@ -123,7 +123,7 @@
                 </div>
             @elseif(in_array(Auth::user()->role, ['super_admin', 'admin', 'staff']))
                 {{-- Admin / staff dashboard --}}
-                <div class="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+                <div class="grid gap-4 sm:gap-6 sm:grid-cols-2 lg:grid-cols-3">
                     @if(in_array(Auth::user()->role, ['super_admin', 'admin']))
                         <a href="{{ route('users.index') }}" class="block p-6 bg-white rounded-lg shadow hover:shadow-md border border-gray-200">
                             <h3 class="text-lg font-semibold text-gray-900">{{ __('User Management') }}</h3>
@@ -135,6 +135,10 @@
                             @if(isset($courseStats))
                                 <p class="mt-2 text-indigo-600 font-medium">{{ $courseStats['published'] }} {{ __('published') }} / {{ $courseStats['total'] }} {{ __('total') }}</p>
                             @endif
+                        </a>
+                        <a href="{{ route('audit-logs.index') }}" class="block p-6 bg-white rounded-lg shadow hover:shadow-md border border-gray-200">
+                            <h3 class="text-lg font-semibold text-gray-900">{{ __('Audit Trail') }}</h3>
+                            <p class="mt-1 text-sm text-gray-600">{{ __('Review who changed users, courses, applications, and other system records.') }}</p>
                         </a>
                     @endif
                     <a href="{{ route('app-management.index') }}" class="block p-6 bg-white rounded-lg shadow hover:shadow-md border border-gray-200">

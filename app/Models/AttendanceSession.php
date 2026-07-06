@@ -2,11 +2,13 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\Auditable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Str;
 
 class AttendanceSession extends Model
 {
+    use Auditable;
     protected $fillable = ['course_id', 'name', 'session_date', 'qr_token'];
 
     protected function casts(): array

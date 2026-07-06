@@ -2,20 +2,23 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Course;
 use App\Models\EducationBackground;
+use App\Models\TrainingApplication;
+use App\Support\NewApplicantRegistrationRules;
 use App\Support\PaginationHelper;
+use App\Support\TrainedPersonRegistrationRules;
+use App\Support\TraineeProfileUpdater;
 use App\Support\ValidationRules;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\View\View;
 use Symfony\Component\HttpFoundation\Response;
 
 class TraineeProfileController extends Controller
 {
-    /**
-     * Show trainee profile form (education background). Trainee only.
-     */
     public function edit(Request $request): View|RedirectResponse
     {
         $user = $request->user();
@@ -23,17 +26,40 @@ class TraineeProfileController extends Controller
             return redirect()->route('dashboard');
         }
 
+        $user->load('educationBackgrounds');
+
+        $legacyApplication = $user->isTrainedPerson()
+            ? $user->trainingApplications()
+                ->where('application_type', 'legacy_expert')
+                ->latest()
+                ->first()
+            : null;
+
+        $courses = Course::orderByDesc('session_year')->orderBy('name')->get();
+
         $educationBackgrounds = $user->educationBackgrounds()
             ->orderByDesc('created_at')
             ->paginate(PaginationHelper::PER_PAGE)
             ->withQueryString();
 
-        return view('trainee.profile', compact('user', 'educationBackgrounds'));
+        return view('trainee.profile', compact('user', 'educationBackgrounds', 'legacyApplication', 'courses'));
     }
 
-    /**
-     * Preview certificate document (inline in browser). Owner or admin/staff only.
-     */
+    public function update(Request $request): RedirectResponse
+    {
+        $user = $request->user();
+
+        if ($user->role !== 'trainee') {
+            return redirect()->route('dashboard');
+        }
+
+        if ($user->isTrainedPerson()) {
+            return $this->updateTrainedPersonProfile($request, $user);
+        }
+
+        return $this->updateNewApplicantProfile($request, $user);
+    }
+
     public function showCertificate(Request $request, EducationBackground $educationBackground): Response|RedirectResponse
     {
         $user = $request->user();
@@ -60,13 +86,10 @@ class TraineeProfileController extends Controller
 
         return response()->file($path, [
             'Content-Type' => $mime,
-            'Content-Disposition' => 'inline; filename="' . basename($educationBackground->certificate_path) . '"',
+            'Content-Disposition' => 'inline; filename="'.basename($educationBackground->certificate_path).'"',
         ]);
     }
 
-    /**
-     * Store education background with certificate (certified by advocate).
-     */
     public function store(Request $request): RedirectResponse
     {
         $user = $request->user();
@@ -101,6 +124,67 @@ class TraineeProfileController extends Controller
 
         $user->update(['profile_completed_at' => now()]);
 
-        return redirect()->route('trainee.profile.edit')->with('status', __('Education background added. You may add more or go to the dashboard.'));
+        return redirect()->route('trainee.profile.edit')->with('status', __('Education background added.'));
+    }
+
+    private function updateNewApplicantProfile(Request $request, $user): RedirectResponse
+    {
+        $rules = array_merge(
+            NewApplicantRegistrationRules::personalRules($user->id),
+            NewApplicantRegistrationRules::educationRules(certificatesRequired: false),
+        );
+
+        $validated = $request->validate(
+            $rules,
+            ValidationRules::registrationMessages(),
+            NewApplicantRegistrationRules::attributeNames(),
+        );
+
+        NewApplicantRegistrationRules::validateEducationRows($request, certificatesRequired: false);
+
+        DB::transaction(function () use ($request, $validated, $user) {
+            TraineeProfileUpdater::updatePersonalDetails($user, $validated);
+            $user->update(['profile_completed_at' => now()]);
+            TraineeProfileUpdater::syncEducationBackgrounds($user, $request, $validated['education']);
+        });
+
+        return redirect()->route('trainee.profile.edit')->with('status', __('Profile updated successfully.'));
+    }
+
+    private function updateTrainedPersonProfile(Request $request, $user): RedirectResponse
+    {
+        $legacyApplication = $user->trainingApplications()
+            ->where('application_type', 'legacy_expert')
+            ->latest()
+            ->first();
+
+        if (! $legacyApplication) {
+            return redirect()->route('trainee.profile.edit')
+                ->with('error', __('Your previous training record could not be found. Please contact WRRB staff.'));
+        }
+
+        $rules = array_merge(
+            NewApplicantRegistrationRules::personalRules($user->id),
+            TrainedPersonRegistrationRules::trainingRules(certificatesRequired: false),
+        );
+
+        $validated = $request->validate(
+            $rules,
+            ValidationRules::registrationMessages(),
+            array_merge(NewApplicantRegistrationRules::attributeNames(), TrainedPersonRegistrationRules::attributeNames()),
+        );
+
+        TrainedPersonRegistrationRules::validateTrainingCertificate(
+            $request,
+            (bool) $legacyApplication->certificate_path,
+        );
+
+        DB::transaction(function () use ($request, $validated, $user, $legacyApplication) {
+            TraineeProfileUpdater::updatePersonalDetails($user, $validated);
+            TraineeProfileUpdater::updateLegacyTrainingApplication($user, $request, $validated, $legacyApplication);
+            $user->update(['profile_completed_at' => now()]);
+        });
+
+        return redirect()->route('trainee.profile.edit')->with('status', __('Profile updated successfully.'));
     }
 }

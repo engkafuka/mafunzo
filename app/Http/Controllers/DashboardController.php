@@ -32,7 +32,7 @@ class DashboardController extends Controller
             $publishedExamResultsCount = TrainingApplication::query()
                 ->where('user_id', $user->id)
                 ->where('status', 'payment_completed')
-                ->whereNotNull('exam_uploaded_at')
+                ->whereNotNull('exam_results_published_at')
                 ->count();
         }
 

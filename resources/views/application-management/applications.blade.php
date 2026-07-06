@@ -5,13 +5,13 @@
         </h2>
     </x-slot>
 
-    <div class="py-12">
-        <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
+    <div class="page-shell">
+        <div class="page-inner-7xl">
             <div class="mb-4">
                 <a href="{{ route('app-management.index') }}" class="text-indigo-600 hover:text-indigo-800">{{ __('&larr; Back to Application Management') }}</a>
             </div>
 
-            <form method="GET" class="mb-6 flex flex-wrap gap-2 items-center">
+            <form method="GET" class="filter-bar mb-6">
                 <select name="course_id" class="rounded-md border-gray-300 text-sm">
                     <option value="">{{ __('All courses') }}</option>
                     @foreach($courses as $c)

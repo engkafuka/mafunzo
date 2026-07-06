@@ -5,8 +5,56 @@
         </h2>
     </x-slot>
 
-    <div class="py-12">
-        <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
+    @php
+        $oldEducation = old('education');
+        if ($user->isNewApplicant()) {
+            if ($oldEducation) {
+                $educationInitial = collect($oldEducation)->values()->map(function ($row, $index) {
+                    return [
+                        'id' => $index,
+                        'record_id' => $row['id'] ?? '',
+                        'level' => $row['level'] ?? '',
+                        'program' => $row['program'] ?? '',
+                        'program_other' => $row['program_other'] ?? '',
+                        'institution' => $row['institution'] ?? '',
+                        'filename' => ! empty($row['id']) ? __('Existing file kept') : '',
+                        'existing_certificate' => ! empty($row['id']),
+                    ];
+                })->all();
+            } else {
+                $educationInitial = $user->educationBackgrounds->values()->map(function ($background, $index) {
+                    return [
+                        'id' => $index,
+                        'record_id' => (string) $background->id,
+                        'level' => $background->level,
+                        'program' => $background->program,
+                        'program_other' => $background->program_other ?? '',
+                        'institution' => $background->institution,
+                        'filename' => $background->certificate_path ? __('Existing file kept') : '',
+                        'existing_certificate' => (bool) $background->certificate_path,
+                    ];
+                })->all();
+            }
+
+            if ($educationInitial === []) {
+                $educationInitial = [[
+                    'id' => 0,
+                    'record_id' => '',
+                    'level' => '',
+                    'program' => '',
+                    'program_other' => '',
+                    'institution' => '',
+                    'filename' => '',
+                    'existing_certificate' => false,
+                ]];
+            }
+        }
+
+        $hasExistingTrainingCertificate = $legacyApplication?->certificate_path;
+    @endphp
+
+    <div class="page-shell">
+        <div class="page-inner-4xl">
             @if (session('status'))
                 <div class="mb-4 p-4 rounded-md bg-green-50 text-green-800">{{ session('status') }}</div>
             @endif
@@ -14,135 +62,221 @@
                 <div class="mb-4 p-4 rounded-md bg-red-50 text-red-800">{{ session('error') }}</div>
             @endif
 
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                {{-- Left column: Personal info + Education list --}}
-                <div class="space-y-6">
-            {{-- Personal information --}}
-            <div class="bg-white shadow-sm sm:rounded-lg p-6">
-                <h3 class="font-medium text-gray-900 mb-4">{{ __('Personal information') }}</h3>
-                <p class="text-sm text-gray-500 mb-4">{{ __('Saved from your registration. Used when you apply for training courses.') }}</p>
-                <x-trainee-profile-summary :user="$user" :show-education="false" />
-            </div>
-
-            {{-- Education backgrounds --}}
-            @if($educationBackgrounds->isNotEmpty())
-                <div class="bg-white shadow-sm sm:rounded-lg p-6">
-                    <h3 class="font-medium text-gray-900 mb-4">{{ __('Education background') }}</h3>
-                    <div class="space-y-4">
-                        @foreach($educationBackgrounds as $eb)
-                            <div class="border border-gray-200 rounded-lg p-4">
-                                <div class="flex flex-wrap items-start justify-between gap-3">
-                                    <div>
-                                        <p class="font-medium text-gray-900">{{ __(\App\Models\EducationBackground::levelOptions()[$eb->level] ?? $eb->level) }}</p>
-                                        <p class="text-sm text-gray-600">{{ $eb->program === 'others' ? ($eb->program_other ?? 'Others') : __(ucfirst($eb->program)) }} · {{ $eb->institution }}</p>
-                                    </div>
-                                    @if($eb->certificate_path)
-                                        @php
-                                            $certUrl = route('trainee.profile.certificate', $eb);
-                                            $isPdf = in_array(strtolower(pathinfo($eb->certificate_path, PATHINFO_EXTENSION)), ['pdf']);
-                                        @endphp
-                                        <div class="flex items-center gap-2">
-                                            <button type="button" onclick="document.getElementById('preview-{{ $eb->id }}').classList.remove('hidden'); document.body.classList.add('overflow-hidden');"
-                                                    class="inline-flex items-center px-3 py-1.5 bg-indigo-600 text-white text-sm font-medium rounded-md hover:bg-indigo-700">
-                                                {{ __('Preview') }} {{ __('document') }}
-                                            </button>
-                                            <a href="{{ $certUrl }}" target="_blank" rel="noopener noreferrer"
-                                               class="inline-flex items-center px-3 py-1.5 bg-gray-600 text-white text-sm font-medium rounded-md hover:bg-gray-700">
-                                                {{ __('Open in new tab') }}
-                                            </a>
-                                        </div>
-                                        {{-- Modal: PDF/document preview --}}
-                                        <div id="preview-{{ $eb->id }}" class="hidden fixed inset-0 z-50 overflow-y-auto" aria-modal="true">
-                                            <div class="flex min-h-full items-center justify-center p-4">
-                                                <div class="fixed inset-0 bg-black/60" onclick="document.getElementById('preview-{{ $eb->id }}').classList.add('hidden'); document.body.classList.remove('overflow-hidden');"></div>
-                                                <div class="relative bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] flex flex-col">
-                                                    <div class="flex items-center justify-between p-3 border-b">
-                                                        <span class="font-medium text-gray-900">{{ __('Document preview') }} — {{ $eb->institution }}</span>
-                                                        <button type="button" onclick="document.getElementById('preview-{{ $eb->id }}').classList.add('hidden'); document.body.classList.remove('overflow-hidden');"
-                                                                class="text-gray-400 hover:text-gray-600 text-2xl leading-none">&times;</button>
-                                                    </div>
-                                                    <div class="flex-1 min-h-0 p-2">
-                                                        @if($isPdf)
-                                                            <iframe src="{{ $certUrl }}#toolbar=1" class="w-full h-[75vh] rounded border border-gray-200" title="{{ __('Certificate') }}"></iframe>
-                                                        @else
-                                                            <img src="{{ $certUrl }}" alt="{{ __('Certificate') }}" class="max-w-full max-h-[75vh] mx-auto block rounded border border-gray-200" />
-                                                        @endif
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    @else
-                                        <span class="text-sm text-gray-400">{{ __('No certificate') }}</span>
-                                    @endif
-                                </div>
-                            </div>
-                        @endforeach
-                    </div>
-                    <x-table-pagination :paginator="$educationBackgrounds" />
-                </div>
-            @endif
-
+            <div class="bg-white shadow-sm sm:rounded-lg overflow-hidden"
+                 @if($user->isNewApplicant())
+                 x-data='{
+                     category: "new_applicant",
+                     company_or_private: @json(old('company_or_private', $user->company_or_private)),
+                     educationEntries: @json($educationInitial),
+                     educationNextId: {{ count($educationInitial) }},
+                     addEducation() {
+                         this.educationEntries.push({
+                             id: this.educationNextId++,
+                             record_id: "",
+                             level: "",
+                             program: "",
+                             program_other: "",
+                             institution: "",
+                             filename: "",
+                             existing_certificate: false,
+                         });
+                     },
+                     removeEducation(index) {
+                         if (this.educationEntries.length > 1) {
+                             this.educationEntries.splice(index, 1);
+                         }
+                     },
+                 }'
+                 @else
+                 x-data='{
+                     category: "trained_person",
+                     company_or_private: @json(old("company_or_private", $user->company_or_private)),
+                 }'
+                 @endif>
+                <div class="px-6 py-5 border-b border-gray-100">
+                    <h3 class="text-lg font-semibold text-gray-900">{{ __('Update your profile') }}</h3>
+                    <p class="mt-1 text-sm text-gray-500">{{ __('Keep your personal details up to date. Changes here are used when you apply for training courses.') }}</p>
                 </div>
 
-                {{-- Right column: Add education form --}}
-                <div class="space-y-6">
-                    <p class="text-gray-600">{{ __('Add your education background. You must attach a certificate certified by an advocate for each entry.') }}</p>
-            <div class="bg-white shadow-sm sm:rounded-lg p-6">
-                <h3 class="font-medium text-gray-900 mb-4">{{ __('Add education background') }}</h3>
-                <form method="POST" action="{{ route('trainee.profile.store') }}" enctype="multipart/form-data" class="space-y-6">
+                <form method="POST" action="{{ route('trainee.profile.update') }}" enctype="multipart/form-data" class="p-6 space-y-8">
                     @csrf
+                    @method('PUT')
 
-                    <div>
-                        <x-input-label for="level" :value="__('Level')" />
-                        <select id="level" name="level" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500" required>
-                            <option value="">{{ __('Select level') }}</option>
-                            @foreach(\App\Models\EducationBackground::levelOptions() as $value => $label)
-                                <option value="{{ $value }}" {{ old('level') === $value ? 'selected' : '' }}>{{ __($label) }}</option>
-                            @endforeach
-                        </select>
-                        <x-input-error :messages="$errors->get('level')" class="mt-2" />
-                    </div>
+                    @if ($errors->any())
+                        <div class="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-800">
+                            <p class="font-medium">{{ __('Please fix the following and try again:') }}</p>
+                            <ul class="mt-2 list-disc list-inside space-y-1">
+                                @foreach ($errors->all() as $error)
+                                    <li>{{ $error }}</li>
+                                @endforeach
+                            </ul>
+                        </div>
+                    @endif
 
-                    <div x-data="{ program: '{{ old('program', '') }}' }">
-                        <div>
-                            <x-input-label for="program" :value="__('Program')" />
-                            <select id="program" name="program" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500" required x-model="program">
-                                <option value="">{{ __('Select program') }}</option>
-                                @foreach(\App\Models\EducationBackground::programOptions() as $value => $label)
-                                    <option value="{{ $value }}" {{ old('program') === $value ? 'selected' : '' }}>{{ __($label) }}</option>
+                    <section>
+                        <h4 class="text-sm font-semibold text-gray-900">{{ __('Personal information') }}</h4>
+
+                        <div class="mt-4 grid gap-4 sm:grid-cols-3">
+                            <div>
+                                <x-input-label for="first_name" :value="__('First Name')" />
+                                <x-text-input id="first_name" class="block mt-1 w-full" type="text" name="first_name" :value="old('first_name', $user->first_name)" required />
+                                <x-input-error :messages="$errors->get('first_name')" class="mt-2" />
+                            </div>
+                            <div>
+                                <x-input-label for="middle_name" :value="__('Middle Name')" />
+                                <x-text-input id="middle_name" class="block mt-1 w-full" type="text" name="middle_name" :value="old('middle_name', $user->middle_name)" />
+                                <x-input-error :messages="$errors->get('middle_name')" class="mt-2" />
+                            </div>
+                            <div>
+                                <x-input-label for="last_name" :value="__('Last Name')" />
+                                <x-text-input id="last_name" class="block mt-1 w-full" type="text" name="last_name" :value="old('last_name', $user->last_name)" required />
+                                <x-input-error :messages="$errors->get('last_name')" class="mt-2" />
+                            </div>
+                        </div>
+
+                        <div class="mt-4 grid gap-4 sm:grid-cols-2">
+                            <div>
+                                <x-input-label for="email" :value="__('Email')" />
+                                <x-text-input id="email" class="block mt-1 w-full" type="email" name="email" :value="old('email', $user->email)" required />
+                                <x-input-error :messages="$errors->get('email')" class="mt-2" />
+                            </div>
+                            <div>
+                                <x-input-label for="phone" :value="__('Phone Number')" />
+                                <x-text-input id="phone" class="block mt-1 w-full" type="text" name="phone" :value="old('phone', $user->phone)" required />
+                                <x-input-error :messages="$errors->get('phone')" class="mt-2" />
+                            </div>
+                        </div>
+
+                        <div class="mt-4 grid gap-4 sm:grid-cols-2">
+                            <div>
+                                <x-input-label for="region" :value="__('Region')" />
+                                <x-text-input id="region" class="block mt-1 w-full" type="text" name="region" :value="old('region', $user->region)" required />
+                                <x-input-error :messages="$errors->get('region')" class="mt-2" />
+                            </div>
+                            <div>
+                                <x-input-label for="district" :value="__('District')" />
+                                <x-text-input id="district" class="block mt-1 w-full" type="text" name="district" :value="old('district', $user->district)" required />
+                                <x-input-error :messages="$errors->get('district')" class="mt-2" />
+                            </div>
+                        </div>
+
+                        <div class="mt-4 grid gap-4 sm:grid-cols-2">
+                            <div>
+                                <x-input-label for="gender" :value="__('Gender')" />
+                                <select id="gender" name="gender" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                                    <option value="">{{ __('Select...') }}</option>
+                                    @foreach(['male' => __('Male'), 'female' => __('Female'), 'other' => __('Other')] as $value => $label)
+                                        <option value="{{ $value }}" {{ old('gender', $user->gender) === $value ? 'selected' : '' }}>{{ $label }}</option>
+                                    @endforeach
+                                </select>
+                                <x-input-error :messages="$errors->get('gender')" class="mt-2" />
+                            </div>
+                            <div>
+                                <x-input-label for="date_of_birth" :value="__('Date of Birth')" />
+                                <x-text-input id="date_of_birth" class="block mt-1 w-full" type="date" name="date_of_birth" :value="old('date_of_birth', optional($user->date_of_birth)->format('Y-m-d'))" required />
+                                <x-input-error :messages="$errors->get('date_of_birth')" class="mt-2" />
+                            </div>
+                        </div>
+
+                        <div class="mt-4">
+                            <x-input-label for="position" :value="__('Position')" />
+                            <select id="position" name="position" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                                <option value="">{{ __('Select...') }}</option>
+                                @foreach(\App\Models\TrainingApplication::positionOptions() as $value => $label)
+                                    <option value="{{ $value }}" {{ old('position', $user->position) === $value ? 'selected' : '' }}>{{ __($label) }}</option>
                                 @endforeach
                             </select>
-                            <x-input-error :messages="$errors->get('program')" class="mt-2" />
+                            <x-input-error :messages="$errors->get('position')" class="mt-2" />
                         </div>
-                        <div x-show="program === 'others'" x-cloak class="mt-4">
-                            <x-input-label for="program_other" :value="__('Specify (if Others)')" />
-                            <x-text-input id="program_other" class="block mt-1 w-full" type="text" name="program_other" :value="old('program_other')" x-bind:required="program === 'others'" />
-                            <x-input-error :messages="$errors->get('program_other')" class="mt-2" />
+
+                        <fieldset class="mt-4">
+                            <legend class="text-sm font-medium text-gray-700">{{ __('Company / Private') }}</legend>
+                            <div class="mt-2 flex flex-wrap gap-3">
+                                <label class="inline-flex cursor-pointer items-center gap-2 rounded-lg border-2 px-4 py-2.5 text-sm font-medium transition-all"
+                                       :class="company_or_private === 'company' ? 'border-indigo-600 bg-indigo-50 text-indigo-800' : 'border-gray-200 text-gray-700'">
+                                    <input type="radio" name="company_or_private" value="company" x-model="company_or_private" required class="text-indigo-600 focus:ring-indigo-500">
+                                    {{ __('Company') }}
+                                </label>
+                                <label class="inline-flex cursor-pointer items-center gap-2 rounded-lg border-2 px-4 py-2.5 text-sm font-medium transition-all"
+                                       :class="company_or_private === 'private' ? 'border-indigo-600 bg-indigo-50 text-indigo-800' : 'border-gray-200 text-gray-700'">
+                                    <input type="radio" name="company_or_private" value="private" x-model="company_or_private" required class="text-indigo-600 focus:ring-indigo-500">
+                                    {{ __('Private') }}
+                                </label>
+                            </div>
+                            <x-input-error :messages="$errors->get('company_or_private')" class="mt-2" />
+                        </fieldset>
+
+                        <div x-show="company_or_private === 'company'" x-cloak class="mt-4 space-y-4 rounded-lg bg-gray-50 p-4 border border-gray-200">
+                            <div>
+                                <x-input-label for="company_name" :value="__('Company Name')" />
+                                <x-text-input id="company_name" class="block mt-1 w-full" type="text" name="company_name" :value="old('company_name', $user->company_name)"
+                                              x-bind:required="company_or_private === 'company'" />
+                                <x-input-error :messages="$errors->get('company_name')" class="mt-2" />
+                            </div>
+                            <div>
+                                <x-input-label for="company_address" :value="__('Company Address')" />
+                                <textarea id="company_address" name="company_address" rows="2"
+                                          x-bind:required="company_or_private === 'company'"
+                                          class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">{{ old('company_address', $user->company_address) }}</textarea>
+                                <x-input-error :messages="$errors->get('company_address')" class="mt-2" />
+                            </div>
                         </div>
-                    </div>
+                    </section>
 
-                    <div>
-                        <x-input-label for="institution" :value="__('Institution')" />
-                        <x-text-input id="institution" class="block mt-1 w-full" type="text" name="institution" :value="old('institution')" required placeholder="{{ __('Institution name') }}" />
-                        <x-input-error :messages="$errors->get('institution')" class="mt-2" />
-                    </div>
+                    @if($user->isNewApplicant())
+                        <section>
+                            <x-education-background-repeater :step="1" />
+                        </section>
+                    @elseif($legacyApplication)
+                        <section>
+                            <h4 class="text-sm font-semibold text-gray-900">{{ __('Previous training') }}</h4>
+                            <p class="mt-1 text-sm text-gray-500">{{ __('Update your prior WRRB training details.') }}</p>
 
-                    <div>
-                        <x-input-label for="certificate" :value="__('Certificate (certified by advocate)')" />
-                        <input id="certificate" name="certificate" type="file" accept=".pdf,.jpg,.jpeg,.png" required
-                               class="mt-1 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:bg-indigo-50 file:text-indigo-700" />
-                        <p class="mt-1 text-xs text-gray-500">{{ __('Upload PDF or image (max 5MB). Certificate must be certified by an advocate.') }}</p>
-                        <x-input-error :messages="$errors->get('certificate')" class="mt-2" />
-                    </div>
+                            <div class="mt-4 grid gap-4 sm:grid-cols-2">
+                                <div>
+                                    <x-input-label for="course_id" :value="__('Course trained')" />
+                                    <select id="course_id" name="course_id" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                                        <option value="">{{ __('Select course') }}</option>
+                                        @foreach($courses as $course)
+                                            <option value="{{ $course->id }}" {{ (string) old('course_id', $legacyApplication->course_id) === (string) $course->id ? 'selected' : '' }}>
+                                                {{ $course->name }} ({{ $course->session_year }})
+                                            </option>
+                                        @endforeach
+                                    </select>
+                                    <x-input-error :messages="$errors->get('course_id')" class="mt-2" />
+                                </div>
+                                <div>
+                                    <x-input-label for="trained_year" :value="__('Year trained')" />
+                                    <x-text-input id="trained_year" class="block mt-1 w-full" type="number" name="trained_year"
+                                                  :value="old('trained_year', $legacyApplication->trained_year)" min="2000" max="2100" required />
+                                    <x-input-error :messages="$errors->get('trained_year')" class="mt-2" />
+                                </div>
+                            </div>
 
-                    <x-primary-button type="submit">{{ __('Add education background') }}</x-primary-button>
+                            <div class="mt-4">
+                                <x-input-label for="legacy_registration_number" :value="__('Previous registration number')" />
+                                <x-text-input id="legacy_registration_number" class="block mt-1 w-full" type="text" name="legacy_registration_number"
+                                              :value="old('legacy_registration_number', $legacyApplication->legacy_registration_number)" required />
+                                <x-input-error :messages="$errors->get('legacy_registration_number')" class="mt-2" />
+                            </div>
+
+                            <div class="mt-4">
+                                <x-input-label for="training_certificate" :value="__('Training certificate')" />
+                                @if($hasExistingTrainingCertificate)
+                                    <p class="mt-1 text-xs text-gray-600">{{ __('Current certificate on file. Upload a new file only if you want to replace it.') }}</p>
+                                @endif
+                                <input id="training_certificate" name="training_certificate" type="file" accept=".pdf,.jpg,.jpeg,.png"
+                                       class="mt-1 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:bg-indigo-50 file:text-indigo-700" />
+                                <x-input-error :messages="$errors->get('training_certificate')" class="mt-2" />
+                            </div>
+                        </section>
+                    @endif
+
+                    <div class="flex flex-wrap items-center gap-4 pt-2 border-t border-gray-100">
+                        <x-primary-button type="submit">{{ __('Save profile') }}</x-primary-button>
+                        <a href="{{ route('dashboard') }}" class="text-sm font-medium text-indigo-600 hover:text-indigo-800">{{ __('Go to dashboard') }}</a>
+                    </div>
                 </form>
-            </div>
-
-                    <p>
-                        <a href="{{ route('dashboard') }}" class="text-indigo-600 hover:text-indigo-800 font-medium">{{ __('Go to dashboard') }}</a>
-                    </p>
-                </div>
             </div>
         </div>
     </div>

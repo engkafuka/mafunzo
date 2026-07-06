@@ -119,7 +119,8 @@
 
         {{-- Progress --}}
         <div class="px-6 sm:px-8 pt-6 pb-2">
-            <div class="flex items-center">
+                <div class="overflow-x-auto overscroll-x-contain -mx-2 px-2 sm:mx-0 sm:px-0">
+            <div class="flex items-center min-w-max sm:min-w-0">
                 @foreach([
                     1 => __('Category'),
                     2 => __('Personal'),
@@ -144,6 +145,7 @@
                     </button>
                 @endforeach
             </div>
+                </div>
         </div>
 
         <form method="POST" action="{{ route('register') }}" enctype="multipart/form-data" x-ref="regForm" novalidate @submit.prevent="submitRegistration" class="px-6 sm:px-8 pb-8">

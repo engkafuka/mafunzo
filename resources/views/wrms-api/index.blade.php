@@ -10,8 +10,8 @@
         </h2>
     </x-slot>
 
-    <div class="py-12">
-        <div class="max-w-7xl mx-auto sm:px-6 lg:px-8 space-y-8">
+    <div class="page-shell">
+        <div class="page-inner-7xl space-y-8">
             <p class="text-gray-600 text-sm">
                 {{ __('Data from WRRB-TMX Integration API (Warehouse Receipts, Warehouses, Operators).') }}
             </p>
@@ -67,6 +67,7 @@
                             {{ __('API error:') }} {{ $errorReceipts }}
                         </p>
                     @elseif($warehouseReceipts->total() > 0)
+                        <x-responsive-table>
                         <table class="min-w-full divide-y divide-gray-200">
                             <thead class="bg-gray-50">
                                 <tr>
@@ -103,6 +104,7 @@
                                 @endforeach
                             </tbody>
                         </table>
+                        </x-responsive-table>
                         <x-table-pagination :paginator="$warehouseReceipts" />
                     @else
                         <p class="p-6 text-gray-500 text-sm">
@@ -126,6 +128,7 @@
                             {{ __('API error:') }} {{ $errorWarehouses }}
                         </p>
                     @elseif($warehouses->total() > 0)
+                        <x-responsive-table>
                         <table class="min-w-full divide-y divide-gray-200">
                             <thead class="bg-gray-50">
                                 <tr>
@@ -154,6 +157,7 @@
                                 @endforeach
                             </tbody>
                         </table>
+                        </x-responsive-table>
                         <x-table-pagination :paginator="$warehouses" />
                     @else
                         <p class="p-6 text-gray-500 text-sm">
@@ -173,6 +177,7 @@
                             {{ __('API error:') }} {{ $errorOperators }}
                         </p>
                     @elseif($operators->total() > 0)
+                        <x-responsive-table>
                         <table class="min-w-full divide-y divide-gray-200">
                             <thead class="bg-gray-50">
                                 <tr>
@@ -201,6 +206,7 @@
                                 @endforeach
                             </tbody>
                         </table>
+                        </x-responsive-table>
                         <x-table-pagination :paginator="$operators" />
                     @else
                         <p class="p-6 text-gray-500 text-sm">

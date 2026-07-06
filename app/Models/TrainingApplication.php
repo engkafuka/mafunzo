@@ -2,10 +2,12 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\Auditable;
 use Illuminate\Database\Eloquent\Model;
 
 class TrainingApplication extends Model
 {
+    use Auditable;
     protected $fillable = [
         'user_id',
         'course_id',
@@ -37,6 +39,7 @@ class TrainingApplication extends Model
         'exam_passed',
         'exam_result_path',
         'exam_uploaded_at',
+        'exam_results_published_at',
         'certificate_issued_at',
         'certificate_path',
     ];
@@ -52,6 +55,7 @@ class TrainingApplication extends Model
             'payment_verified_at' => 'datetime',
             'exam_passed' => 'boolean',
             'exam_uploaded_at' => 'datetime',
+            'exam_results_published_at' => 'datetime',
             'certificate_issued_at' => 'datetime',
         ];
     }
@@ -87,13 +91,27 @@ class TrainingApplication extends Model
 
     public function hasPublishedExamResults(): bool
     {
+        return $this->exam_results_published_at !== null;
+    }
+
+    public function hasRecordedExamResults(): bool
+    {
         return $this->exam_uploaded_at !== null;
+    }
+
+    public function isAwaitingExamResultsPublication(): bool
+    {
+        return $this->hasRecordedExamResults() && ! $this->hasPublishedExamResults();
     }
 
     public function examResultStatusLabel(): string
     {
-        if (! $this->hasPublishedExamResults()) {
+        if (! $this->hasRecordedExamResults()) {
             return __('Awaiting results');
+        }
+
+        if (! $this->hasPublishedExamResults()) {
+            return __('Awaiting publication');
         }
 
         if ($this->exam_passed === true) {
@@ -105,6 +123,19 @@ class TrainingApplication extends Model
         }
 
         return __('Results published');
+    }
+
+    public function examPublicationStatusLabel(): string
+    {
+        if ($this->hasPublishedExamResults()) {
+            return __('Published');
+        }
+
+        if ($this->hasRecordedExamResults()) {
+            return __('Saved — awaiting publish');
+        }
+
+        return __('Not recorded');
     }
 
     public function isStaffActionable(): bool
