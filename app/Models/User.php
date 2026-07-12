@@ -40,6 +40,8 @@ class User extends Authenticatable
         'company_or_private',
         'company_name',
         'company_address',
+        'profile_photo_path',
+        'profile_photo_uploaded_at',
         'profile_completed_at',
     ];
 
@@ -66,7 +68,18 @@ class User extends Authenticatable
             'profile_completed_at' => 'datetime',
             'registration_reviewed_at' => 'datetime',
             'date_of_birth' => 'date',
+            'profile_photo_uploaded_at' => 'datetime',
         ];
+    }
+
+    public function hasProfilePhoto(): bool
+    {
+        return filled($this->profile_photo_path);
+    }
+
+    public function warehouseIdentityCards()
+    {
+        return $this->hasMany(WarehouseIdentityCard::class);
     }
 
     public function registrationReviewer()
@@ -177,6 +190,10 @@ class User extends Authenticatable
 
         if ($this->isNewApplicant() && ! $this->educationBackgrounds()->whereNotNull('certificate_path')->exists()) {
             $missing[] = __('education background with certificate');
+        }
+
+        if (! $this->hasProfilePhoto()) {
+            $missing[] = __('profile photo');
         }
 
         return $missing;

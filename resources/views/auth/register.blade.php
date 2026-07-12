@@ -13,9 +13,9 @@
         $hasEducationErrors = collect($errors->keys())->contains(fn ($key) => str_starts_with($key, 'education'));
         if ($errors->hasAny(['password', 'password_confirmation'])) {
             $initialStep = 4;
-        } elseif ($hasEducationErrors || $errors->hasAny(['course_id', 'trained_year', 'legacy_registration_number', 'training_certificate'])) {
+        } elseif ($hasEducationErrors || $errors->hasAny(['course_id', 'trained_year', 'certificate_number', 'training_certificate'])) {
             $initialStep = 3;
-        } elseif ($errors->hasAny(['first_name', 'middle_name', 'last_name', 'email', 'phone', 'region', 'district', 'gender', 'date_of_birth', 'position', 'company_or_private', 'company_name', 'company_address'])) {
+        } elseif ($errors->hasAny(['first_name', 'middle_name', 'last_name', 'email', 'phone', 'region', 'district', 'gender', 'date_of_birth', 'position', 'company_or_private', 'company_name', 'company_address', 'profile_photo'])) {
             $initialStep = 2;
         } elseif ($errors->has('registration_category')) {
             $initialStep = 1;
@@ -289,6 +289,14 @@
                     <x-input-error :messages="$errors->get('position')" class="mt-2" />
                 </div>
 
+                <div class="mt-4">
+                    <x-input-label for="profile_photo" :value="__('Profile photo (passport style)')" />
+                    <input id="profile_photo" name="profile_photo" type="file" accept=".jpg,.jpeg,.png" required data-step="2"
+                           class="mt-1 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:bg-[#0a71ab]/10 file:text-[#0a71ab]">
+                    <p class="mt-1 text-xs text-gray-500">{{ __('Upload a clear front-facing photo (JPG/PNG, min 200×200 px, max 2MB). Used on your warehouse worker ID card.') }}</p>
+                    <x-input-error :messages="$errors->get('profile_photo')" class="mt-2" />
+                </div>
+
                 <fieldset class="mt-4">
                     <legend class="text-sm font-medium text-gray-700">{{ __('Company / Private') }}</legend>
                     <div class="mt-2 flex flex-wrap gap-3">
@@ -359,10 +367,10 @@
                         </div>
                     </div>
                     <div class="mt-4">
-                        <x-input-label for="legacy_registration_number" :value="__('Previous registration number')" />
-                        <x-text-input id="legacy_registration_number" class="block mt-1 w-full" type="text" name="legacy_registration_number" :value="old('legacy_registration_number')"
+                        <x-input-label for="certificate_number" :value="__('Certificate number')" />
+                        <x-text-input id="certificate_number" class="block mt-1 w-full" type="text" name="certificate_number" :value="old('certificate_number')"
                                       x-bind:required="category === 'trained_person'" x-bind:disabled="category !== 'trained_person'" data-step="3" />
-                        <x-input-error :messages="$errors->get('legacy_registration_number')" class="mt-2" />
+                        <x-input-error :messages="$errors->get('certificate_number')" class="mt-2" />
                     </div>
                     <div class="mt-4">
                         <x-input-label for="training_certificate" :value="__('Training certificate')" />

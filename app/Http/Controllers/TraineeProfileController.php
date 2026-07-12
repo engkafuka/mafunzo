@@ -7,6 +7,7 @@ use App\Models\EducationBackground;
 use App\Models\TrainingApplication;
 use App\Support\NewApplicantRegistrationRules;
 use App\Support\PaginationHelper;
+use App\Support\ProfilePhotoStorage;
 use App\Support\TrainedPersonRegistrationRules;
 use App\Support\TraineeProfileUpdater;
 use App\Support\ValidationRules;
@@ -132,6 +133,7 @@ class TraineeProfileController extends Controller
         $rules = array_merge(
             NewApplicantRegistrationRules::personalRules($user->id),
             NewApplicantRegistrationRules::educationRules(certificatesRequired: false),
+            ['profile_photo' => ProfilePhotoStorage::rules($user->hasProfilePhoto() ? false : true)],
         );
 
         $validated = $request->validate(
@@ -144,6 +146,7 @@ class TraineeProfileController extends Controller
 
         DB::transaction(function () use ($request, $validated, $user) {
             TraineeProfileUpdater::updatePersonalDetails($user, $validated);
+            TraineeProfileUpdater::updateProfilePhoto($user, $request);
             $user->update(['profile_completed_at' => now()]);
             TraineeProfileUpdater::syncEducationBackgrounds($user, $request, $validated['education']);
         });
@@ -166,6 +169,7 @@ class TraineeProfileController extends Controller
         $rules = array_merge(
             NewApplicantRegistrationRules::personalRules($user->id),
             TrainedPersonRegistrationRules::trainingRules(certificatesRequired: false),
+            ['profile_photo' => ProfilePhotoStorage::rules($user->hasProfilePhoto() ? false : true)],
         );
 
         $validated = $request->validate(
@@ -181,6 +185,7 @@ class TraineeProfileController extends Controller
 
         DB::transaction(function () use ($request, $validated, $user, $legacyApplication) {
             TraineeProfileUpdater::updatePersonalDetails($user, $validated);
+            TraineeProfileUpdater::updateProfilePhoto($user, $request);
             TraineeProfileUpdater::updateLegacyTrainingApplication($user, $request, $validated, $legacyApplication);
             $user->update(['profile_completed_at' => now()]);
         });

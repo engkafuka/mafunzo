@@ -189,6 +189,23 @@
                             <x-input-error :messages="$errors->get('position')" class="mt-2" />
                         </div>
 
+                        <div class="mt-4">
+                            <x-input-label for="profile_photo" :value="__('Profile photo (passport style)')" />
+                            @if($user->hasProfilePhoto())
+                                <div class="mt-2 flex items-center gap-4">
+                                    <img src="{{ route('profile-photos.show', $user) }}" alt="{{ __('Current profile photo') }}" class="h-24 w-24 rounded-lg object-cover border border-gray-200">
+                                    <p class="text-sm text-gray-600">{{ __('Upload a new photo to replace the current one.') }}</p>
+                                </div>
+                            @else
+                                <p class="mt-1 text-sm text-amber-700">{{ __('A passport-style photo is required for your warehouse identity card.') }}</p>
+                            @endif
+                            <input id="profile_photo" name="profile_photo" type="file" accept=".jpg,.jpeg,.png"
+                                   @if(! $user->hasProfilePhoto()) required @endif
+                                   class="mt-2 block w-full text-sm text-gray-600 file:mr-4 file:rounded-md file:border-0 file:bg-indigo-50 file:px-4 file:py-2 file:text-sm file:font-medium file:text-indigo-700 hover:file:bg-indigo-100">
+                            <p class="mt-1 text-xs text-gray-500">{{ __('JPG or PNG, max 2 MB.') }}</p>
+                            <x-input-error :messages="$errors->get('profile_photo')" class="mt-2" />
+                        </div>
+
                         <fieldset class="mt-4">
                             <legend class="text-sm font-medium text-gray-700">{{ __('Company / Private') }}</legend>
                             <div class="mt-2 flex flex-wrap gap-3">
@@ -254,10 +271,10 @@
                             </div>
 
                             <div class="mt-4">
-                                <x-input-label for="legacy_registration_number" :value="__('Previous registration number')" />
-                                <x-text-input id="legacy_registration_number" class="block mt-1 w-full" type="text" name="legacy_registration_number"
-                                              :value="old('legacy_registration_number', $legacyApplication->legacy_registration_number)" required />
-                                <x-input-error :messages="$errors->get('legacy_registration_number')" class="mt-2" />
+                                <x-input-label for="certificate_number" :value="__('Certificate number')" />
+                                <x-text-input id="certificate_number" class="block mt-1 w-full" type="text" name="certificate_number"
+                                              :value="old('certificate_number', $legacyApplication->certificate_number)" required />
+                                <x-input-error :messages="$errors->get('certificate_number')" class="mt-2" />
                             </div>
 
                             <div class="mt-4">

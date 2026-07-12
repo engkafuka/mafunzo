@@ -16,7 +16,7 @@ class TrainedPersonRegistrationRules
         return [
             'course_id' => ['required', 'exists:courses,id'],
             'trained_year' => ['required', 'integer', 'min:2000', 'max:2100'],
-            'legacy_registration_number' => ['required', 'string', 'max:100'],
+            'certificate_number' => ['required', 'string', 'max:100'],
             'training_certificate' => $certificateRules,
         ];
     }
@@ -35,7 +35,7 @@ class TrainedPersonRegistrationRules
         return [
             'course_id' => __('course trained'),
             'trained_year' => __('year trained'),
-            'legacy_registration_number' => __('previous registration number'),
+            'certificate_number' => __('certificate number'),
             'training_certificate' => __('training certificate'),
         ];
     }

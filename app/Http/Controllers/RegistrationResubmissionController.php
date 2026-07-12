@@ -16,6 +16,8 @@ use App\Models\User;
 
 use App\Support\NewApplicantRegistrationRules;
 
+use App\Support\ProfilePhotoStorage;
+
 use App\Support\TrainedPersonRegistrationRules;
 
 use App\Support\ValidationRules;
@@ -120,6 +122,8 @@ class RegistrationResubmissionController extends Controller
 
             NewApplicantRegistrationRules::educationRules(certificatesRequired: false),
 
+            ['profile_photo' => ProfilePhotoStorage::rules($user->hasProfilePhoto() ? false : true)],
+
         );
 
 
@@ -143,6 +147,8 @@ class RegistrationResubmissionController extends Controller
         DB::transaction(function () use ($request, $validated, $user) {
 
             $this->updateUserPersonalDetails($user, $validated);
+
+            $this->updateProfilePhoto($user, $request);
 
             $user->update(['profile_completed_at' => now()]);
 
@@ -190,6 +196,8 @@ class RegistrationResubmissionController extends Controller
 
             TrainedPersonRegistrationRules::trainingRules(certificatesRequired: false),
 
+            ['profile_photo' => ProfilePhotoStorage::rules($user->hasProfilePhoto() ? false : true)],
+
         );
 
 
@@ -220,6 +228,8 @@ class RegistrationResubmissionController extends Controller
 
             $this->updateUserPersonalDetails($user, $validated);
 
+            $this->updateProfilePhoto($user, $request);
+
 
 
             $certificatePath = $legacyApplication->certificate_path;
@@ -248,7 +258,7 @@ class RegistrationResubmissionController extends Controller
 
                 'trained_year' => $validated['trained_year'],
 
-                'legacy_registration_number' => $validated['legacy_registration_number'],
+                'certificate_number' => $validated['certificate_number'],
 
                 'first_name' => $validated['first_name'],
 
@@ -341,6 +351,32 @@ class RegistrationResubmissionController extends Controller
             'registration_reviewed_by' => null,
 
             'registration_rejection_reason' => null,
+
+        ]);
+
+    }
+
+
+
+    private function updateProfilePhoto(User $user, Request $request): void
+
+    {
+
+        if (! $request->hasFile('profile_photo')) {
+
+            return;
+
+        }
+
+
+
+        $path = ProfilePhotoStorage::storeForUser($user, $request->file('profile_photo'));
+
+        $user->update([
+
+            'profile_photo_path' => $path,
+
+            'profile_photo_uploaded_at' => now(),
 
         ]);
 

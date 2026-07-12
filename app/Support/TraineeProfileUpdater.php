@@ -10,6 +10,19 @@ use Illuminate\Support\Facades\Storage;
 
 class TraineeProfileUpdater
 {
+    public static function updateProfilePhoto(User $user, Request $request): void
+    {
+        if (! $request->hasFile('profile_photo')) {
+            return;
+        }
+
+        $path = ProfilePhotoStorage::storeForUser($user, $request->file('profile_photo'));
+        $user->update([
+            'profile_photo_path' => $path,
+            'profile_photo_uploaded_at' => now(),
+        ]);
+    }
+
     public static function updatePersonalDetails(User $user, array $validated): void
     {
         $name = trim($validated['first_name'].' '.($validated['middle_name'] ?? '').' '.$validated['last_name']);
@@ -107,7 +120,7 @@ class TraineeProfileUpdater
         $legacyApplication->update([
             'course_id' => $validated['course_id'],
             'trained_year' => $validated['trained_year'],
-            'legacy_registration_number' => $validated['legacy_registration_number'],
+            'certificate_number' => $validated['certificate_number'],
             'first_name' => $validated['first_name'],
             'middle_name' => $validated['middle_name'] ?? null,
             'last_name' => $validated['last_name'],

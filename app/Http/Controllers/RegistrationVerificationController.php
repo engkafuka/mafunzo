@@ -4,9 +4,11 @@ namespace App\Http\Controllers;
 
 use App\Models\TrainingApplication;
 use App\Models\User;
+use App\Notifications\TraineeStatusNotification;
 use App\Support\PaginationHelper;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\View\View;
 use Symfony\Component\HttpFoundation\Response;
@@ -71,23 +73,37 @@ class RegistrationVerificationController extends Controller
                 ->first();
 
             if ($legacyApplication) {
-                $legacyApplication->update([
-                    'status' => 'payment_completed',
-                    'application_review_status' => 'approved',
-                    'application_reviewed_at' => now(),
-                    'account_verified_at' => now(),
-                    'payment_verified_at' => now(),
-                    'payment_completed_at' => now(),
-                    'exam_passed' => true,
-                    'exam_uploaded_at' => now(),
-                    'exam_results_published_at' => now(),
-                    'registration_number' => $legacyApplication->legacy_registration_number,
-                    'certificate_issued_at' => now(),
-                ]);
+                DB::transaction(function () use ($legacyApplication) {
+                    $legacyApplication = TrainingApplication::query()
+                        ->whereKey($legacyApplication->id)
+                        ->lockForUpdate()
+                        ->firstOrFail();
+
+                    $legacyApplication->update([
+                        'status' => 'payment_completed',
+                        'application_review_status' => 'approved',
+                        'application_reviewed_at' => now(),
+                        'account_verified_at' => now(),
+                        'payment_verified_at' => now(),
+                        'payment_completed_at' => now(),
+                        'exam_passed' => true,
+                        'exam_uploaded_at' => now(),
+                        'exam_results_published_at' => now(),
+                        'registration_number' => TrainingApplication::registrationNumberFor($legacyApplication),
+                        'certificate_issued_at' => now(),
+                    ]);
+                });
             }
 
             $user->update(['profile_completed_at' => now()]);
         }
+
+        $user->notify(new TraineeStatusNotification(
+            __('Registration approved'),
+            __('Your registration has been approved. You can now complete your profile and apply for training.'),
+            route('dashboard'),
+            __('Open dashboard'),
+        ));
 
         return redirect()->route('app-management.registrations.show', $user)->with('status', __('Registration approved.'));
     }
@@ -110,6 +126,13 @@ class RegistrationVerificationController extends Controller
             'registration_reviewed_by' => auth()->id(),
             'registration_rejection_reason' => $request->registration_rejection_reason,
         ]);
+
+        $user->notify(new TraineeStatusNotification(
+            __('Registration rejected'),
+            __('Your registration was not approved. Please update your application and resubmit.'),
+            route('registration.resubmit'),
+            __('Update application'),
+        ));
 
         return redirect()->route('app-management.registrations.index')->with('status', __('Registration rejected.'));
     }

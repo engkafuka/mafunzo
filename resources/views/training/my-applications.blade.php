@@ -20,17 +20,38 @@
             <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
                 <div class="p-6">
                     @forelse($applications as $app)
+                        @php
+                            $status = \App\Support\TraineeProgressTracker::currentStatus($app);
+                            $toneClasses = match ($status['tone']) {
+                                'complete' => 'bg-green-50 text-green-800 border-green-200',
+                                'current' => 'bg-[#0a71ab]/10 text-[#0a71ab] border-[#0a71ab]/30',
+                                'waiting' => 'bg-amber-50 text-amber-900 border-amber-200',
+                                'rejected' => 'bg-red-50 text-red-800 border-red-200',
+                                default => 'bg-gray-50 text-gray-700 border-gray-200',
+                            };
+                        @endphp
                         <div class="border-b border-gray-200 last:border-0 py-4 first:pt-0 last:pb-0">
-                            <div class="flex flex-wrap items-center justify-between gap-2">
-                                <div>
+                            <div class="flex flex-wrap items-start justify-between gap-3">
+                                <div class="min-w-0">
                                     <h3 class="font-medium text-gray-900">{{ $app->course->name }}</h3>
                                     <p class="text-sm text-gray-500 mt-1">
                                         {{ __('Session') }} {{ $app->course->session_year }} &middot;
-                                        {{ $app->first_name }} {{ $app->last_name }} &middot;
-                                        <span class="capitalize">{{ $app->status }}</span>
+                                        {{ $app->first_name }} {{ $app->last_name }}
                                     </p>
+                                    <span class="mt-2 inline-flex items-center rounded-md border px-2.5 py-1 text-xs font-medium {{ $toneClasses }}">
+                                        {{ $status['label'] }}
+                                    </span>
+                                    @if($app->hasPublishedExamResults())
+                                        <p class="mt-2 text-sm text-gray-600">
+                                            <span class="font-medium">{{ __('Examination') }}:</span>
+                                            {{ $app->examResultStatusLabel() }}
+                                            @if($app->exam_score !== null)
+                                                · {{ number_format((float) $app->exam_score, 2) }}%
+                                            @endif
+                                        </p>
+                                    @endif
                                 </div>
-                                <div class="flex items-center gap-2">
+                                <div class="flex flex-wrap items-center gap-2">
                                     @if($app->control_number)
                                         <span class="text-sm font-mono text-gray-600">{{ __('Control') }}: {{ $app->control_number }}</span>
                                     @endif
@@ -47,23 +68,13 @@
                                             {{ __('View exam result') }}
                                         </a>
                                     @endif
+                                    @if($app->warehouseIdentityCard?->isPublished())
+                                        <a href="{{ route('training.identity-cards') }}" class="text-sm font-medium text-indigo-600 hover:text-indigo-800">
+                                            {{ __('View ID card') }}
+                                        </a>
+                                    @endif
                                 </div>
                             </div>
-                            @if($app->status === 'payment_completed')
-                                <p class="mt-2 text-sm text-gray-600">
-                                    <span class="font-medium">{{ __('Examination') }}:</span>
-                                    @if($app->hasPublishedExamResults())
-                                        {{ $app->examResultStatusLabel() }}
-                                        @if($app->exam_score !== null)
-                                            · {{ number_format((float) $app->exam_score, 2) }}%
-                                        @endif
-                                    @elseif($app->hasRecordedExamResults())
-                                        {{ __('Results recorded — pending publication') }}
-                                    @else
-                                        {{ __('Awaiting results') }}
-                                    @endif
-                                </p>
-                            @endif
                         </div>
                     @empty
                         <p class="text-gray-500">{{ __('You have no training applications yet.') }}</p>

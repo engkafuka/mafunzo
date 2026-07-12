@@ -8,6 +8,7 @@ use App\Models\EducationBackground;
 use App\Models\TrainingApplication;
 use App\Models\User;
 use App\Support\NewApplicantRegistrationRules;
+use App\Support\ProfilePhotoStorage;
 use App\Support\ValidationRules;
 use Illuminate\Auth\Events\Registered;
 use Illuminate\Http\RedirectResponse;
@@ -92,7 +93,7 @@ class RegisteredUserController extends Controller
                     'course_id' => $validated['course_id'],
                     'application_type' => 'legacy_expert',
                     'trained_year' => $validated['trained_year'],
-                    'legacy_registration_number' => $validated['legacy_registration_number'],
+                    'certificate_number' => $validated['certificate_number'],
                     'first_name' => $validated['first_name'],
                     'middle_name' => $validated['middle_name'],
                     'last_name' => $validated['last_name'],
@@ -109,6 +110,14 @@ class RegisteredUserController extends Controller
                     'status' => 'pending_registration',
                     'application_review_status' => 'pending',
                     'certificate_path' => $certificatePath,
+                ]);
+            }
+
+            if ($request->hasFile('profile_photo')) {
+                $photoPath = ProfilePhotoStorage::storeForUser($user, $request->file('profile_photo'));
+                $user->update([
+                    'profile_photo_path' => $photoPath,
+                    'profile_photo_uploaded_at' => now(),
                 ]);
             }
 
@@ -140,6 +149,7 @@ class RegisteredUserController extends Controller
             'company_or_private' => ['required', 'in:company,private'],
             'company_name' => ['required_if:company_or_private,company', 'nullable', 'string', 'max:255'],
             'company_address' => ['required_if:company_or_private,company', 'nullable', 'string', 'max:500'],
+            'profile_photo' => ProfilePhotoStorage::rules(),
         ];
 
         if ($category === 'new_applicant') {
@@ -149,7 +159,7 @@ class RegisteredUserController extends Controller
         if ($category === 'trained_person') {
             $rules['course_id'] = ['required', 'exists:courses,id'];
             $rules['trained_year'] = ['required', 'integer', 'min:2000', 'max:2100'];
-            $rules['legacy_registration_number'] = ['required', 'string', 'max:100'];
+            $rules['certificate_number'] = ['required', 'string', 'max:100'];
             $rules['training_certificate'] = ['required', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:5120'];
         }
 
@@ -163,8 +173,9 @@ class RegisteredUserController extends Controller
             'password' => __('password'),
             'course_id' => __('course trained'),
             'trained_year' => __('year trained'),
-            'legacy_registration_number' => __('previous registration number'),
+            'certificate_number' => __('certificate number'),
             'training_certificate' => __('training certificate'),
+            'profile_photo' => __('profile photo'),
         ]);
     }
 }

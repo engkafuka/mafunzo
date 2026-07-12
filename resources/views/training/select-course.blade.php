@@ -11,6 +11,27 @@
                 <div class="mb-6 p-4 rounded-md bg-red-50 text-red-800">{{ session('error') }}</div>
             @endif
 
+            @if($openApplication ?? null)
+                <div class="mb-6 p-4 rounded-lg border border-amber-200 bg-amber-50 text-amber-900">
+                    <p class="font-medium">{{ __('One training at a time') }}</p>
+                    <p class="mt-1 text-sm">
+                        {{ __('You already have an open application for :course. Complete that training (or wait if it is rejected) before applying for another course.', [
+                            'course' => $openApplication->course?->name ?? __('your current course'),
+                        ]) }}
+                    </p>
+                    <div class="mt-3 flex flex-wrap gap-3">
+                        @if($openApplication->status === 'pending_payment')
+                            <a href="{{ route('training.payment', $openApplication) }}" class="text-sm font-medium text-amber-800 underline hover:text-amber-900">
+                                {{ __('Complete pending payment') }}
+                            </a>
+                        @endif
+                        <a href="{{ route('training.my-applications') }}" class="text-sm font-medium text-amber-800 underline hover:text-amber-900">
+                            {{ __('View my applications') }}
+                        </a>
+                    </div>
+                </div>
+            @endif
+
             <p class="text-gray-600 mb-8 text-center">{{ __('Published training courses. Application dates are shown for each intake.') }}</p>
 
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -18,8 +39,10 @@
                     @php
                         $status = $course->applicationWindowStatus();
                         $canApply = $course->isAcceptingApplications();
+                        $isOpenCourse = ($openApplication ?? null) && (int) $openApplication->course_id === (int) $course->id;
+                        $hasOtherOpen = ($openApplication ?? null) && ! $isOpenCourse;
                     @endphp
-                    <div class="flex flex-col bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden {{ $canApply ? 'hover:shadow-xl hover:border-indigo-300' : '' }} transition-all duration-300">
+                    <div class="flex flex-col bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden {{ $canApply && ! $hasOtherOpen ? 'hover:shadow-xl hover:border-indigo-300' : '' }} transition-all duration-300">
                         <div class="h-1.5 bg-gradient-to-r from-indigo-500 to-indigo-700"></div>
                         <div class="p-6 flex flex-col flex-1">
                             <div class="flex flex-wrap items-start justify-between gap-2 mb-4">
@@ -59,9 +82,16 @@
                                        class="inline-flex items-center gap-2 text-amber-700 font-semibold text-sm hover:gap-3 transition-all">
                                         {{ __('Complete pending application') }}
                                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"/>
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="M17 8l4 4m0 0l-4 4m4-4H3"/>
                                         </svg>
                                     </a>
+                                @elseif($isOpenCourse)
+                                    <p class="text-sm font-medium text-[#0a71ab]">{{ __('Already applied — in progress') }}</p>
+                                    <a href="{{ route('training.my-applications') }}" class="inline-block mt-1 text-sm text-indigo-600 hover:text-indigo-800 font-medium">
+                                        {{ __('View my application') }} &rarr;
+                                    </a>
+                                @elseif($hasOtherOpen)
+                                    <p class="text-sm font-medium text-gray-500">{{ __('Apply disabled — finish your current training first') }}</p>
                                 @elseif($canApply)
                                     <a href="{{ route('training.apply', ['course_id' => $course->id]) }}"
                                        class="inline-flex items-center gap-2 text-indigo-600 font-semibold text-sm hover:gap-3 transition-all">

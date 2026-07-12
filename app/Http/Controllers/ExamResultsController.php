@@ -4,8 +4,10 @@ namespace App\Http\Controllers;
 
 use App\Models\Course;
 use App\Models\TrainingApplication;
+use App\Notifications\TraineeStatusNotification;
 use App\Support\AuditLogger;
 use App\Support\ExamResultsExporter;
+use App\Support\IdentityCardService;
 use App\Support\PaginationHelper;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -120,29 +122,68 @@ class ExamResultsController extends Controller
 
         $course = Course::findOrFail($request->integer('course_id'));
 
-        $updated = TrainingApplication::query()
+        $applications = TrainingApplication::query()
+            ->with('user')
             ->where('course_id', $course->id)
             ->where('status', 'payment_completed')
             ->whereNotNull('exam_uploaded_at')
             ->whereNull('exam_results_published_at')
-            ->update(['exam_results_published_at' => now()]);
+            ->get();
 
-        if ($updated === 0) {
+        if ($applications->isEmpty()) {
             return redirect()
                 ->route('app-management.exam-results', ['course_id' => $course->id])
                 ->with('error', __('No saved examination results are waiting to be published for this course.'));
+        }
+
+        $publishedAt = now();
+        TrainingApplication::query()
+            ->whereIn('id', $applications->pluck('id'))
+            ->update(['exam_results_published_at' => $publishedAt]);
+
+        $drafted = 0;
+        foreach ($applications as $application) {
+            $application->exam_results_published_at = $publishedAt;
+            $application->loadMissing(['user', 'course', 'warehouseIdentityCard']);
+
+            if ($application->user) {
+                $application->user->notify(new TraineeStatusNotification(
+                    __('Examination results published'),
+                    __('Your examination results for :course are now available.', [
+                        'course' => $course->name,
+                    ]),
+                    route('training.exam-results'),
+                    __('View results'),
+                ));
+            }
+
+            if ($application->isEligibleForIdentityCard() && ! $application->warehouseIdentityCard) {
+                try {
+                    IdentityCardService::generate($application, auth()->user());
+                    $drafted++;
+                } catch (\RuntimeException) {
+                    // Keep publishing successful even if draft generation fails for one trainee.
+                }
+            }
         }
 
         AuditLogger::logAction(
             __('Published examination results for :course', ['course' => $course->name]),
             $course,
             null,
-            ['published_count' => $updated],
+            ['published_count' => $applications->count(), 'id_drafts_created' => $drafted],
         );
+
+        $message = __(':count examination result(s) published. Trainees can now view their results.', [
+            'count' => $applications->count(),
+        ]);
+        if ($drafted > 0) {
+            $message .= ' '.__(':count identity card draft(s) were created for eligible trainees.', ['count' => $drafted]);
+        }
 
         return redirect()
             ->route('app-management.exam-results', ['course_id' => $course->id])
-            ->with('status', __(':count examination result(s) published. Trainees can now view their results.', ['count' => $updated]));
+            ->with('status', $message);
     }
 
     public function exportPdf(Request $request): Response

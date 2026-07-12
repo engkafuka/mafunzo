@@ -7,8 +7,12 @@ use App\Models\AttendanceSession;
 use App\Models\Course;
 use App\Models\TrainingApplication;
 use App\Models\User;
-use Illuminate\Http\RedirectResponse;
+use App\Notifications\TraineeStatusNotification;
+use App\Support\CertificateDateFormatter;
+use App\Support\CertificateSignatureStorage;
 use App\Support\PaginationHelper;
+use App\Support\QrCodeGenerator;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
 
@@ -112,19 +116,64 @@ class ApplicationManagementController extends Controller
                 ->with('error', __('This application is not ready for payment verification yet.'));
         }
 
+        $this->markPaymentVerified($application);
+        $this->notifyTraineePaymentVerified($application);
+
+        return redirect()->route('app-management.applications.show', $application)->with('status', __('Payment verified.'));
+    }
+
+    /**
+     * Verify account and payment together (staff still confirms both).
+     */
+    public function verifyPaymentPackage(TrainingApplication $application): RedirectResponse
+    {
+        if ($application->status === 'pending_registration') {
+            return redirect()->route('app-management.applications.show', $application)
+                ->with('error', __('This application is not ready for verification yet.'));
+        }
+
+        if ($application->account_verified_at === null) {
+            $application->update(['account_verified_at' => now()]);
+        }
+
+        $application = $application->fresh();
+        $this->markPaymentVerified($application);
+        $this->notifyTraineePaymentVerified($application->fresh());
+
+        return redirect()->route('app-management.applications.show', $application)
+            ->with('status', __('Account and payment verified.'));
+    }
+
+    private function markPaymentVerified(TrainingApplication $application): void
+    {
         $updates = [
             'payment_verified_at' => now(),
             'status' => 'payment_completed',
             'payment_completed_at' => $application->payment_completed_at ?? now(),
         ];
 
-        if (! $application->registration_number) {
-            $updates['registration_number'] = TrainingApplication::generateRegistrationNumber();
+        if (! TrainingApplication::isOfficialRegistrationNumber($application->registration_number)) {
+            $updates['registration_number'] = TrainingApplication::registrationNumberFor($application);
         }
 
         $application->update($updates);
+    }
 
-        return redirect()->route('app-management.applications.show', $application)->with('status', __('Payment verified.'));
+    private function notifyTraineePaymentVerified(TrainingApplication $application): void
+    {
+        $application->loadMissing(['user', 'course']);
+        if (! $application->user) {
+            return;
+        }
+
+        $application->user->notify(new TraineeStatusNotification(
+            __('Payment verified'),
+            __('Your payment for :course has been verified by staff. You may continue with training.', [
+                'course' => $application->course?->name ?? __('your course'),
+            ]),
+            route('training.my-applications'),
+            __('View my applications'),
+        ));
     }
 
     /**
@@ -244,7 +293,27 @@ class ApplicationManagementController extends Controller
         }
         $applications = $query->orderBy('registration_number')->paginate(PaginationHelper::PER_PAGE)->withQueryString();
         $courses = Course::orderBy('name')->get();
-        return view('application-management.certificates', compact('applications', 'courses'));
+        $signatureUrl = CertificateSignatureStorage::url();
+
+        return view('application-management.certificates', compact('applications', 'courses', 'signatureUrl'));
+    }
+
+    /**
+     * Upload Managing Director signature used on certificates.
+     */
+    public function uploadCertificateSignature(Request $request): RedirectResponse
+    {
+        $request->validate([
+            'md_signature' => ['required', 'file', 'mimes:png,jpg,jpeg,webp', 'max:2048'],
+        ], [], [
+            'md_signature' => __('Managing Director signature'),
+        ]);
+
+        CertificateSignatureStorage::store($request->file('md_signature'));
+
+        return redirect()
+            ->route('app-management.certificates')
+            ->with('status', __('Managing Director signature uploaded.'));
     }
 
     /**
@@ -255,7 +324,36 @@ class ApplicationManagementController extends Controller
         if (! $application->isEligibleForCertificate()) {
             abort(403, __('This trainee is not eligible for a certificate yet.'));
         }
-        return view('application-management.certificate-view', compact('application'));
+
+        $application->loadMissing('course');
+
+        $fullName = trim(collect([
+            $application->first_name,
+            $application->middle_name,
+            $application->last_name,
+        ])->filter()->implode(' '));
+
+        $issuedAt = $application->certificate_issued_at ?? now();
+
+        return view('application-management.certificate-view', [
+            'application' => $application,
+            'fullName' => $fullName,
+            'organization' => config('certificate.organization'),
+            'title' => config('certificate.title'),
+            'awardedTo' => config('certificate.awarded_to'),
+            'completionLine' => __(config('certificate.completion_line'), [
+                'course' => $application->course?->name ?? __('Warehouse Management Training'),
+            ]),
+            'dateLine' => CertificateDateFormatter::longEnglish($issuedAt),
+            'mdTitle' => config('certificate.md_title'),
+            'govtLogoUrl' => asset(config('certificate.govt_logo')),
+            'boardLogoUrl' => asset(config('certificate.board_logo')),
+            'signatureUrl' => CertificateSignatureStorage::url(),
+            'qrDataUri' => QrCodeGenerator::pngDataUri(
+                'CSN.'.($application->registration_number ?? $application->id),
+                160
+            ),
+        ]);
     }
 
     /**

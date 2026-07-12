@@ -105,6 +105,12 @@
                                     <span class="text-green-700">({{ $publishedExamResultsCount }})</span>
                                 @endif
                             </a>
+                            @if(($publishedIdentityCardsCount ?? 0) > 0)
+                                <a href="{{ route('training.identity-cards') }}" class="text-indigo-600 hover:text-indigo-800 font-medium text-sm">
+                                    {{ __('My warehouse ID cards') }}
+                                    <span class="text-green-700">({{ $publishedIdentityCardsCount }})</span>
+                                </a>
+                            @endif
                             @if(Auth::user()->profile_completed_at)
                                 <a href="{{ route('trainee.profile.edit') }}" class="text-indigo-600 hover:text-indigo-800 font-medium text-sm">{{ __('My profile') }}</a>
                             @else
@@ -122,42 +128,14 @@
                     </a>
                 </div>
             @elseif(in_array(Auth::user()->role, ['super_admin', 'admin', 'staff']))
-                {{-- Admin / staff dashboard --}}
-                <div class="grid gap-4 sm:gap-6 sm:grid-cols-2 lg:grid-cols-3">
-                    @if(in_array(Auth::user()->role, ['super_admin', 'admin']))
-                        <a href="{{ route('users.index') }}" class="block p-6 bg-white rounded-lg shadow hover:shadow-md border border-gray-200">
-                            <h3 class="text-lg font-semibold text-gray-900">{{ __('User Management') }}</h3>
-                            <p class="mt-1 text-sm text-gray-600">{{ __('Create and manage system users and roles.') }}</p>
-                        </a>
-                        <a href="{{ route('courses.index') }}" class="block p-6 bg-white rounded-lg shadow hover:shadow-md border border-gray-200">
-                            <h3 class="text-lg font-semibold text-gray-900">{{ __('Course Management') }}</h3>
-                            <p class="mt-1 text-sm text-gray-600">{{ __('Initialize training courses for trainees to apply.') }}</p>
-                            @if(isset($courseStats))
-                                <p class="mt-2 text-indigo-600 font-medium">{{ $courseStats['published'] }} {{ __('published') }} / {{ $courseStats['total'] }} {{ __('total') }}</p>
-                            @endif
-                        </a>
-                        <a href="{{ route('audit-logs.index') }}" class="block p-6 bg-white rounded-lg shadow hover:shadow-md border border-gray-200">
-                            <h3 class="text-lg font-semibold text-gray-900">{{ __('Audit Trail') }}</h3>
-                            <p class="mt-1 text-sm text-gray-600">{{ __('Review who changed users, courses, applications, and other system records.') }}</p>
-                        </a>
-                    @endif
-                    <a href="{{ route('app-management.index') }}" class="block p-6 bg-white rounded-lg shadow hover:shadow-md border border-gray-200">
-                        <h3 class="text-lg font-semibold text-gray-900">{{ __('Application Management') }}</h3>
-                        <p class="mt-1 text-sm text-gray-600">{{ __('Review applications, attendance, exams, and certificates.') }}</p>
-                    </a>
-                    {{-- WRMS / TMX modules hidden for now
-                    @if(Auth::user()->role === 'super_admin')
-                        <a href="{{ route('wrms-api.index') }}" class="block p-6 bg-white rounded-lg shadow hover:shadow-md border border-gray-200">
-                            <h3 class="text-lg font-semibold text-gray-900">{{ __('WRMS API Data') }}</h3>
-                            <p class="mt-1 text-sm text-gray-600">{{ __('Browse warehouse receipt data from WRMS.') }}</p>
-                        </a>
-                        <a href="{{ route('tmx-auction.index') }}" class="block p-6 bg-white rounded-lg shadow hover:shadow-md border border-gray-200">
-                            <h3 class="text-lg font-semibold text-gray-900">{{ __('TMX Auction Data') }}</h3>
-                            <p class="mt-1 text-sm text-gray-600">{{ __('View and export TMX auction delivery data.') }}</p>
-                        </a>
-                    @endif
-                    --}}
-                </div>
+                {{-- Admin / staff dashboard: work queue only (menus stay in navbar) --}}
+                @if(isset($workQueue))
+                    <x-staff-work-queue :work-queue="$workQueue" />
+                @else
+                    <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg p-6 text-gray-600 text-sm">
+                        {{ __('Use the navigation menu to open Application Management and other modules.') }}
+                    </div>
+                @endif
             @else
                 <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg p-6 text-gray-900">
                     <h3 class="font-medium text-gray-900 mb-2">{{ __("You're logged in!") }}</h3>

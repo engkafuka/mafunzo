@@ -5,10 +5,15 @@ use App\Http\Controllers\AuditLogController;
 use App\Http\Controllers\CourseController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ExamResultsController;
+use App\Http\Controllers\IdentityCardController;
+use App\Http\Controllers\IdentityCardVerificationController;
+use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\ProfilePhotoController;
 use App\Http\Controllers\RegistrationPendingController;
 use App\Http\Controllers\RegistrationResubmissionController;
 use App\Http\Controllers\RegistrationVerificationController;
+use App\Http\Controllers\TraineeIdentityCardController;
 use App\Http\Controllers\TraineeProfileController;
 use App\Http\Controllers\TrainingApplicationController;
 use App\Http\Controllers\UserController;
@@ -24,6 +29,9 @@ Route::get('/', function () {
 Route::get('/attendance/scan', [ApplicationManagementController::class, 'attendanceScanPage'])->name('app-management.attendance.scan-page');
 Route::post('/attendance/scan', [ApplicationManagementController::class, 'attendanceScanSubmit'])->name('app-management.attendance.scan-submit');
 
+// Public verification for warehouse identity cards
+Route::get('/verify/id/{token}', [IdentityCardVerificationController::class, 'show'])->name('identity-cards.verify');
+
 Route::get('/dashboard', DashboardController::class)->middleware(['auth', 'verified'])->name('dashboard');
 
 Route::middleware('auth')->group(function () {
@@ -34,6 +42,11 @@ Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
+    Route::get('/profile-photos/{user}', [ProfilePhotoController::class, 'show'])->name('profile-photos.show');
+
+    Route::get('/notifications', [NotificationController::class, 'index'])->name('notifications.index');
+    Route::post('/notifications/read-all', [NotificationController::class, 'markAllRead'])->name('notifications.read-all');
+    Route::post('/notifications/{id}/read', [NotificationController::class, 'markRead'])->name('notifications.read');
 
     // Trainee profile and training (requires staff-approved registration)
     Route::middleware('registration.approved')->group(function () {
@@ -51,6 +64,8 @@ Route::middleware('auth')->group(function () {
             Route::post('/payment/{application}/confirm', [TrainingApplicationController::class, 'confirmPayment'])->name('payment.confirm');
             Route::get('/confirmation/{application}', [TrainingApplicationController::class, 'confirmation'])->name('confirmation');
             Route::get('/exam-results', [TrainingApplicationController::class, 'examResults'])->name('exam-results');
+            Route::get('/identity-cards', [TraineeIdentityCardController::class, 'index'])->name('identity-cards');
+            Route::get('/identity-cards/{identityCard}/download', [IdentityCardController::class, 'download'])->name('identity-cards.download');
         });
     });
 
@@ -97,6 +112,7 @@ Route::middleware('auth')->group(function () {
         Route::post('/applications/{application}/review', [ApplicationManagementController::class, 'applicationReview'])->name('applications.review');
         Route::post('/applications/{application}/verify-account', [ApplicationManagementController::class, 'verifyAccount'])->name('applications.verify-account');
         Route::post('/applications/{application}/verify-payment', [ApplicationManagementController::class, 'verifyPayment'])->name('applications.verify-payment');
+        Route::post('/applications/{application}/verify-payment-package', [ApplicationManagementController::class, 'verifyPaymentPackage'])->name('applications.verify-payment-package');
         Route::get('/attendance', [ApplicationManagementController::class, 'attendance'])->name('attendance');
         Route::post('/attendance', [ApplicationManagementController::class, 'attendanceCreate'])->name('attendance.store');
         Route::get('/attendance/{session}', [ApplicationManagementController::class, 'attendanceShow'])->name('attendance.show');
@@ -104,8 +120,16 @@ Route::middleware('auth')->group(function () {
         Route::get('/exam-results', [ExamResultsController::class, 'index'])->name('exam-results');
         Route::post('/exam-results', [ExamResultsController::class, 'store'])->name('exam-results.save');
         Route::get('/certificates', [ApplicationManagementController::class, 'certificates'])->name('certificates');
+        Route::post('/certificates/signature', [ApplicationManagementController::class, 'uploadCertificateSignature'])->name('certificates.signature');
         Route::get('/certificates/{application}', [ApplicationManagementController::class, 'certificateShow'])->name('certificates.show');
         Route::post('/certificates/{application}/issue', [ApplicationManagementController::class, 'certificateIssue'])->name('certificates.issue');
+        Route::get('/identity-cards', [IdentityCardController::class, 'index'])->name('identity-cards.index');
+        Route::get('/identity-cards/applications/{application}', [IdentityCardController::class, 'show'])->name('identity-cards.show');
+        Route::post('/identity-cards/applications/{application}/generate', [IdentityCardController::class, 'generate'])->name('identity-cards.generate');
+        Route::post('/identity-cards/{identityCard}/publish', [IdentityCardController::class, 'publish'])->name('identity-cards.publish');
+        Route::post('/identity-cards/{identityCard}/revoke', [IdentityCardController::class, 'revoke'])->name('identity-cards.revoke');
+        Route::get('/identity-cards/{identityCard}/view', [IdentityCardController::class, 'view'])->name('identity-cards.view');
+        Route::get('/identity-cards/{identityCard}/download', [IdentityCardController::class, 'download'])->name('identity-cards.download');
     });
 
     // Trainee profile routes moved to registration.approved group above

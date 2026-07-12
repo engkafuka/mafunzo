@@ -18,6 +18,28 @@
                 <a href="{{ route('app-management.index') }}" class="text-indigo-600 hover:text-indigo-800">{{ __('&larr; Back to Application Management') }}</a>
             </div>
 
+            <div class="mb-6 bg-white shadow-sm sm:rounded-lg p-5 border border-gray-200">
+                <h3 class="font-medium text-gray-900">{{ __('Managing Director signature') }}</h3>
+                <p class="mt-1 text-sm text-gray-600">{{ __('Upload the signature image used on all training certificates (PNG or JPG).') }}</p>
+                <div class="mt-4 flex flex-wrap items-center gap-6">
+                    @if($signatureUrl ?? null)
+                        <img src="{{ $signatureUrl }}" alt="{{ __('Current signature') }}" class="h-16 object-contain border border-gray-200 rounded bg-gray-50 px-3 py-2">
+                    @else
+                        <p class="text-sm text-amber-700">{{ __('No signature uploaded yet.') }}</p>
+                    @endif
+                    <form method="POST" action="{{ route('app-management.certificates.signature') }}" enctype="multipart/form-data" class="flex flex-wrap items-end gap-3">
+                        @csrf
+                        <div>
+                            <label for="md_signature" class="block text-xs font-medium text-gray-600 mb-1">{{ __('Signature file') }}</label>
+                            <input id="md_signature" type="file" name="md_signature" accept=".png,.jpg,.jpeg,.webp" required
+                                   class="block w-full text-sm text-gray-600 file:mr-3 file:py-2 file:px-3 file:rounded-md file:border-0 file:bg-[#0a71ab]/10 file:text-[#0a71ab]">
+                            <x-input-error :messages="$errors->get('md_signature')" class="mt-1" />
+                        </div>
+                        <button type="submit" class="px-4 py-2 bg-[#0a71ab] text-white text-sm rounded-md hover:bg-[#086090]">{{ __('Upload signature') }}</button>
+                    </form>
+                </div>
+            </div>
+
             <form method="GET" class="mb-6">
                 <select name="course_id" class="rounded-md border-gray-300" onchange="this.form.submit()">
                     <option value="">{{ __('All courses') }}</option>

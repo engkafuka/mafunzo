@@ -3,7 +3,9 @@
 namespace App\Models;
 
 use App\Models\Concerns\Auditable;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\DB;
 
 class TrainingApplication extends Model
 {
@@ -13,7 +15,7 @@ class TrainingApplication extends Model
         'course_id',
         'application_type',
         'trained_year',
-        'legacy_registration_number',
+        'certificate_number',
         'first_name',
         'middle_name',
         'last_name',
@@ -78,6 +80,115 @@ class TrainingApplication extends Model
     public function isLegacyExpert(): bool
     {
         return $this->application_type === 'legacy_expert';
+    }
+
+    public function warehouseIdentityCard()
+    {
+        return $this->hasOne(WarehouseIdentityCard::class);
+    }
+
+    /**
+     * Open application: payment pending or in progress, not rejected, exam not yet published.
+     * Used to enforce one training at a time per trainee.
+     */
+    public function isOpen(): bool
+    {
+        if (! in_array($this->status, ['pending_payment', 'payment_completed'], true)) {
+            return false;
+        }
+
+        if ($this->application_review_status === 'rejected') {
+            return false;
+        }
+
+        if ($this->hasPublishedExamResults()) {
+            return false;
+        }
+
+        return true;
+    }
+
+    public function scopeOpen(Builder $query): Builder
+    {
+        return $query
+            ->whereIn('status', ['pending_payment', 'payment_completed'])
+            ->where(function ($q) {
+                $q->whereNull('application_review_status')
+                    ->orWhere('application_review_status', '!=', 'rejected');
+            })
+            ->whereNull('exam_results_published_at');
+    }
+
+    public function isEligibleForIdentityCard(): bool
+    {
+        return $this->identityCardIneligibilityReason() === null;
+    }
+
+    public function identityCardIneligibilityReason(): ?string
+    {
+        foreach ($this->identityCardEligibilityChecklist() as $item) {
+            if (! $item['met']) {
+                return $item['label'];
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * @return list<array{key: string, label: string, met: bool}>
+     */
+    public function identityCardEligibilityChecklist(): array
+    {
+        $this->loadMissing('user');
+
+        return [
+            [
+                'key' => 'registration_number',
+                'label' => __('Official WRRB registration number'),
+                'met' => filled($this->registration_number),
+            ],
+            [
+                'key' => 'payment_completed',
+                'label' => __('Payment completed'),
+                'met' => $this->status === 'payment_completed',
+            ],
+            [
+                'key' => 'application_approved',
+                'label' => __('Application approved'),
+                'met' => $this->application_review_status === 'approved',
+            ],
+            [
+                'key' => 'account_verified',
+                'label' => __('Account verified by staff'),
+                'met' => $this->account_verified_at !== null,
+            ],
+            [
+                'key' => 'payment_verified',
+                'label' => __('Payment verified by staff'),
+                'met' => $this->payment_verified_at !== null,
+            ],
+            [
+                'key' => 'exam_passed',
+                'label' => __('Examination passed'),
+                'met' => $this->exam_passed === true,
+            ],
+            [
+                'key' => 'exam_published',
+                'label' => __('Examination results published'),
+                'met' => $this->hasPublishedExamResults(),
+            ],
+            [
+                'key' => 'profile_photo',
+                'label' => __('Profile photo uploaded'),
+                'met' => filled($this->user?->profile_photo_path),
+            ],
+        ];
+    }
+
+    public function hasPublishedIdentityCard(): bool
+    {
+        return $this->warehouseIdentityCard?->isPublished() ?? false;
     }
 
     public function isEligibleForCertificate(): bool
@@ -194,25 +305,49 @@ class TrainingApplication extends Model
     }
 
     /**
-     * Next unique registration number for the current year (WRRB/YYYY/1/XXXX).
+     * Official WRRB series format: WRRB/YYYY/1/XXXX
+     */
+    public static function isOfficialRegistrationNumber(?string $number): bool
+    {
+        return is_string($number) && preg_match('/^WRRB\/\d{4}\/1\/\d{4}$/', $number) === 1;
+    }
+
+    /**
+     * Resolve the registration number for an application, reusing an official number or generating the next in series.
+     */
+    public static function registrationNumberFor(self $application): string
+    {
+        if (static::isOfficialRegistrationNumber($application->registration_number)) {
+            return $application->registration_number;
+        }
+
+        return static::generateRegistrationNumber();
+    }
+
+    /**
+     * Next unique registration number in the shared WRRB series (WRRB/YYYY/1/XXXX).
      */
     public static function generateRegistrationNumber(): string
     {
-        $year = date('Y');
-        $prefix = "WRRB/{$year}/1/";
+        return DB::transaction(function () {
+            // Serialize concurrent generators so legacy and new applicants share one sequence.
+            static::query()->select('id')->orderBy('id')->limit(1)->lockForUpdate()->first();
 
-        $maxSeq = static::query()
-            ->whereNotNull('registration_number')
-            ->where('registration_number', 'like', $prefix.'%')
-            ->pluck('registration_number')
-            ->map(fn (string $number) => (int) substr($number, -4))
-            ->max() ?? 0;
+            $year = date('Y');
+            $prefix = "WRRB/{$year}/1/";
 
-        do {
-            $maxSeq++;
-            $candidate = sprintf('WRRB/%s/1/%04d', $year, $maxSeq);
-        } while (static::where('registration_number', $candidate)->exists());
+            $maxSeq = static::query()
+                ->where('registration_number', 'like', $prefix.'%')
+                ->pluck('registration_number')
+                ->map(fn (string $number) => (int) substr($number, -4))
+                ->max() ?? 0;
 
-        return $candidate;
+            do {
+                $maxSeq++;
+                $candidate = sprintf('WRRB/%s/1/%04d', $year, $maxSeq);
+            } while (static::where('registration_number', $candidate)->exists());
+
+            return $candidate;
+        });
     }
 }

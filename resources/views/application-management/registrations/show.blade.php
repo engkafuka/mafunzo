@@ -24,8 +24,33 @@
                         <h3 class="font-medium text-gray-900">{{ __('Applicant information') }}</h3>
                     </div>
                     <div class="p-6">
+                        @if($user->hasProfilePhoto())
+                            <div class="mb-6 flex items-start gap-4">
+                                <img src="{{ route('profile-photos.show', $user) }}" alt="{{ __('Profile photo') }}" class="h-32 w-32 rounded-lg object-cover border border-gray-200 shadow-sm">
+                                <div class="text-sm text-gray-600">
+                                    <p class="font-medium text-gray-900">{{ __('Profile photo') }}</p>
+                                    @if($user->profile_photo_uploaded_at)
+                                        <p class="mt-1">{{ __('Uploaded') }}: {{ $user->profile_photo_uploaded_at->format('Y-m-d H:i') }}</p>
+                                    @endif
+                                </div>
+                            </div>
+                        @else
+                            <div class="mb-6 rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
+                                {{ __('No profile photo uploaded yet.') }}
+                            </div>
+                        @endif
                         <dl class="grid gap-x-6 gap-y-3 sm:grid-cols-2 text-sm">
-                            <div><dt class="font-medium text-gray-500">{{ __('Category') }}</dt><dd class="mt-0.5">{{ \App\Models\User::registrationCategoryOptions()[$user->registration_category] ?? '—' }}</dd></div>
+                            <div>
+                                <dt class="font-medium text-gray-500">{{ __('Category') }}</dt>
+                                <dd class="mt-0.5 flex flex-wrap items-center gap-2">
+                                    <span>{{ \App\Models\User::registrationCategoryOptions()[$user->registration_category] ?? '—' }}</span>
+                                    @if($user->isTrainedPerson())
+                                        <span class="inline-flex items-center rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-slate-700">{{ __('Legacy trained person') }}</span>
+                                    @else
+                                        <span class="inline-flex items-center rounded-full bg-sky-100 px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-sky-800">{{ __('New applicant') }}</span>
+                                    @endif
+                                </dd>
+                            </div>
                             <div><dt class="font-medium text-gray-500">{{ __('Status') }}</dt><dd class="mt-0.5 capitalize">{{ $user->registration_status }}</dd></div>
                             <div><dt class="font-medium text-gray-500">{{ __('Name') }}</dt><dd class="mt-0.5">{{ $user->first_name }} {{ $user->middle_name }} {{ $user->last_name }}</dd></div>
                             <div><dt class="font-medium text-gray-500">{{ __('Email') }}</dt><dd class="mt-0.5">{{ $user->email }}</dd></div>
@@ -99,11 +124,15 @@
 
                     @if($user->isTrainedPerson() && $legacyApplication)
                         <div class="bg-white shadow-sm sm:rounded-lg overflow-hidden">
-                            <h3 class="px-6 py-3 bg-gray-50 border-b font-medium text-gray-900">{{ __('Previous training') }}</h3>
+                            <h3 class="px-6 py-3 bg-gray-50 border-b font-medium text-gray-900">{{ __('Legacy training record') }}</h3>
                             <div class="p-6 space-y-3 text-sm">
+                                <p class="text-xs text-slate-600">{{ __('Certificate number is historical only. On approval the system issues a new official WRRB registration number.') }}</p>
                                 <p><span class="font-medium text-gray-500">{{ __('Course') }}:</span> {{ $legacyApplication->course->name ?? '—' }}</p>
                                 <p><span class="font-medium text-gray-500">{{ __('Year trained') }}:</span> {{ $legacyApplication->trained_year ?? '—' }}</p>
-                                <p><span class="font-medium text-gray-500">{{ __('Previous registration number') }}:</span> {{ $legacyApplication->legacy_registration_number ?? '—' }}</p>
+                                <p><span class="font-medium text-gray-500">{{ __('Certificate number') }}:</span> {{ $legacyApplication->certificate_number ?? '—' }}</p>
+                                @if($legacyApplication->registration_number)
+                                    <p><span class="font-medium text-gray-500">{{ __('Official WRRB registration number') }}:</span> <span class="font-mono">{{ $legacyApplication->registration_number }}</span></p>
+                                @endif
                                 @if($legacyApplication->certificate_path)
                                     @php
                                         $certUrl = route('app-management.registrations.training-certificate', $legacyApplication);

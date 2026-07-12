@@ -148,6 +148,13 @@
                                     <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-sm">{{ __('Verify payment') }}</button>
                                 </form>
                             @endif
+                            @if($application->needsAccountVerification() || $application->needsPaymentVerification())
+                                <form method="POST" action="{{ route('app-management.applications.verify-payment-package', $application) }}" class="inline"
+                                      onsubmit="return confirm('{{ __('Confirm that both the account and payment are verified?') }}');">
+                                    @csrf
+                                    <button type="submit" class="px-4 py-2 bg-[#0a71ab] text-white rounded-md hover:bg-[#086090] text-sm">{{ __('Approve payment package') }}</button>
+                                </form>
+                            @endif
                             @if(!$application->canBeReviewedByStaff() && !$application->needsAccountVerification() && !$application->needsPaymentVerification())
                                 <p class="text-sm text-gray-500">{{ __('No pending actions. Application review, account, and payment are complete.') }}</p>
                             @endif

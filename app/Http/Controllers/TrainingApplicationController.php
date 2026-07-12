@@ -26,6 +26,13 @@ class TrainingApplicationController extends Controller
             ->paginate(PaginationHelper::PER_PAGE)
             ->withQueryString();
 
+        $openApplication = $request->user()
+            ->trainingApplications()
+            ->with('course')
+            ->open()
+            ->latest()
+            ->first();
+
         $pendingApplications = $request->user()
             ->trainingApplications()
             ->with('course')
@@ -33,7 +40,7 @@ class TrainingApplicationController extends Controller
             ->get()
             ->keyBy('course_id');
 
-        return view('training.select-course', compact('courses', 'pendingApplications'));
+        return view('training.select-course', compact('courses', 'pendingApplications', 'openApplication'));
     }
 
     /**
@@ -48,8 +55,8 @@ class TrainingApplicationController extends Controller
             return redirect()->route('training.select-course')->with('error', __('Applications are not open for this course.'));
         }
 
-        if ($this->hasPendingApplicationForCourse($request->user(), $course->id)) {
-            return redirect()->route('training.my-applications')->with('error', __('You already have a pending application for this course. Complete payment first.'));
+        if ($blocked = $this->openApplicationBlock($request->user(), (int) $course->id)) {
+            return $blocked;
         }
 
         $user = $request->user()->load('educationBackgrounds');
@@ -81,8 +88,8 @@ class TrainingApplicationController extends Controller
             return back()->with('error', __('Applications are not open for this course.'));
         }
 
-        if ($this->hasPendingApplicationForCourse($user, $course->id)) {
-            return redirect()->route('training.my-applications')->with('error', __('You already have a pending application for this course. Complete payment first.'));
+        if ($blocked = $this->openApplicationBlock($user, (int) $course->id)) {
+            return $blocked;
         }
 
         $request->validate([
@@ -150,8 +157,7 @@ class TrainingApplicationController extends Controller
             $application->update([
                 'status' => 'payment_completed',
                 'payment_completed_at' => now(),
-                'registration_number' => $application->registration_number
-                    ?? TrainingApplication::generateRegistrationNumber(),
+                'registration_number' => TrainingApplication::registrationNumberFor($application),
             ]);
         });
 
@@ -179,7 +185,9 @@ class TrainingApplicationController extends Controller
     public function index(Request $request): View
     {
         $this->authorizeTrainee();
-        $applications = $request->user()->trainingApplications()->with('course')->latest()
+        $applications = $request->user()->trainingApplications()
+            ->with(['course', 'warehouseIdentityCard', 'user'])
+            ->latest()
             ->paginate(PaginationHelper::PER_PAGE)
             ->withQueryString();
         return view('training.my-applications', compact('applications'));
@@ -210,12 +218,34 @@ class TrainingApplicationController extends Controller
         return view('training.exam-results', compact('publishedResults', 'awaitingResults'));
     }
 
-    private function hasPendingApplicationForCourse($user, int $courseId): bool
+    /**
+     * Block a new application when the trainee already has one open training (any course).
+     */
+    private function openApplicationBlock($user, int $courseId): ?RedirectResponse
     {
-        return $user->trainingApplications()
-            ->where('course_id', $courseId)
-            ->where('status', 'pending_payment')
-            ->exists();
+        $openApplication = $user->trainingApplications()
+            ->with('course')
+            ->open()
+            ->latest()
+            ->first();
+
+        if (! $openApplication) {
+            return null;
+        }
+
+        if ((int) $openApplication->course_id === $courseId && $openApplication->status === 'pending_payment') {
+            return redirect()
+                ->route('training.payment', $openApplication)
+                ->with('error', __('You already have a pending application for this course. Complete payment first.'));
+        }
+
+        $courseName = $openApplication->course?->name ?? __('another course');
+
+        return redirect()
+            ->route('training.my-applications')
+            ->with('error', __('You already have an open application for :course. Finish or wait until it is rejected before applying for another training.', [
+                'course' => $courseName,
+            ]));
     }
 
     private function authorizeTrainee(): void
