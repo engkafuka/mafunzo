@@ -49,6 +49,10 @@
                     <h3 class="text-lg font-semibold text-gray-900">{{ __('Warehouse ID cards') }}</h3>
                     <p class="mt-1 text-sm text-gray-600">{{ __('Generate, publish, and manage trainee warehouse identity cards.') }}</p>
                 </a>
+                <a href="{{ route('app-management.reports.index') }}" class="block p-6 bg-white rounded-lg shadow hover:shadow-md border border-gray-200">
+                    <h3 class="text-lg font-semibold text-gray-900">{{ __('Reports') }}</h3>
+                    <p class="mt-1 text-sm text-gray-600">{{ __('Download trained users and other operational reports.') }}</p>
+                </a>
             </div>
         </div>
     </div>

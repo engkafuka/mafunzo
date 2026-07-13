@@ -13,6 +13,7 @@ use App\Http\Controllers\ProfilePhotoController;
 use App\Http\Controllers\RegistrationPendingController;
 use App\Http\Controllers\RegistrationResubmissionController;
 use App\Http\Controllers\RegistrationVerificationController;
+use App\Http\Controllers\ReportController;
 use App\Http\Controllers\TraineeIdentityCardController;
 use App\Http\Controllers\TraineeProfileController;
 use App\Http\Controllers\TrainingApplicationController;
@@ -130,6 +131,12 @@ Route::middleware('auth')->group(function () {
         Route::post('/identity-cards/{identityCard}/revoke', [IdentityCardController::class, 'revoke'])->name('identity-cards.revoke');
         Route::get('/identity-cards/{identityCard}/view', [IdentityCardController::class, 'view'])->name('identity-cards.view');
         Route::get('/identity-cards/{identityCard}/download', [IdentityCardController::class, 'download'])->name('identity-cards.download');
+
+        Route::prefix('reports')->name('reports.')->group(function () {
+            Route::get('/', [ReportController::class, 'index'])->name('index');
+            Route::get('/trained-users', [ReportController::class, 'trainedUsers'])->name('trained-users');
+            Route::get('/trained-users/export', [ReportController::class, 'trainedUsersExport'])->name('trained-users.export');
+        });
     });
 
     // Trainee profile routes moved to registration.approved group above

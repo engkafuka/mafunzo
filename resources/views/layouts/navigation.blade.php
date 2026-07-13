@@ -17,8 +17,11 @@
                     </x-nav-link>
 
                     @if(in_array(Auth::user()->role, ['super_admin', 'admin', 'staff'], true))
-                        <x-nav-link :href="route('app-management.index')" :active="request()->routeIs('app-management.*')">
+                        <x-nav-link :href="route('app-management.index')" :active="request()->routeIs('app-management.*') && ! request()->routeIs('app-management.reports.*')">
                             {{ __('Application Management') }}
+                        </x-nav-link>
+                        <x-nav-link :href="route('app-management.reports.index')" :active="request()->routeIs('app-management.reports.*')">
+                            {{ __('Reports') }}
                         </x-nav-link>
                     @endif
 
@@ -124,8 +127,11 @@
             </x-responsive-nav-link>
 
             @if(in_array(Auth::user()->role, ['super_admin', 'admin', 'staff'], true))
-                <x-responsive-nav-link :href="route('app-management.index')" :active="request()->routeIs('app-management.*')">
+                <x-responsive-nav-link :href="route('app-management.index')" :active="request()->routeIs('app-management.*') && ! request()->routeIs('app-management.reports.*')">
                     {{ __('Application Management') }}
+                </x-responsive-nav-link>
+                <x-responsive-nav-link :href="route('app-management.reports.index')" :active="request()->routeIs('app-management.reports.*')">
+                    {{ __('Reports') }}
                 </x-responsive-nav-link>
             @endif
 
