@@ -21,8 +21,10 @@ class DashboardController extends Controller
         $workQueue = null;
 
         if ($user && $user->role === 'trainee') {
+            // Legacy trained-person records may have course_id null — exclude those from "current course"
             $currentApplication = TrainingApplication::with(['course', 'warehouseIdentityCard', 'user'])
                 ->where('user_id', $user->id)
+                ->whereNotNull('course_id')
                 ->orderByDesc('created_at')
                 ->first();
 
@@ -33,6 +35,7 @@ class DashboardController extends Controller
 
             $publishedExamResultsCount = TrainingApplication::query()
                 ->where('user_id', $user->id)
+                ->whereNotNull('course_id')
                 ->where('status', 'payment_completed')
                 ->whereNotNull('exam_results_published_at')
                 ->count();

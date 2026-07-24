@@ -5,9 +5,16 @@ namespace App\Support;
 class PdfImageDataUri
 {
     /**
-     * Embed-friendly JPEG data URI for DomPDF (works without GD for JPEG).
+     * Embed-friendly image data URI for DomPDF.
+     * Prefers JPEG when conversion is possible; otherwise embeds PNG/JPEG bytes directly
+     * so identity-card PDFs work on hosts without the PHP GD extension.
      */
     public static function jpegForPdf(string $absolutePath): ?string
+    {
+        return self::dataUriForPdf($absolutePath);
+    }
+
+    public static function dataUriForPdf(string $absolutePath): ?string
     {
         if (! is_file($absolutePath) || ! is_readable($absolutePath)) {
             return null;
@@ -16,20 +23,31 @@ class PdfImageDataUri
         $extension = strtolower(pathinfo($absolutePath, PATHINFO_EXTENSION));
 
         if (in_array($extension, ['jpg', 'jpeg'], true)) {
-            return self::jpegDataUriFromFile($absolutePath);
+            return self::dataUriFromFile($absolutePath, 'image/jpeg');
         }
 
         if (extension_loaded('gd')) {
-            return self::convertToJpegDataUriWithGd($absolutePath, $extension);
+            $converted = self::convertToJpegDataUriWithGd($absolutePath, $extension);
+            if ($converted !== null) {
+                return $converted;
+            }
         }
 
         if (extension_loaded('imagick') && class_exists(\Imagick::class)) {
-            return self::convertToJpegDataUriWithImagick($absolutePath);
+            $converted = self::convertToJpegDataUriWithImagick($absolutePath);
+            if ($converted !== null) {
+                return $converted;
+            }
         }
 
         $jpegFallback = self::jpegFallbackPath($absolutePath);
         if ($jpegFallback !== null) {
-            return self::jpegDataUriFromFile($jpegFallback);
+            return self::dataUriFromFile($jpegFallback, 'image/jpeg');
+        }
+
+        // DomPDF can embed PNG without GD when provided as a data URI.
+        if ($extension === 'png') {
+            return self::dataUriFromFile($absolutePath, 'image/png');
         }
 
         return null;
@@ -45,13 +63,13 @@ class PdfImageDataUri
         return null;
     }
 
-    private static function jpegDataUriFromFile(string $absolutePath): ?string
+    private static function dataUriFromFile(string $absolutePath, string $mime): ?string
     {
         $contents = file_get_contents($absolutePath);
 
         return $contents === false
             ? null
-            : 'data:image/jpeg;base64,'.base64_encode($contents);
+            : 'data:'.$mime.';base64,'.base64_encode($contents);
     }
 
     private static function convertToJpegDataUriWithGd(string $absolutePath, string $extension): ?string

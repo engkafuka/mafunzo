@@ -2,13 +2,10 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Course;
 use App\Models\EducationBackground;
-use App\Models\TrainingApplication;
 use App\Support\NewApplicantRegistrationRules;
 use App\Support\PaginationHelper;
 use App\Support\ProfilePhotoStorage;
-use App\Support\TrainedPersonRegistrationRules;
 use App\Support\TraineeProfileUpdater;
 use App\Support\ValidationRules;
 use Illuminate\Http\RedirectResponse;
@@ -31,19 +28,18 @@ class TraineeProfileController extends Controller
 
         $legacyApplication = $user->isTrainedPerson()
             ? $user->trainingApplications()
+                ->with('course')
                 ->where('application_type', 'legacy_expert')
                 ->latest()
                 ->first()
             : null;
-
-        $courses = Course::orderByDesc('session_year')->orderBy('name')->get();
 
         $educationBackgrounds = $user->educationBackgrounds()
             ->orderByDesc('created_at')
             ->paginate(PaginationHelper::PER_PAGE)
             ->withQueryString();
 
-        return view('trainee.profile', compact('user', 'educationBackgrounds', 'legacyApplication', 'courses'));
+        return view('trainee.profile', compact('user', 'educationBackgrounds', 'legacyApplication'));
     }
 
     public function update(Request $request): RedirectResponse
@@ -168,25 +164,27 @@ class TraineeProfileController extends Controller
 
         $rules = array_merge(
             NewApplicantRegistrationRules::personalRules($user->id),
-            TrainedPersonRegistrationRules::trainingRules(certificatesRequired: false),
+            NewApplicantRegistrationRules::educationRules(certificatesRequired: false, includeWrrb: true),
             ['profile_photo' => ProfilePhotoStorage::rules($user->hasProfilePhoto() ? false : true)],
         );
 
         $validated = $request->validate(
             $rules,
             ValidationRules::registrationMessages(),
-            array_merge(NewApplicantRegistrationRules::attributeNames(), TrainedPersonRegistrationRules::attributeNames()),
+            NewApplicantRegistrationRules::attributeNames(),
         );
 
-        TrainedPersonRegistrationRules::validateTrainingCertificate(
+        NewApplicantRegistrationRules::validateEducationRows(
             $request,
-            (bool) $legacyApplication->certificate_path,
+            certificatesRequired: false,
+            requireWrrbCertificate: true,
         );
 
         DB::transaction(function () use ($request, $validated, $user, $legacyApplication) {
             TraineeProfileUpdater::updatePersonalDetails($user, $validated);
             TraineeProfileUpdater::updateProfilePhoto($user, $request);
             TraineeProfileUpdater::updateLegacyTrainingApplication($user, $request, $validated, $legacyApplication);
+            TraineeProfileUpdater::syncEducationBackgrounds($user, $request, $validated['education']);
             $user->update(['profile_completed_at' => now()]);
         });
 

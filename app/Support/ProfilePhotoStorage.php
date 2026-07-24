@@ -22,12 +22,29 @@ class ProfilePhotoStorage
         }
 
         $extension = strtolower($file->getClientOriginalExtension() ?: 'jpg');
+        $directory = 'profile-photos/'.$user->id;
 
-        return $file->storeAs(
-            'profile-photos/'.$user->id,
-            'photo.'.$extension,
-            'local',
-        );
+        // Prefer JPEG on disk so PDF generation works without GD later.
+        if (extension_loaded('gd') && in_array($extension, ['png', 'gif', 'webp', 'jpg', 'jpeg'], true)) {
+            $absolute = $file->getRealPath();
+            if (is_string($absolute) && $absolute !== '') {
+                $dataUri = PdfImageDataUri::jpegForPdf($absolute);
+                if (is_string($dataUri) && str_starts_with($dataUri, 'data:image/jpeg')) {
+                    $raw = base64_decode(substr($dataUri, strpos($dataUri, ',') + 1), true);
+                    if ($raw !== false) {
+                        $destination = $directory.'/photo.jpg';
+                        Storage::disk('local')->put($destination, $raw);
+
+                        return $destination;
+                    }
+                }
+            }
+        }
+
+        // Without GD, keep JPEG uploads as JPEG; PNG is stored as PNG and embedded directly in PDFs.
+        $storeAs = in_array($extension, ['jpg', 'jpeg'], true) ? 'jpg' : $extension;
+
+        return $file->storeAs($directory, 'photo.'.$storeAs, 'local');
     }
 
     public static function copySnapshot(User $user, int $identityCardId): string
@@ -37,19 +54,21 @@ class ProfilePhotoStorage
         }
 
         $sourcePath = Storage::disk('local')->path($user->profile_photo_path);
-        $jpegDataUri = PdfImageDataUri::jpegForPdf($sourcePath);
+        $dataUri = PdfImageDataUri::dataUriForPdf($sourcePath);
 
-        if ($jpegDataUri === null) {
+        if ($dataUri === null) {
             throw new \RuntimeException(__('Profile photo could not be prepared for the identity card PDF.'));
         }
 
-        $destination = 'identity-cards/photos/'.$identityCardId.'.jpg';
-        $raw = base64_decode(substr($jpegDataUri, strpos($jpegDataUri, ',') + 1), true);
+        $comma = strpos($dataUri, ',');
+        $raw = $comma === false ? false : base64_decode(substr($dataUri, $comma + 1), true);
 
         if ($raw === false) {
             throw new \RuntimeException(__('Profile photo could not be prepared for the identity card PDF.'));
         }
 
+        $destExt = str_starts_with($dataUri, 'data:image/png') ? 'png' : 'jpg';
+        $destination = 'identity-cards/photos/'.$identityCardId.'.'.$destExt;
         Storage::disk('local')->put($destination, $raw);
 
         return $destination;

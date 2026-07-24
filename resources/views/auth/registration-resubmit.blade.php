@@ -7,56 +7,51 @@
 
     @php
         $oldEducation = old('education');
-        if ($user->isNewApplicant()) {
-            if ($oldEducation) {
-                $educationInitial = collect($oldEducation)->values()->map(function ($row, $index) {
-                    return [
-                        'id' => $index,
-                        'record_id' => $row['id'] ?? '',
-                        'level' => $row['level'] ?? '',
-                        'program' => $row['program'] ?? '',
-                        'program_other' => $row['program_other'] ?? '',
-                        'institution' => $row['institution'] ?? '',
-                        'filename' => ! empty($row['id']) ? __('Existing file kept') : '',
-                        'existing_certificate' => ! empty($row['id']),
-                    ];
-                })->all();
-            } else {
-                $educationInitial = $user->educationBackgrounds->values()->map(function ($background, $index) {
-                    return [
-                        'id' => $index,
-                        'record_id' => (string) $background->id,
-                        'level' => $background->level,
-                        'program' => $background->program,
-                        'program_other' => $background->program_other ?? '',
-                        'institution' => $background->institution,
-                        'filename' => $background->certificate_path ? __('Existing file kept') : '',
-                        'existing_certificate' => (bool) $background->certificate_path,
-                    ];
-                })->all();
-            }
-
-            if ($educationInitial === []) {
-                $educationInitial = [[
-                    'id' => 0,
-                    'record_id' => '',
-                    'level' => '',
-                    'program' => '',
-                    'program_other' => '',
-                    'institution' => '',
-                    'filename' => '',
-                    'existing_certificate' => false,
-                ]];
-            }
+        if ($oldEducation) {
+            $educationInitial = collect($oldEducation)->values()->map(function ($row, $index) {
+                return [
+                    'id' => $index,
+                    'record_id' => $row['id'] ?? '',
+                    'level' => $row['level'] ?? '',
+                    'program' => $row['program'] ?? '',
+                    'program_other' => $row['program_other'] ?? '',
+                    'institution' => $row['institution'] ?? '',
+                    'filename' => ! empty($row['id']) ? __('Existing file kept') : '',
+                    'existing_certificate' => ! empty($row['id']),
+                ];
+            })->all();
+        } else {
+            $educationInitial = $user->educationBackgrounds->values()->map(function ($background, $index) {
+                return [
+                    'id' => $index,
+                    'record_id' => (string) $background->id,
+                    'level' => $background->level,
+                    'program' => $background->program,
+                    'program_other' => $background->program_other ?? '',
+                    'institution' => $background->institution,
+                    'filename' => $background->certificate_path ? __('Existing file kept') : '',
+                    'existing_certificate' => (bool) $background->certificate_path,
+                ];
+            })->all();
         }
 
-        $hasExistingTrainingCertificate = $legacyApplication?->certificate_path;
+        if ($educationInitial === []) {
+            $educationInitial = [[
+                'id' => 0,
+                'record_id' => '',
+                'level' => $user->isTrainedPerson() ? \App\Models\EducationBackground::LEVEL_WRRB_CERTIFICATE : '',
+                'program' => $user->isTrainedPerson() ? 'others' : '',
+                'program_other' => $user->isTrainedPerson() ? 'WRRB Certificate' : '',
+                'institution' => $user->isTrainedPerson() ? 'WRRB' : '',
+                'filename' => '',
+                'existing_certificate' => false,
+            ]];
+        }
     @endphp
 
     <div class="page-shell">
         <div class="page-inner-3xl">
             <div class="bg-white shadow-sm sm:rounded-lg overflow-hidden"
-                 @if($user->isNewApplicant())
                  x-data='{
                      category: @json($user->registration_category),
                      company_or_private: @json(old('company_or_private', $user->company_or_private)),
@@ -79,13 +74,7 @@
                              this.educationEntries.splice(index, 1);
                          }
                      },
-                 }'
-                 @else
-                 x-data='{
-                     category: @json($user->registration_category),
-                     company_or_private: @json(old("company_or_private", $user->company_or_private)),
-                 }'
-                 @endif>
+                 }'>
                 <div class="px-6 py-5 bg-[#0a71ab] text-white">
                     <h3 class="text-lg font-semibold">{{ __('Update and resubmit your application') }}</h3>
                     <p class="mt-1 text-sm text-white/90">{{ __('Correct the details below based on the rejection feedback, then resubmit for staff review.') }}</p>
@@ -154,25 +143,17 @@
                             </div>
                         </div>
 
-                        <div class="mt-4 grid gap-4 sm:grid-cols-2">
-                            <div>
-                                <x-input-label for="region" :value="__('Region')" />
-                                <x-text-input id="region" class="block mt-1 w-full" type="text" name="region" :value="old('region', $user->region)" required />
-                                <x-input-error :messages="$errors->get('region')" class="mt-2" />
-                            </div>
-                            <div>
-                                <x-input-label for="district" :value="__('District')" />
-                                <x-text-input id="district" class="block mt-1 w-full" type="text" name="district" :value="old('district', $user->district)" required />
-                                <x-input-error :messages="$errors->get('district')" class="mt-2" />
-                            </div>
-                        </div>
+                        <x-tanzania-location-fields
+                            :region="old('region', $user->region)"
+                            :district="old('district', $user->district)"
+                        />
 
                         <div class="mt-4 grid gap-4 sm:grid-cols-2">
                             <div>
                                 <x-input-label for="gender" :value="__('Gender')" />
                                 <select id="gender" name="gender" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-[#0a71ab] focus:ring-[#0a71ab]">
                                     <option value="">{{ __('Select...') }}</option>
-                                    @foreach(['male' => __('Male'), 'female' => __('Female'), 'other' => __('Other')] as $value => $label)
+                                    @foreach(['male' => __('Male'), 'female' => __('Female')] as $value => $label)
                                         <option value="{{ $value }}" {{ old('gender', $user->gender) === $value ? 'selected' : '' }}>{{ $label }}</option>
                                     @endforeach
                                 </select>
@@ -251,52 +232,13 @@
                         <section>
                             <x-education-background-repeater :step="1" />
                         </section>
-                    @elseif($legacyApplication)
-                        <section>
-                            <h2 class="text-sm font-semibold text-gray-900">{{ __('Previous training') }}</h2>
-                            <p class="mt-1 text-sm text-gray-500">{{ __('Update your prior WRRB training details.') }}</p>
-
-                            <div class="mt-4 grid gap-4 sm:grid-cols-2">
-                                <div>
-                                    <x-input-label for="course_id" :value="__('Course trained')" />
-                                    <select id="course_id" name="course_id" required
-                                            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-[#0a71ab] focus:ring-[#0a71ab]">
-                                        <option value="">{{ __('Select course') }}</option>
-                                        @foreach($courses as $course)
-                                            <option value="{{ $course->id }}" {{ (string) old('course_id', $legacyApplication->course_id) === (string) $course->id ? 'selected' : '' }}>
-                                                {{ $course->name }} ({{ $course->session_year }})
-                                            </option>
-                                        @endforeach
-                                    </select>
-                                    <x-input-error :messages="$errors->get('course_id')" class="mt-2" />
-                                </div>
-                                <div>
-                                    <x-input-label for="trained_year" :value="__('Year trained')" />
-                                    <x-text-input id="trained_year" class="block mt-1 w-full" type="number" name="trained_year"
-                                                  :value="old('trained_year', $legacyApplication->trained_year)"
-                                                  min="2000" max="2100" required />
-                                    <x-input-error :messages="$errors->get('trained_year')" class="mt-2" />
-                                </div>
-                            </div>
-
-                            <div class="mt-4">
-                                <x-input-label for="certificate_number" :value="__('Certificate number')" />
-                                <x-text-input id="certificate_number" class="block mt-1 w-full" type="text" name="certificate_number"
-                                              :value="old('certificate_number', $legacyApplication->certificate_number)" required />
-                                <x-input-error :messages="$errors->get('certificate_number')" class="mt-2" />
-                            </div>
-
-                            <div class="mt-4">
-                                <x-input-label for="training_certificate" :value="__('Training certificate')" />
-                                <x-certificate-upload-field
-                                    id="training_certificate"
-                                    name="training_certificate"
-                                    :show-existing-note="$hasExistingTrainingCertificate"
-                                    :initial-filename="$hasExistingTrainingCertificate ? __('Existing file kept') : ''"
-                                    :required="! $hasExistingTrainingCertificate"
-                                />
-                                <x-input-error :messages="$errors->get('training_certificate')" class="mt-2" />
-                            </div>
+                    @else
+                        <section class="space-y-6">
+                            <x-prior-course-select
+                                :courses="$priorCourses"
+                                :selected="old('prior_course_id', $legacyApplication?->course_id)"
+                            />
+                            <x-education-background-repeater :step="1" :include-wrrb="true" />
                         </section>
                     @endif
 

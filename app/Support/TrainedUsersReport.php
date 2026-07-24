@@ -71,7 +71,10 @@ class TrainedUsersReport
             ->with(['course', 'warehouseIdentityCard'])
             ->where('status', 'payment_completed')
             ->where('application_review_status', 'approved')
-            ->whereNotNull('account_verified_at')
+            ->where(function ($q) {
+                $q->whereNotNull('account_verified_at')
+                    ->orWhereNotNull('payment_verified_at');
+            })
             ->whereNotNull('payment_verified_at')
             ->where('exam_passed', true)
             ->whereNotNull('registration_number');
@@ -161,7 +164,7 @@ class TrainedUsersReport
             ])->filter()->implode(' ')),
             'gender' => $application->gender ? __(ucfirst($application->gender)) : '',
             'date_of_birth' => $application->date_of_birth?->format('Y-m-d') ?? '',
-            'position' => TrainingApplication::positionLabel($application->position) ?? ($application->position ?? ''),
+            'position' => $application->effectivePositionLabel() ?? ($application->effectivePosition() ?? ''),
             'company_or_private' => $application->company_or_private ? __(ucfirst($application->company_or_private)) : '',
             'course_name' => $application->course?->name ?? '',
             'session_year' => (string) ($application->course?->session_year ?? ''),

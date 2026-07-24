@@ -53,7 +53,7 @@ class TraineeProgressTracker
         }
 
         $fullyVerified = $application->application_review_status === 'approved'
-            && $application->account_verified_at
+            && $application->hasAccountConfirmed()
             && $application->payment_verified_at;
 
         if ($fullyVerified) {
@@ -72,14 +72,21 @@ class TraineeProgressTracker
 
         if ($application->payment_completed_at || $application->status === 'payment_completed') {
             return [
-                'label' => __('Payment confirmed — awaiting staff verification'),
+                'label' => __('Payment recorded — awaiting staff verification'),
                 'tone' => 'waiting',
             ];
         }
 
         if ($application->status === 'pending_payment') {
+            if (! $application->hasControlNumber()) {
+                return [
+                    'label' => __('Awaiting control number'),
+                    'tone' => 'waiting',
+                ];
+            }
+
             return [
-                'label' => __('Awaiting payment confirmation'),
+                'label' => __('Awaiting staff payment verification'),
                 'tone' => 'current',
             ];
         }

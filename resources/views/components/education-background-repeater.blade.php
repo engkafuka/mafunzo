@@ -1,15 +1,28 @@
-@props(['alpine' => true, 'step' => 3, 'required' => true, 'showExistingCertificate' => false])
+@props([
+    'alpine' => true,
+    'step' => 3,
+    'includeWrrb' => false,
+])
 
 @php
-    $levelOptions = \App\Models\EducationBackground::levelOptions();
+    $levelOptions = \App\Models\EducationBackground::levelOptions(includeWrrb: (bool) $includeWrrb);
     $programOptions = \App\Models\EducationBackground::programOptions();
+    $wrrbLevel = \App\Models\EducationBackground::LEVEL_WRRB_CERTIFICATE;
 @endphp
 
 <div class="space-y-4">
     <div class="flex items-center justify-between gap-3">
         <div>
             <h2 class="text-sm font-semibold text-gray-900">{{ __('Education background') }}</h2>
-            <p class="mt-1 text-sm text-gray-500">{{ __('Add all relevant qualifications. Each entry requires a certificate certified by an advocate.') }}</p>
+            @if($includeWrrb)
+                <p class="mt-1 text-sm text-gray-500">
+                    {{ __('Add your WRRB Certificate (mandatory). You may also add other qualifications. Each entry requires a certificate upload.') }}
+                </p>
+            @else
+                <p class="mt-1 text-sm text-gray-500">
+                    {{ __('Add all relevant qualifications. Each entry requires a certificate certified by an advocate.') }}
+                </p>
+            @endif
         </div>
         @if($alpine)
             <button type="button" @click="addEducation()"
@@ -18,6 +31,8 @@
             </button>
         @endif
     </div>
+
+    <x-input-error :messages="$errors->get('education')" class="mt-1" />
 
     @if($alpine)
         <template x-for="(entry, index) in educationEntries" :key="entry.id">
@@ -37,8 +52,8 @@
                         <x-input-label :value="__('Education level')" />
                         <select :name="'education[' + index + '][level]'" data-step="{{ $step }}"
                                 x-model="entry.level"
-                                x-bind:required="category === 'new_applicant'"
-                                x-bind:disabled="category !== 'new_applicant'"
+                                @change="if (entry.level === '{{ $wrrbLevel }}') { entry.institution = entry.institution || 'WRRB'; entry.program = entry.program || 'others'; entry.program_other = entry.program_other || 'WRRB Certificate'; }"
+                                required
                                 class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-[#0a71ab] focus:ring-[#0a71ab]">
                             <option value="">{{ __('Select level') }}</option>
                             @foreach($levelOptions as $value => $label)
@@ -50,8 +65,7 @@
                         <x-input-label :value="__('Institution')" />
                         <input type="text" :name="'education[' + index + '][institution]'" data-step="{{ $step }}"
                                x-model="entry.institution"
-                               x-bind:required="category === 'new_applicant'"
-                               x-bind:disabled="category !== 'new_applicant'"
+                               required
                                class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-[#0a71ab] focus:ring-[#0a71ab]">
                     </div>
                 </div>
@@ -60,8 +74,7 @@
                     <x-input-label :value="__('Program')" />
                     <select :name="'education[' + index + '][program]'" data-step="{{ $step }}"
                             x-model="entry.program"
-                            x-bind:required="category === 'new_applicant'"
-                            x-bind:disabled="category !== 'new_applicant'"
+                            required
                             class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-[#0a71ab] focus:ring-[#0a71ab]">
                         <option value="">{{ __('Select program') }}</option>
                         @foreach($programOptions as $value => $label)
@@ -74,13 +87,18 @@
                     <x-input-label :value="__('Program specification')" />
                     <input type="text" :name="'education[' + index + '][program_other]'" data-step="{{ $step }}"
                            x-model="entry.program_other"
-                           x-bind:required="category === 'new_applicant' && entry.program === 'others'"
-                           x-bind:disabled="category !== 'new_applicant'"
+                           x-bind:required="entry.program === 'others'"
                            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-[#0a71ab] focus:ring-[#0a71ab]">
                 </div>
 
                 <div>
-                    <x-input-label :value="__('Education certificate (certified by advocate)')" />
+                    <x-input-label>
+                        @if($includeWrrb)
+                            <span x-text="entry.level === '{{ $wrrbLevel }}' ? '{{ __('WRRB certificate') }}' : '{{ __('Education certificate (certified by advocate)') }}'"></span>
+                        @else
+                            {{ __('Education certificate (certified by advocate)') }}
+                        @endif
+                    </x-input-label>
                     <template x-if="entry.existing_certificate">
                         <p class="mt-1 text-xs text-gray-600">{{ __('Current certificate on file. Upload a new file only if you want to replace it.') }}</p>
                     </template>
@@ -93,8 +111,7 @@
                         <span class="shrink-0 rounded border border-gray-200 bg-gray-50 px-2 py-0.5 text-xs font-medium text-gray-600">{{ __('Browse') }}</span>
                         <input type="file" accept=".pdf,.jpg,.jpeg,.png" data-step="{{ $step }}"
                                :name="'education[' + index + '][certificate]'"
-                               x-bind:required="category === 'new_applicant' && !entry.record_id"
-                               x-bind:disabled="category !== 'new_applicant'"
+                               x-bind:required="!entry.record_id"
                                class="sr-only"
                                @change="entry.filename = $event.target.files[0]?.name || (entry.existing_certificate ? '{{ __('Existing file kept') }}' : '')">
                     </label>

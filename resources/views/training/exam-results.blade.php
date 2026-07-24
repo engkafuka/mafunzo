@@ -21,11 +21,13 @@
                         <div @class(['border-b border-gray-200 pb-4 mb-4' => ! $loop->last])>
                             <div class="flex flex-wrap items-start justify-between gap-3">
                                 <div>
-                                    <h4 class="font-medium text-gray-900">{{ $application->course->name }}</h4>
+                                    <h4 class="font-medium text-gray-900">{{ $application->course?->name ?? __('Course') }}</h4>
                                     <p class="mt-1 text-sm text-gray-500">
-                                        {{ __('Session') }} {{ $application->course->session_year }}
+                                        @if($application->course)
+                                            {{ __('Session') }} {{ $application->course->session_year }}
+                                        @endif
                                         @if($application->registration_number)
-                                            · {{ $application->registration_number }}
+                                            @if($application->course)· @endif{{ $application->registration_number }}
                                         @endif
                                     </p>
                                 </div>
@@ -78,8 +80,10 @@
                         @foreach($awaitingResults as $application)
                             <div class="flex flex-wrap items-center justify-between gap-2 text-sm">
                                 <div>
-                                    <p class="font-medium text-amber-950">{{ $application->course->name }}</p>
-                                    <p class="text-amber-800">{{ __('Session') }} {{ $application->course->session_year }}</p>
+                                    <p class="font-medium text-amber-950">{{ $application->course?->name ?? __('Course') }}</p>
+                                    @if($application->course)
+                                        <p class="text-amber-800">{{ __('Session') }} {{ $application->course->session_year }}</p>
+                                    @endif
                                 </div>
                                 <span class="text-amber-900">
                                     @if($application->hasRecordedExamResults())

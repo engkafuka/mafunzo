@@ -6,6 +6,8 @@ use Illuminate\Database\Eloquent\Model;
 
 class EducationBackground extends Model
 {
+    public const LEVEL_WRRB_CERTIFICATE = 'wrrb_certificate';
+
     protected $fillable = [
         'user_id',
         'level',
@@ -20,14 +22,27 @@ class EducationBackground extends Model
         return $this->belongsTo(User::class);
     }
 
-    public static function levelOptions(): array
+    public static function levelOptions(bool $includeWrrb = false): array
     {
-        return [
+        $options = [
             'certificate' => 'Certificate',
             'diploma' => 'Diploma',
             'degree' => 'Degree',
             'secondary' => 'Secondary education',
         ];
+
+        if ($includeWrrb) {
+            $options[self::LEVEL_WRRB_CERTIFICATE] = 'WRRB Certificate';
+        }
+
+        return $options;
+    }
+
+    public static function levelLabel(?string $level): string
+    {
+        $options = self::levelOptions(includeWrrb: true);
+
+        return __($options[$level] ?? ($level ?: '—'));
     }
 
     public static function programOptions(): array
@@ -36,5 +51,10 @@ class EducationBackground extends Model
             'agriculture' => 'Agriculture',
             'others' => 'Others',
         ];
+    }
+
+    public function isWrrbCertificate(): bool
+    {
+        return $this->level === self::LEVEL_WRRB_CERTIFICATE;
     }
 }

@@ -9,6 +9,8 @@ use App\Models\TrainingApplication;
 use App\Models\User;
 use App\Support\NewApplicantRegistrationRules;
 use App\Support\ProfilePhotoStorage;
+use App\Support\TanzaniaLocations;
+use App\Support\TrainedPersonRegistrationRules;
 use App\Support\ValidationRules;
 use Illuminate\Auth\Events\Registered;
 use Illuminate\Http\RedirectResponse;
@@ -22,9 +24,9 @@ class RegisteredUserController extends Controller
 {
     public function create(): View
     {
-        $courses = Course::orderByDesc('session_year')->orderBy('name')->get();
-
-        return view('auth.register', compact('courses'));
+        return view('auth.register', [
+            'priorCourses' => Course::optionsForPriorTraining(),
+        ]);
     }
 
     public function store(Request $request): RedirectResponse
@@ -43,6 +45,14 @@ class RegisteredUserController extends Controller
 
         if ($category === 'new_applicant') {
             NewApplicantRegistrationRules::validateEducationRows($request);
+        }
+
+        if ($category === 'trained_person') {
+            NewApplicantRegistrationRules::validateEducationRows(
+                $request,
+                certificatesRequired: true,
+                requireWrrbCertificate: true,
+            );
         }
 
         $user = DB::transaction(function () use ($request, $validated, $category) {
@@ -67,33 +77,31 @@ class RegisteredUserController extends Controller
                 'company_or_private' => $validated['company_or_private'],
                 'company_name' => $validated['company_or_private'] === 'company' ? $validated['company_name'] : null,
                 'company_address' => $validated['company_or_private'] === 'company' ? $validated['company_address'] : null,
-                'profile_completed_at' => $category === 'new_applicant' ? now() : null,
+                'profile_completed_at' => now(),
             ]);
 
-            if ($category === 'new_applicant') {
-                foreach ($validated['education'] as $index => $education) {
-                    $educationPath = $request->file("education.$index.certificate")->store('certificates', 'local');
+            foreach ($validated['education'] as $index => $education) {
+                $educationPath = $request->file("education.$index.certificate")->store('certificates', 'local');
 
-                    EducationBackground::create([
-                        'user_id' => $user->id,
-                        'level' => $education['level'],
-                        'program' => $education['program'],
-                        'program_other' => $education['program'] === 'others' ? ($education['program_other'] ?? null) : null,
-                        'institution' => $education['institution'],
-                        'certificate_path' => $educationPath,
-                    ]);
-                }
+                EducationBackground::create([
+                    'user_id' => $user->id,
+                    'level' => $education['level'],
+                    'program' => $education['program'],
+                    'program_other' => $education['program'] === 'others' ? ($education['program_other'] ?? null) : null,
+                    'institution' => $education['institution'],
+                    'certificate_path' => $educationPath,
+                ]);
             }
 
             if ($category === 'trained_person') {
-                $certificatePath = $request->file('training_certificate')->store('certificates/legacy', 'local');
+                $course = Course::query()->findOrFail($validated['prior_course_id']);
 
                 TrainingApplication::create([
                     'user_id' => $user->id,
-                    'course_id' => $validated['course_id'],
+                    'course_id' => $course->id,
                     'application_type' => 'legacy_expert',
-                    'trained_year' => $validated['trained_year'],
-                    'certificate_number' => $validated['certificate_number'],
+                    'trained_year' => $course->session_year,
+                    'certificate_number' => null,
                     'first_name' => $validated['first_name'],
                     'middle_name' => $validated['middle_name'],
                     'last_name' => $validated['last_name'],
@@ -109,7 +117,7 @@ class RegisteredUserController extends Controller
                     'position' => $validated['position'],
                     'status' => 'pending_registration',
                     'application_review_status' => 'pending',
-                    'certificate_path' => $certificatePath,
+                    'certificate_path' => null,
                 ]);
             }
 
@@ -133,7 +141,7 @@ class RegisteredUserController extends Controller
 
     private function baseRules(string $category): array
     {
-        $rules = [
+        $rules = array_merge([
             'registration_category' => ['required', 'in:new_applicant,trained_person'],
             'first_name' => ValidationRules::personName(),
             'middle_name' => ValidationRules::personName(),
@@ -141,26 +149,25 @@ class RegisteredUserController extends Controller
             'email' => ValidationRules::registrationEmail(),
             'phone' => ValidationRules::phone(),
             'password' => ValidationRules::password(),
-            'region' => ['required', 'string', 'max:255'],
-            'district' => ['required', 'string', 'max:255'],
-            'gender' => ['required', 'in:male,female,other'],
+            'gender' => ['required', 'in:male,female'],
             'date_of_birth' => ['required', 'date', 'before:today'],
             'position' => ['required', 'string', 'in:'.implode(',', array_keys(TrainingApplication::positionOptions()))],
             'company_or_private' => ['required', 'in:company,private'],
             'company_name' => ['required_if:company_or_private,company', 'nullable', 'string', 'max:255'],
             'company_address' => ['required_if:company_or_private,company', 'nullable', 'string', 'max:500'],
             'profile_photo' => ProfilePhotoStorage::rules(),
-        ];
+        ], TanzaniaLocations::validationRules());
 
         if ($category === 'new_applicant') {
             $rules = array_merge($rules, NewApplicantRegistrationRules::educationRules());
         }
 
         if ($category === 'trained_person') {
-            $rules['course_id'] = ['required', 'exists:courses,id'];
-            $rules['trained_year'] = ['required', 'integer', 'min:2000', 'max:2100'];
-            $rules['certificate_number'] = ['required', 'string', 'max:100'];
-            $rules['training_certificate'] = ['required', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:5120'];
+            $rules = array_merge(
+                $rules,
+                NewApplicantRegistrationRules::educationRules(includeWrrb: true),
+                TrainedPersonRegistrationRules::trainingRules(),
+            );
         }
 
         return $rules;
@@ -168,14 +175,14 @@ class RegisteredUserController extends Controller
 
     private function attributeNames(): array
     {
-        return array_merge(NewApplicantRegistrationRules::attributeNames(), [
-            'registration_category' => __('registration category'),
-            'password' => __('password'),
-            'course_id' => __('course trained'),
-            'trained_year' => __('year trained'),
-            'certificate_number' => __('certificate number'),
-            'training_certificate' => __('training certificate'),
-            'profile_photo' => __('profile photo'),
-        ]);
+        return array_merge(
+            NewApplicantRegistrationRules::attributeNames(),
+            TrainedPersonRegistrationRules::attributeNames(),
+            [
+                'registration_category' => __('registration category'),
+                'password' => __('password'),
+                'profile_photo' => __('profile photo'),
+            ],
+        );
     }
 }

@@ -57,7 +57,7 @@ class ReportController extends Controller
             'columns.*' => ['string'],
             'course_id' => ['nullable', 'exists:courses,id'],
             'session_year' => ['nullable', 'integer'],
-            'gender' => ['nullable', 'in:male,female,other'],
+            'gender' => ['nullable', 'in:male,female'],
             'region' => ['nullable', 'string', 'max:255'],
             'certificate_status' => ['nullable', 'in:issued,not_issued'],
             'id_card_status' => ['nullable', 'in:none,draft,published,revoked'],

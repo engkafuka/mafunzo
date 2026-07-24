@@ -71,14 +71,14 @@
                 </div>
 
                 <div class="space-y-6">
-                    @if($user->isNewApplicant() && $user->educationBackgrounds->isNotEmpty())
+                    @if($user->educationBackgrounds->isNotEmpty())
                         <div class="bg-white shadow-sm sm:rounded-lg overflow-hidden">
                             <h3 class="px-6 py-3 bg-gray-50 border-b font-medium text-gray-900">{{ __('Education background') }}</h3>
                             <div class="p-6 space-y-4">
                                 @foreach($user->educationBackgrounds as $eb)
                                     <div class="border border-gray-200 rounded-lg p-4 flex flex-wrap items-start justify-between gap-3">
                                         <div>
-                                            <p class="font-medium text-gray-900">{{ __(\App\Models\EducationBackground::levelOptions()[$eb->level] ?? $eb->level) }}</p>
+                                            <p class="font-medium text-gray-900">{{ \App\Models\EducationBackground::levelLabel($eb->level) }}</p>
                                             <p class="text-sm text-gray-600">{{ $eb->program === 'others' ? ($eb->program_other ?? 'Others') : __(ucfirst($eb->program)) }} · {{ $eb->institution }}</p>
                                         </div>
                                         @if($eb->certificate_path)
@@ -101,7 +101,7 @@
                                                     <div class="fixed inset-0 bg-black/60" onclick="document.getElementById('preview-edu-{{ $eb->id }}').classList.add('hidden'); document.body.classList.remove('overflow-hidden');"></div>
                                                     <div class="relative bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] flex flex-col">
                                                         <div class="flex items-center justify-between p-3 border-b">
-                                                            <span class="font-medium text-gray-900">{{ __('Education certificate') }}</span>
+                                                            <span class="font-medium text-gray-900">{{ $eb->isWrrbCertificate() ? __('WRRB certificate') : __('Education certificate') }}</span>
                                                             <button type="button" onclick="document.getElementById('preview-edu-{{ $eb->id }}').classList.add('hidden'); document.body.classList.remove('overflow-hidden');"
                                                                     class="text-gray-400 hover:text-gray-600 text-2xl leading-none">&times;</button>
                                                         </div>
@@ -124,29 +124,70 @@
 
                     @if($user->isTrainedPerson() && $legacyApplication)
                         <div class="bg-white shadow-sm sm:rounded-lg overflow-hidden">
-                            <h3 class="px-6 py-3 bg-gray-50 border-b font-medium text-gray-900">{{ __('Legacy training record') }}</h3>
+                            <h3 class="px-6 py-3 bg-gray-50 border-b font-medium text-gray-900">{{ __('Previously trained person') }}</h3>
                             <div class="p-6 space-y-3 text-sm">
-                                <p class="text-xs text-slate-600">{{ __('Certificate number is historical only. On approval the system issues a new official WRRB registration number.') }}</p>
-                                <p><span class="font-medium text-gray-500">{{ __('Course') }}:</span> {{ $legacyApplication->course->name ?? '—' }}</p>
-                                <p><span class="font-medium text-gray-500">{{ __('Year trained') }}:</span> {{ $legacyApplication->trained_year ?? '—' }}</p>
-                                <p><span class="font-medium text-gray-500">{{ __('Certificate number') }}:</span> {{ $legacyApplication->certificate_number ?? '—' }}</p>
+                                <p class="text-xs text-slate-600">
+                                    {{ __('Prior WRRB training is proven by the WRRB Certificate under Education background and the selected course. On approval the system issues a registration number and skips payment. Staff then record examination scores on Exam Results for that course; after publish, certificate and ID card follow the same path as new applicants.') }}
+                                </p>
                                 @if($legacyApplication->registration_number)
                                     <p><span class="font-medium text-gray-500">{{ __('Official WRRB registration number') }}:</span> <span class="font-mono">{{ $legacyApplication->registration_number }}</span></p>
+                                @endif
+                                @if($legacyApplication->course)
+                                    <p>
+                                        <span class="font-medium text-gray-500">{{ __('Course previously trained') }}:</span>
+                                        {{ $legacyApplication->course->displayNameWithSession() }}
+                                        @if($legacyApplication->course->code)
+                                            <span class="text-gray-400">({{ $legacyApplication->course->code }})</span>
+                                        @endif
+                                    </p>
+                                @else
+                                    <p class="text-amber-700 font-medium">{{ __('No prior course linked yet. Select a course below before approving.') }}</p>
+                                @endif
+                                @if($legacyApplication->hasPublishedExamResults())
+                                    <p>
+                                        <span class="font-medium text-gray-500">{{ __('Examination') }}:</span>
+                                        {{ $legacyApplication->examResultStatusLabel() }}
+                                        @if($legacyApplication->exam_score !== null)
+                                            ({{ number_format((float) $legacyApplication->exam_score, 2) }}%)
+                                        @endif
+                                    </p>
+                                @elseif($legacyApplication->hasRecordedExamResults())
+                                    <p class="text-amber-800">{{ __('Examination scores saved — awaiting publication.') }}</p>
+                                @elseif($user->registration_status === 'approved' && $legacyApplication->course_id)
+                                    <p class="text-amber-800">
+                                        {{ __('Awaiting examination scores.') }}
+                                        <a href="{{ route('app-management.exam-results', ['course_id' => $legacyApplication->course_id]) }}" class="font-medium text-indigo-600 hover:text-indigo-800">{{ __('Open Exam Results') }} &rarr;</a>
+                                    </p>
+                                @endif
+                                @if(! $legacyApplication->hasPublishedExamResults())
+                                    <form method="POST" action="{{ route('app-management.registrations.prior-course', $user) }}" class="mt-4 rounded-lg border border-gray-200 bg-gray-50 p-4 space-y-3">
+                                        @csrf
+                                        <x-prior-course-select :courses="$priorCourses" :selected="$legacyApplication->course_id" />
+                                        <x-primary-button type="submit">
+                                            {{ $legacyApplication->course_id ? __('Update prior course') : __('Link prior course') }}
+                                        </x-primary-button>
+                                    </form>
+                                @endif
+                                @if($legacyApplication->certificate_number)
+                                    <p><span class="font-medium text-gray-500">{{ __('Certificate number (legacy)') }}:</span> {{ $legacyApplication->certificate_number }}</p>
                                 @endif
                                 @if($legacyApplication->certificate_path)
                                     @php
                                         $certUrl = route('app-management.registrations.training-certificate', $legacyApplication);
                                         $isPdf = in_array(strtolower(pathinfo($legacyApplication->certificate_path, PATHINFO_EXTENSION)), ['pdf']);
                                     @endphp
-                                    <div class="pt-2 flex items-center gap-2">
-                                        <button type="button" onclick="document.getElementById('preview-training-cert').classList.remove('hidden'); document.body.classList.add('overflow-hidden');"
-                                                class="inline-flex items-center px-3 py-1.5 bg-indigo-600 text-white text-sm font-medium rounded-md hover:bg-indigo-700">
-                                            {{ __('Preview training certificate') }}
-                                        </button>
-                                        <a href="{{ $certUrl }}" target="_blank" rel="noopener noreferrer"
-                                           class="inline-flex items-center px-3 py-1.5 bg-gray-600 text-white text-sm font-medium rounded-md hover:bg-gray-700">
-                                            {{ __('Open') }}
-                                        </a>
+                                    <div class="pt-2">
+                                        <p class="text-xs text-amber-700 mb-2">{{ __('Older uploaded training certificate (before education background). Prefer the WRRB Certificate under Education background when available.') }}</p>
+                                        <div class="flex items-center gap-2">
+                                            <button type="button" onclick="document.getElementById('preview-training-cert').classList.remove('hidden'); document.body.classList.add('overflow-hidden');"
+                                                    class="inline-flex items-center px-3 py-1.5 bg-indigo-600 text-white text-sm font-medium rounded-md hover:bg-indigo-700">
+                                                {{ __('Preview training certificate') }}
+                                            </button>
+                                            <a href="{{ $certUrl }}" target="_blank" rel="noopener noreferrer"
+                                               class="inline-flex items-center px-3 py-1.5 bg-gray-600 text-white text-sm font-medium rounded-md hover:bg-gray-700">
+                                                {{ __('Open') }}
+                                            </a>
+                                        </div>
                                     </div>
                                     <div id="preview-training-cert" class="hidden fixed inset-0 z-50 overflow-y-auto" aria-modal="true">
                                         <div class="flex min-h-full items-center justify-center p-4">

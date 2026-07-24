@@ -192,6 +192,17 @@ class User extends Authenticatable
             $missing[] = __('education background with certificate');
         }
 
+        if ($this->isTrainedPerson()) {
+            $hasWrrbCertificate = $this->educationBackgrounds()
+                ->where('level', EducationBackground::LEVEL_WRRB_CERTIFICATE)
+                ->whereNotNull('certificate_path')
+                ->exists();
+
+            if (! $hasWrrbCertificate) {
+                $missing[] = __('WRRB Certificate education entry');
+            }
+        }
+
         if (! $this->hasProfilePhoto()) {
             $missing[] = __('profile photo');
         }

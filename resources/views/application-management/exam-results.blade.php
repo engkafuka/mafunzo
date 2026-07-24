@@ -71,6 +71,7 @@
                         </p>
                     </div>
                 @endif
+
             @endif
 
             @if($courseId && $applications->total() > 0)
@@ -83,8 +84,10 @@
                                 <tr>
                                     <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">{{ __('Registration') }}</th>
                                     <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">{{ __('Name') }}</th>
+                                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">{{ __('Applied position') }}</th>
                                     <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">{{ __('Score (0-100)') }}</th>
                                     <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">{{ __('Passed') }}</th>
+                                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">{{ __('Final position') }}</th>
                                     @if($canPublish ?? false)
                                         <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">{{ __('Publication') }}</th>
                                     @endif
@@ -92,21 +95,59 @@
                             </thead>
                             <tbody class="divide-y divide-gray-200">
                                 @foreach($applications as $app)
+                                    @php
+                                        $meetsEducation = \App\Support\PositionExamAssigner::meetsPositionEducation($app, (string) $app->position);
+                                        $reassigned = $app->assigned_position
+                                            && $app->assigned_position !== $app->position;
+                                        $gatedPositions = array_keys(config('position_exam_rules.positions', []));
+                                    @endphp
                                     <tr>
                                         <td class="px-4 py-3 text-sm font-mono" data-label="{{ __('Registration') }}">{{ $app->registration_number }}</td>
                                         <td class="px-4 py-3 text-sm" data-label="{{ __('Name') }}">{{ $app->first_name }} {{ $app->last_name }}</td>
+                                        <td class="px-4 py-3 text-sm" data-label="{{ __('Applied position') }}">
+                                            {{ \App\Models\TrainingApplication::positionLabel($app->position) ?? '—' }}
+                                            @if(in_array($app->position, $gatedPositions, true))
+                                                <span class="mt-1 block text-xs {{ $meetsEducation ? 'text-green-700' : 'text-amber-700' }}">
+                                                    @if($app->position === 'manager')
+                                                        {{ $meetsEducation ? __('Has Degree') : __('No Degree') }}
+                                                    @elseif($app->position === 'quality_assurance')
+                                                        {{ $meetsEducation ? __('Has Agriculture diploma') : __('No Agriculture diploma') }}
+                                                    @else
+                                                        {{ $meetsEducation ? __('Education met') : __('Education not met') }}
+                                                    @endif
+                                                </span>
+                                            @endif
+                                        </td>
                                         <td class="px-4 py-3" data-label="{{ __('Score (0-100)') }}">
                                             <input type="hidden" name="results[{{ $loop->index }}][id]" value="{{ $app->id }}">
                                             <input type="number" name="results[{{ $loop->index }}][exam_score]" min="0" max="100" step="0.01"
                                                    value="{{ old('results.'.$loop->index.'.exam_score', $app->exam_score) }}"
                                                    class="rounded-md border-gray-300 text-sm w-24">
                                         </td>
-                                        <td class="px-4 py-3" data-label="{{ __('Passed') }}">
-                                            <select name="results[{{ $loop->index }}][exam_passed]" class="rounded-md border-gray-300 text-sm">
-                                                <option value="">{{ __('—') }}</option>
-                                                <option value="1" {{ old('results.'.$loop->index.'.exam_passed', $app->exam_passed) === true ? 'selected' : '' }}>{{ __('Yes') }}</option>
-                                                <option value="0" {{ old('results.'.$loop->index.'.exam_passed') === '0' || $app->exam_passed === false ? 'selected' : '' }}>{{ __('No') }}</option>
-                                            </select>
+                                        <td class="px-4 py-3 text-sm" data-label="{{ __('Passed') }}">
+                                            @if($app->exam_passed === true)
+                                                <span class="inline-flex rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-800">{{ __('Yes') }}</span>
+                                            @elseif($app->exam_passed === false)
+                                                <span class="inline-flex rounded-full bg-red-100 px-2 py-0.5 text-xs font-medium text-red-800">{{ __('No') }}</span>
+                                            @else
+                                                <span class="text-gray-400">{{ __('—') }}</span>
+                                            @endif
+                                            <span class="mt-1 block text-xs text-gray-500">{{ __('Auto ≥ :pass', ['pass' => (int) config('position_exam_rules.pass_score', 50)]) }}</span>
+                                        </td>
+                                        <td class="px-4 py-3 text-sm" data-label="{{ __('Final position') }}">
+                                            @if($app->assigned_position)
+                                                @if($reassigned)
+                                                    <span class="font-medium text-amber-800">
+                                                        {{ \App\Support\PositionExamAssigner::fallbackGroupLabel() }}
+                                                    </span>
+                                                @else
+                                                    <span class="font-medium text-gray-900">
+                                                        {{ $app->effectivePositionLabel() }}
+                                                    </span>
+                                                @endif
+                                            @else
+                                                <span class="text-gray-400">{{ __('Saved after score entry') }}</span>
+                                            @endif
                                         </td>
                                         @if($canPublish ?? false)
                                             <td class="px-4 py-3 text-sm" data-label="{{ __('Publication') }}">

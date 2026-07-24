@@ -55,9 +55,8 @@
 
                     <select name="gender" class="rounded-md border-gray-300 text-sm" onchange="this.form.requestSubmit()">
                         <option value="">{{ __('All genders') }}</option>
-                        <option value="male" @selected(request('gender') === 'male')>{{ __('Male') }}</option>
-                        <option value="female" @selected(request('gender') === 'female')>{{ __('Female') }}</option>
-                        <option value="other" @selected(request('gender') === 'other')>{{ __('Other') }}</option>
+                            <option value="male" @selected(request('gender') === 'male')>{{ __('Male') }}</option>
+                            <option value="female" @selected(request('gender') === 'female')>{{ __('Female') }}</option>
                     </select>
 
                     <select name="region" class="rounded-md border-gray-300 text-sm" onchange="this.form.requestSubmit()">

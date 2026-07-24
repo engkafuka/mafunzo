@@ -46,16 +46,37 @@
                             @endif
                             <div><dt class="text-sm font-medium text-gray-500">{{ __('Gender') }}</dt><dd class="mt-0.5">{{ $application->gender ? __(ucfirst($application->gender)) : '—' }}</dd></div>
                             <div><dt class="text-sm font-medium text-gray-500">{{ __('Date of birth') }}</dt><dd class="mt-0.5">{{ $application->date_of_birth?->format('Y-m-d') ?? '—' }}</dd></div>
-                            <div><dt class="text-sm font-medium text-gray-500">{{ __('Position') }}</dt><dd class="mt-0.5">{{ \App\Models\TrainingApplication::positionLabel($application->position) ?? '—' }}</dd></div>
+                            <div><dt class="text-sm font-medium text-gray-500">{{ __('Applied position') }}</dt><dd class="mt-0.5">{{ \App\Models\TrainingApplication::positionLabel($application->position) ?? '—' }}</dd></div>
+                            @if($application->assigned_position)
+                                <div><dt class="text-sm font-medium text-gray-500">{{ __('Final position') }}</dt><dd class="mt-0.5">{{ $application->effectivePositionLabel() }}</dd></div>
+                            @endif
                         </dl>
                         <div class="mt-4 pt-4 border-t border-gray-200 space-y-1">
-                            <div><span class="text-sm font-medium text-gray-500">{{ __('Course') }}:</span> {{ $application->course->name }}</div>
-                            <div><span class="text-sm font-medium text-gray-500">{{ __('Control number') }}:</span> {{ $application->control_number ?? '—' }}</div>
+                            <div><span class="text-sm font-medium text-gray-500">{{ __('Course') }}:</span> {{ $application->course?->name ?? '—' }}</div>
+                            <div><span class="text-sm font-medium text-gray-500">{{ __('Control number') }}:</span> <span class="font-mono">{{ $application->control_number ?? '—' }}</span></div>
                             <div><span class="text-sm font-medium text-gray-500">{{ __('Registration number') }}:</span> {{ $application->registration_number ?? '—' }}</div>
                             <div><span class="text-sm font-medium text-gray-500">{{ __('Application review') }}:</span> <span class="capitalize">{{ $application->application_review_status }}</span></div>
-                            <div><span class="text-sm font-medium text-gray-500">{{ __('Account verified') }}:</span> {{ $application->account_verified_at ? $application->account_verified_at->format('Y-m-d H:i') : 'No' }}</div>
+                            <div><span class="text-sm font-medium text-gray-500">{{ __('Account confirmed') }}:</span> {{ $application->hasAccountConfirmed() ? ($application->account_verified_at?->format('Y-m-d H:i') ?? __('Yes')) : 'No' }}</div>
                             <div><span class="text-sm font-medium text-gray-500">{{ __('Payment verified') }}:</span> {{ $application->payment_verified_at ? $application->payment_verified_at->format('Y-m-d H:i') : 'No' }}</div>
                         </div>
+
+                        @unless($application->payment_verified_at)
+                            <form method="POST" action="{{ route('app-management.applications.control-number', $application) }}" class="mt-4 rounded-lg border border-gray-200 bg-gray-50 p-4 space-y-3">
+                                @csrf
+                                <div>
+                                    <x-input-label for="control_number" :value="__('Control number (12 digits)')" />
+                                    <x-text-input id="control_number" name="control_number" type="text" inputmode="numeric" pattern="[0-9]{12}" maxlength="12"
+                                                  class="block mt-1 w-full font-mono"
+                                                  :value="old('control_number', $application->control_number)"
+                                                  required />
+                                    <p class="mt-1 text-xs text-gray-500">{{ __('Enter the exact 12-digit control number from the payment channel.') }}</p>
+                                    <x-input-error :messages="$errors->get('control_number')" class="mt-1" />
+                                </div>
+                                <x-primary-button type="submit">
+                                    {{ $application->control_number ? __('Update control number') : __('Save control number') }}
+                                </x-primary-button>
+                            </form>
+                        @endunless
                     </div>
                 </div>
 
@@ -69,7 +90,7 @@
                         @foreach($application->user->educationBackgrounds as $eb)
                             <div class="border border-gray-200 rounded-lg p-4 flex flex-wrap items-start justify-between gap-3">
                                 <div>
-                                    <p class="font-medium text-gray-900">{{ __(\App\Models\EducationBackground::levelOptions()[$eb->level] ?? $eb->level) }}</p>
+                                    <p class="font-medium text-gray-900">{{ \App\Models\EducationBackground::levelLabel($eb->level) }}</p>
                                     <p class="text-sm text-gray-600">{{ $eb->program === 'others' ? ($eb->program_other ?? 'Others') : __(ucfirst($eb->program)) }} · {{ $eb->institution }}</p>
                                 </div>
                                 @if($eb->certificate_path)
@@ -136,27 +157,18 @@
                                     <x-danger-button type="submit">{{ __('Reject application') }}</x-danger-button>
                                 </form>
                             @endif
-                            @if($application->needsAccountVerification())
-                                <form method="POST" action="{{ route('app-management.applications.verify-account', $application) }}" class="inline">
-                                    @csrf
-                                    <button type="submit" class="px-4 py-2 bg-amber-600 text-white rounded-md hover:bg-amber-700 text-sm">{{ __('Verify account') }}</button>
-                                </form>
-                            @endif
                             @if($application->needsPaymentVerification())
-                                <form method="POST" action="{{ route('app-management.applications.verify-payment', $application) }}" class="inline">
-                                    @csrf
-                                    <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-sm">{{ __('Verify payment') }}</button>
-                                </form>
+                                @if($application->hasControlNumber())
+                                    <form method="POST" action="{{ route('app-management.applications.verify-payment', $application) }}" class="inline">
+                                        @csrf
+                                        <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-sm">{{ __('Verify payment') }}</button>
+                                    </form>
+                                @else
+                                    <p class="text-sm text-amber-700">{{ __('Save a 12-digit control number before verifying payment.') }}</p>
+                                @endif
                             @endif
-                            @if($application->needsAccountVerification() || $application->needsPaymentVerification())
-                                <form method="POST" action="{{ route('app-management.applications.verify-payment-package', $application) }}" class="inline"
-                                      onsubmit="return confirm('{{ __('Confirm that both the account and payment are verified?') }}');">
-                                    @csrf
-                                    <button type="submit" class="px-4 py-2 bg-[#0a71ab] text-white rounded-md hover:bg-[#086090] text-sm">{{ __('Approve payment package') }}</button>
-                                </form>
-                            @endif
-                            @if(!$application->canBeReviewedByStaff() && !$application->needsAccountVerification() && !$application->needsPaymentVerification())
-                                <p class="text-sm text-gray-500">{{ __('No pending actions. Application review, account, and payment are complete.') }}</p>
+                            @if(!$application->canBeReviewedByStaff() && !$application->needsPaymentVerification())
+                                <p class="text-sm text-gray-500">{{ __('No pending actions. Application review and payment are complete.') }}</p>
                             @endif
                         </div>
                     </div>
@@ -182,7 +194,7 @@
                                         @endphp
                                         <button type="button" onclick="var panel=document.getElementById('all-documents-modal').querySelector('.doc-preview-panel'); Array.from(panel.children).forEach(function(el){ el.style.display='none'; }); var frame=document.getElementById('doc-frame-{{ $eb->id }}'); if(frame){ frame.style.display='block'; var ifr=frame.querySelector('iframe'); if(ifr&&!ifr.src){ ifr.src=ifr.getAttribute('data-src')||''; } var img=frame.querySelector('img'); if(img&&!img.src){ img.src=img.getAttribute('data-src')||''; } }"
                                                 class="w-full text-left px-4 py-3 text-sm border-b border-gray-200 hover:bg-white focus:bg-white focus:outline-none">
-                                            {{ __(\App\Models\EducationBackground::levelOptions()[$eb->level] ?? $eb->level) }} — {{ Str::limit($eb->institution, 22) }}
+                                            {{ \App\Models\EducationBackground::levelLabel($eb->level) }} — {{ Str::limit($eb->institution, 22) }}
                                         </button>
                                     @endforeach
                                 </div>

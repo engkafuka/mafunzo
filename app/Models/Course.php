@@ -117,6 +117,18 @@ class Course extends Model
         return $this->name.' ('.$this->sessionLabel().')';
     }
 
+    /**
+     * Courses available when a previously trained person selects what they already completed.
+     * Includes historical / unpublished sessions so Excel-era cohorts can be matched.
+     */
+    public static function optionsForPriorTraining()
+    {
+        return static::query()
+            ->orderByDesc('session_year')
+            ->orderBy('name')
+            ->get();
+    }
+
     public function canBePublished(): bool
     {
         return $this->session_year

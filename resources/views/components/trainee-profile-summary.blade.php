@@ -56,7 +56,7 @@
             <ul class="space-y-2">
                 @foreach($user->educationBackgrounds as $eb)
                     <li class="text-sm text-gray-700">
-                        {{ __(\App\Models\EducationBackground::levelOptions()[$eb->level] ?? $eb->level) }}
+                        {{ \App\Models\EducationBackground::levelLabel($eb->level) }}
                         · {{ $eb->program === 'others' ? ($eb->program_other ?? __('Others')) : __(ucfirst($eb->program)) }}
                         · {{ $eb->institution }}
                     </li>

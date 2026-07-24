@@ -44,7 +44,7 @@
                     <div class="dashboard-grid-item bg-white overflow-hidden shadow-sm sm:rounded-lg p-6 sm:col-start-2 sm:row-start-1" role="group" aria-label="{{ __('Current course') }}">
                         <h3 class="font-medium text-gray-900 mb-2">{{ __('Current course') }}</h3>
                         @if(isset($currentApplication) && $currentApplication)
-                            <p class="text-indigo-700 font-semibold">{{ $currentApplication->course->name }}</p>
+                            <p class="text-indigo-700 font-semibold">{{ $currentApplication->course?->name ?? __('Course') }}</p>
                             @if($currentApplication->registration_number)
                                 <p class="text-sm text-gray-500 mt-1">{{ __('Registration number') }}: {{ $currentApplication->registration_number }}</p>
                             @endif

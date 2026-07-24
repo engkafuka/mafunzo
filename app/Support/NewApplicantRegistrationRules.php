@@ -13,24 +13,27 @@ class NewApplicantRegistrationRules
     {
         $emailRule = ValidationRules::registrationEmail($ignoreUserId);
 
-        return [
+        return array_merge([
             'first_name' => ValidationRules::personName(),
             'middle_name' => ValidationRules::personName(),
             'last_name' => ValidationRules::personName(),
             'email' => $emailRule,
             'phone' => ValidationRules::phone(),
-            'region' => ['required', 'string', 'max:255'],
-            'district' => ['required', 'string', 'max:255'],
-            'gender' => ['required', 'in:male,female,other'],
+            'gender' => ['required', 'in:male,female'],
             'date_of_birth' => ['required', 'date', 'before:today'],
             'position' => ['required', 'string', 'in:'.implode(',', array_keys(TrainingApplication::positionOptions()))],
             'company_or_private' => ['required', 'in:company,private'],
             'company_name' => ['required_if:company_or_private,company', 'nullable', 'string', 'max:255'],
             'company_address' => ['required_if:company_or_private,company', 'nullable', 'string', 'max:500'],
-        ];
+        ], TanzaniaLocations::validationRules());
     }
 
-    public static function educationRules(bool $certificatesRequired = true): array
+    public static function locationRules(): array
+    {
+        return TanzaniaLocations::validationRules();
+    }
+
+    public static function educationRules(bool $certificatesRequired = true, bool $includeWrrb = false): array
     {
         $certificateRules = $certificatesRequired
             ? ['required', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:5120']
@@ -39,7 +42,7 @@ class NewApplicantRegistrationRules
         return [
             'education' => ['required', 'array', 'min:1'],
             'education.*.id' => ['nullable', 'integer', 'exists:education_backgrounds,id'],
-            'education.*.level' => ['required', 'string', 'in:'.implode(',', array_keys(EducationBackground::levelOptions()))],
+            'education.*.level' => ['required', 'string', 'in:'.implode(',', array_keys(EducationBackground::levelOptions($includeWrrb)))],
             'education.*.program' => ['required', 'string', 'in:'.implode(',', array_keys(EducationBackground::programOptions()))],
             'education.*.program_other' => ['nullable', 'string', 'max:255'],
             'education.*.institution' => ['required', 'string', 'max:255'],
@@ -47,11 +50,22 @@ class NewApplicantRegistrationRules
         ];
     }
 
-    public static function validateEducationRows(Request $request, bool $certificatesRequired = true): void
-    {
+    public static function validateEducationRows(
+        Request $request,
+        bool $certificatesRequired = true,
+        bool $requireWrrbCertificate = false,
+    ): void {
         $errors = [];
+        $educationRows = $request->input('education', []);
+        $hasWrrbRow = false;
 
-        foreach ($request->input('education', []) as $index => $education) {
+        foreach ($educationRows as $index => $education) {
+            $level = $education['level'] ?? '';
+
+            if ($level === EducationBackground::LEVEL_WRRB_CERTIFICATE) {
+                $hasWrrbRow = true;
+            }
+
             if (($education['program'] ?? '') === 'others' && blank($education['program_other'] ?? null)) {
                 $errors["education.$index.program_other"] = __('The program specification field is required.');
             }
@@ -64,6 +78,10 @@ class NewApplicantRegistrationRules
             } elseif (! $certificatesRequired && ! $hasExisting && ! $hasFile) {
                 $errors["education.$index.certificate"] = __('The education certificate field is required.');
             }
+        }
+
+        if ($requireWrrbCertificate && ! $hasWrrbRow) {
+            $errors['education'] = __('Include at least one education entry with level “WRRB Certificate” and upload the certificate.');
         }
 
         if ($errors !== []) {

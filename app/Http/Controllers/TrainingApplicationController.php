@@ -8,8 +8,6 @@ use App\Support\PaginationHelper;
 use App\Support\ValidationRules;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Str;
 use Illuminate\View\View;
 
 class TrainingApplicationController extends Controller
@@ -113,7 +111,7 @@ class TrainingApplicationController extends Controller
             'user_id' => $user->id,
             'course_id' => $course->id,
             'status' => 'pending_payment',
-            'control_number' => $this->generateControlNumber(),
+            'control_number' => null,
         ]);
 
         return redirect()->route('training.payment', $application);
@@ -128,44 +126,14 @@ class TrainingApplicationController extends Controller
         if ($application->user_id !== auth()->id()) {
             abort(403);
         }
-        if ($application->status === 'payment_completed') {
+        if ($application->status === 'payment_completed' || $application->payment_verified_at) {
             return redirect()->route('training.confirmation', $application);
         }
         return view('training.payment', compact('application'));
     }
 
     /**
-     * Mark payment as completed (admin or trainee confirms), generate registration number.
-     */
-    public function confirmPayment(TrainingApplication $application): RedirectResponse
-    {
-        $this->authorizeTrainee();
-        if ($application->user_id !== auth()->id()) {
-            abort(403);
-        }
-
-        DB::transaction(function () use ($application) {
-            $application = TrainingApplication::query()
-                ->whereKey($application->id)
-                ->lockForUpdate()
-                ->firstOrFail();
-
-            if ($application->status === 'payment_completed') {
-                return;
-            }
-
-            $application->update([
-                'status' => 'payment_completed',
-                'payment_completed_at' => now(),
-                'registration_number' => TrainingApplication::registrationNumberFor($application),
-            ]);
-        });
-
-        return redirect()->route('training.confirmation', $application->fresh());
-    }
-
-    /**
-     * Show confirmation with registration number.
+     * Show confirmation with registration number (after staff payment verification).
      */
     public function confirmation(TrainingApplication $application): View|RedirectResponse
     {
@@ -173,7 +141,7 @@ class TrainingApplicationController extends Controller
         if ($application->user_id !== auth()->id()) {
             abort(403);
         }
-        if ($application->status !== 'payment_completed') {
+        if (! $application->payment_verified_at && $application->status !== 'payment_completed') {
             return redirect()->route('training.payment', $application);
         }
         return view('training.confirmation', compact('application'));
@@ -200,6 +168,7 @@ class TrainingApplicationController extends Controller
         $publishedResults = $request->user()
             ->trainingApplications()
             ->with('course')
+            ->whereNotNull('course_id')
             ->where('status', 'payment_completed')
             ->whereNotNull('exam_results_published_at')
             ->latest()
@@ -209,6 +178,7 @@ class TrainingApplicationController extends Controller
         $awaitingResults = $request->user()
             ->trainingApplications()
             ->with('course')
+            ->whereNotNull('course_id')
             ->where('status', 'payment_completed')
             ->whereNull('exam_results_published_at')
             ->latest()
@@ -256,13 +226,5 @@ class TrainingApplicationController extends Controller
             }
             redirect()->route('dashboard')->with('message', __('Only trainees can apply for training.'))->throwResponse();
         }
-    }
-
-    private function generateControlNumber(): string
-    {
-        do {
-            $number = strtoupper(Str::random(2)) . date('Ymd') . str_pad((string) random_int(0, 9999), 4, '0', STR_PAD_LEFT);
-        } while (TrainingApplication::where('control_number', $number)->exists());
-        return $number;
     }
 }

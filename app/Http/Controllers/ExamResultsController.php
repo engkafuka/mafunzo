@@ -9,6 +9,7 @@ use App\Support\AuditLogger;
 use App\Support\ExamResultsExporter;
 use App\Support\IdentityCardService;
 use App\Support\PaginationHelper;
+use App\Support\PositionExamAssigner;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
@@ -25,7 +26,7 @@ class ExamResultsController extends Controller
         $examStats = null;
 
         if ($courseId) {
-            $applications = TrainingApplication::with('course')
+            $applications = TrainingApplication::with(['course', 'user.educationBackgrounds'])
                 ->where('course_id', $courseId)
                 ->where('status', 'payment_completed')
                 ->orderBy('registration_number')
@@ -65,14 +66,15 @@ class ExamResultsController extends Controller
             'results' => 'required|array',
             'results.*.id' => 'required|exists:training_applications,id',
             'results.*.exam_score' => 'nullable|numeric|min:0|max:100',
-            'results.*.exam_passed' => 'nullable|boolean',
         ]);
 
         $courseId = null;
         $savedCount = 0;
+        $reassignedCount = 0;
 
         foreach ($request->results as $row) {
-            $application = TrainingApplication::find($row['id'] ?? 0);
+            $application = TrainingApplication::with('user.educationBackgrounds')
+                ->find($row['id'] ?? 0);
 
             if (! $application) {
                 continue;
@@ -81,16 +83,25 @@ class ExamResultsController extends Controller
             $courseId = $application->course_id;
 
             $score = isset($row['exam_score']) && $row['exam_score'] !== '' ? (float) $row['exam_score'] : null;
-            $passed = isset($row['exam_passed']) && $row['exam_passed'] !== '' ? (bool) (int) $row['exam_passed'] : null;
+            $assignment = PositionExamAssigner::resolve($application, $score);
 
             $scoreChanged = $application->exam_score != $score;
-            $passedChanged = $application->exam_passed !== $passed;
+            $passedChanged = $application->exam_passed !== $assignment['exam_passed'];
+            $positionChanged = $application->assigned_position !== $assignment['assigned_position'];
+
+            if (
+                $assignment['assigned_position']
+                && $assignment['assigned_position'] !== $application->position
+            ) {
+                $reassignedCount++;
+            }
 
             $application->update([
                 'exam_score' => $score,
-                'exam_passed' => $passed,
-                'exam_uploaded_at' => now(),
-                'exam_results_published_at' => ($scoreChanged || $passedChanged)
+                'exam_passed' => $assignment['exam_passed'],
+                'assigned_position' => $assignment['assigned_position'],
+                'exam_uploaded_at' => $score === null ? $application->exam_uploaded_at : now(),
+                'exam_results_published_at' => ($scoreChanged || $passedChanged || $positionChanged)
                     ? null
                     : $application->exam_results_published_at,
             ]);
@@ -101,8 +112,17 @@ class ExamResultsController extends Controller
         $redirectRoute = $request->routeIs('trainer.*') ? 'trainer.exam-results' : 'app-management.exam-results';
 
         $message = auth()->user()?->isAdminOrSuperAdmin()
-            ? __('Exam results saved. Publish when ready for trainees to view them.')
+            ? __('Exam results saved. Pass is automatic for scores ≥ :pass. Publish when ready for trainees to view them.', [
+                'pass' => (int) config('position_exam_rules.pass_score', 50),
+            ])
             : __('Exam results saved. An administrator must publish them before trainees can view the results.');
+
+        if ($reassignedCount > 0) {
+            $message .= ' '.__(':count applicant(s) did not meet gated position rules and were assigned to :fallback.', [
+                'count' => $reassignedCount,
+                'fallback' => PositionExamAssigner::fallbackGroupLabel(),
+            ]);
+        }
 
         if ($savedCount === 0) {
             $message = __('No exam results were saved.');

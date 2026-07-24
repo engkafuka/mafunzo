@@ -25,32 +25,34 @@ class ApplicationManagementController extends Controller
     {
         $stats = [
             'pending_registrations' => User::where('role', 'trainee')->where('registration_status', 'pending')->count(),
-            'pending_review' => TrainingApplication::where('application_review_status', 'pending')->where('status', 'payment_completed')->count(),
-            'pending_account_verify' => TrainingApplication::whereNull('account_verified_at')
-                ->whereIn('status', ['pending_payment', 'payment_completed'])
+            'pending_review' => TrainingApplication::where('application_review_status', 'pending')
+                ->where('status', 'payment_completed')
+                ->whereNotNull('course_id')
+                ->where('application_type', '!=', 'legacy_expert')
                 ->count(),
             'pending_payment_verify' => TrainingApplication::whereNull('payment_verified_at')
                 ->whereIn('status', ['pending_payment', 'payment_completed'])
+                ->whereNotNull('course_id')
+                ->where('application_type', '!=', 'legacy_expert')
                 ->count(),
         ];
         return view('application-management.index', compact('stats'));
     }
 
     /**
-     * List applications for review, verify account, verify payment.
+     * List applications for review and payment verification.
      */
     public function applications(Request $request): View
     {
         $query = TrainingApplication::with(['course', 'user'])
             ->where('status', '!=', 'pending_registration')
+            ->whereNotNull('course_id')
+            ->where('application_type', '!=', 'legacy_expert')
             ->orderByDesc('created_at');
 
         if ($request->filled('status_filter')) {
             if ($request->status_filter === 'pending_review') {
                 $query->where('application_review_status', 'pending')->where('status', 'payment_completed');
-            } elseif ($request->status_filter === 'pending_account') {
-                $query->whereNull('account_verified_at')
-                    ->whereIn('status', ['pending_payment', 'payment_completed']);
             } elseif ($request->status_filter === 'pending_payment') {
                 $query->whereNull('payment_verified_at')
                     ->whereIn('status', ['pending_payment', 'payment_completed']);
@@ -82,32 +84,66 @@ class ApplicationManagementController extends Controller
     {
         $request->validate(['action' => 'required|in:approve,reject']);
 
-        $application->update([
+        $updates = [
             'application_review_status' => $request->action === 'approve' ? 'approved' : 'rejected',
             'application_reviewed_at' => now(),
-        ]);
+        ];
+
+        // Account verification is no longer a separate staff step.
+        if ($request->action === 'approve' && $application->account_verified_at === null) {
+            $updates['account_verified_at'] = now();
+        }
+
+        $application->update($updates);
 
         return redirect()->route('app-management.applications.show', $application)
             ->with('status', $request->action === 'approve' ? __('Application approved.') : __('Application rejected.'));
     }
 
     /**
-     * Mark account as verified.
+     * Staff issues / updates the 12-digit payment control number.
      */
-    public function verifyAccount(TrainingApplication $application): RedirectResponse
+    public function updateControlNumber(Request $request, TrainingApplication $application): RedirectResponse
     {
         if ($application->status === 'pending_registration') {
             return redirect()->route('app-management.applications.show', $application)
-                ->with('error', __('This application is not ready for account verification yet.'));
+                ->with('error', __('This application is not ready for a control number yet.'));
         }
 
-        $application->update(['account_verified_at' => now()]);
+        if ($application->payment_verified_at) {
+            return redirect()->route('app-management.applications.show', $application)
+                ->with('error', __('Control number cannot be changed after payment has been verified.'));
+        }
 
-        return redirect()->route('app-management.applications.show', $application)->with('status', __('Account verified.'));
+        $validated = $request->validate([
+            'control_number' => TrainingApplication::controlNumberRules($application->id),
+        ], [], [
+            'control_number' => __('control number'),
+        ]);
+
+        $application->update([
+            'control_number' => $validated['control_number'],
+        ]);
+
+        $application->loadMissing(['user', 'course']);
+        if ($application->user) {
+            $application->user->notify(new TraineeStatusNotification(
+                __('Control number issued'),
+                __('Your payment control number for :course is ready. Use it to complete payment.', [
+                    'course' => $application->course?->name ?? __('your course'),
+                ]),
+                route('training.payment', $application),
+                __('Open payment page'),
+            ));
+        }
+
+        return redirect()->route('app-management.applications.show', $application)
+            ->with('status', __('Control number saved.'));
     }
 
     /**
      * Mark payment as verified (and set status to payment_completed if not already).
+     * Also confirms account verification when still missing.
      */
     public function verifyPayment(TrainingApplication $application): RedirectResponse
     {
@@ -116,32 +152,20 @@ class ApplicationManagementController extends Controller
                 ->with('error', __('This application is not ready for payment verification yet.'));
         }
 
+        if (! $application->hasControlNumber()) {
+            return redirect()->route('app-management.applications.show', $application)
+                ->with('error', __('Enter a 12-digit control number before verifying payment.'));
+        }
+
+        if (! preg_match('/^\d{12}$/', (string) $application->control_number)) {
+            return redirect()->route('app-management.applications.show', $application)
+                ->with('error', __('Control number must be exactly 12 digits before verifying payment.'));
+        }
+
         $this->markPaymentVerified($application);
         $this->notifyTraineePaymentVerified($application);
 
         return redirect()->route('app-management.applications.show', $application)->with('status', __('Payment verified.'));
-    }
-
-    /**
-     * Verify account and payment together (staff still confirms both).
-     */
-    public function verifyPaymentPackage(TrainingApplication $application): RedirectResponse
-    {
-        if ($application->status === 'pending_registration') {
-            return redirect()->route('app-management.applications.show', $application)
-                ->with('error', __('This application is not ready for verification yet.'));
-        }
-
-        if ($application->account_verified_at === null) {
-            $application->update(['account_verified_at' => now()]);
-        }
-
-        $application = $application->fresh();
-        $this->markPaymentVerified($application);
-        $this->notifyTraineePaymentVerified($application->fresh());
-
-        return redirect()->route('app-management.applications.show', $application)
-            ->with('status', __('Account and payment verified.'));
     }
 
     private function markPaymentVerified(TrainingApplication $application): void
@@ -151,6 +175,10 @@ class ApplicationManagementController extends Controller
             'status' => 'payment_completed',
             'payment_completed_at' => $application->payment_completed_at ?? now(),
         ];
+
+        if ($application->account_verified_at === null) {
+            $updates['account_verified_at'] = now();
+        }
 
         if (! TrainingApplication::isOfficialRegistrationNumber($application->registration_number)) {
             $updates['registration_number'] = TrainingApplication::registrationNumberFor($application);
@@ -168,11 +196,11 @@ class ApplicationManagementController extends Controller
 
         $application->user->notify(new TraineeStatusNotification(
             __('Payment verified'),
-            __('Your payment for :course has been verified by staff. You may continue with training.', [
+            __('Your payment for :course has been verified by staff. Your registration number is ready.', [
                 'course' => $application->course?->name ?? __('your course'),
             ]),
-            route('training.my-applications'),
-            __('View my applications'),
+            route('training.confirmation', $application),
+            __('View registration number'),
         ));
     }
 
@@ -284,8 +312,12 @@ class ApplicationManagementController extends Controller
         $query = TrainingApplication::with('course')
             ->where('status', 'payment_completed')
             ->where('application_review_status', 'approved')
-            ->whereNotNull('account_verified_at')
+            ->where(function ($q) {
+                $q->whereNotNull('account_verified_at')
+                    ->orWhereNotNull('payment_verified_at');
+            })
             ->whereNotNull('payment_verified_at')
+            ->whereNotNull('course_id')
             ->where('exam_passed', true);
 
         if ($request->filled('course_id')) {

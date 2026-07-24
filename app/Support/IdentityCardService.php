@@ -19,7 +19,10 @@ class IdentityCardService
             ->whereNotNull('registration_number')
             ->where('status', 'payment_completed')
             ->where('application_review_status', 'approved')
-            ->whereNotNull('account_verified_at')
+            ->where(function ($query) {
+                $query->whereNotNull('account_verified_at')
+                    ->orWhereNotNull('payment_verified_at');
+            })
             ->whereNotNull('payment_verified_at')
             ->where('exam_passed', true)
             ->whereNotNull('exam_results_published_at')
@@ -56,7 +59,7 @@ class IdentityCardService
                 'session_year' => $application->course?->session_year,
                 'trained_year' => $application->trained_year,
                 'full_name' => trim($application->first_name.' '.($application->middle_name ?? '').' '.$application->last_name),
-                'position' => TrainingApplication::positionLabel($application->position),
+                    'position' => TrainingApplication::positionLabel($application->effectivePosition()),
                 'course_name' => $application->course?->name ?? __('Training course'),
                 'company_name' => $application->company_name,
                 'photo_path' => '',

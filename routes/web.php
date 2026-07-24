@@ -62,7 +62,6 @@ Route::middleware('auth')->group(function () {
             Route::post('/apply', [TrainingApplicationController::class, 'store'])->name('apply.store');
             Route::get('/my-applications', [TrainingApplicationController::class, 'index'])->name('my-applications');
             Route::get('/payment/{application}', [TrainingApplicationController::class, 'payment'])->name('payment');
-            Route::post('/payment/{application}/confirm', [TrainingApplicationController::class, 'confirmPayment'])->name('payment.confirm');
             Route::get('/confirmation/{application}', [TrainingApplicationController::class, 'confirmation'])->name('confirmation');
             Route::get('/exam-results', [TrainingApplicationController::class, 'examResults'])->name('exam-results');
             Route::get('/identity-cards', [TraineeIdentityCardController::class, 'index'])->name('identity-cards');
@@ -107,13 +106,13 @@ Route::middleware('auth')->group(function () {
         Route::get('/registrations/{user}', [RegistrationVerificationController::class, 'show'])->name('registrations.show');
         Route::post('/registrations/{user}/approve', [RegistrationVerificationController::class, 'approve'])->name('registrations.approve');
         Route::post('/registrations/{user}/reject', [RegistrationVerificationController::class, 'reject'])->name('registrations.reject');
+        Route::post('/registrations/{user}/prior-course', [RegistrationVerificationController::class, 'updatePriorCourse'])->name('registrations.prior-course');
         Route::get('/registrations/training-certificate/{application}', [RegistrationVerificationController::class, 'trainingCertificate'])->name('registrations.training-certificate');
         Route::get('/applications', [ApplicationManagementController::class, 'applications'])->name('applications');
         Route::get('/applications/{application}', [ApplicationManagementController::class, 'applicationShow'])->name('applications.show');
         Route::post('/applications/{application}/review', [ApplicationManagementController::class, 'applicationReview'])->name('applications.review');
-        Route::post('/applications/{application}/verify-account', [ApplicationManagementController::class, 'verifyAccount'])->name('applications.verify-account');
+        Route::post('/applications/{application}/control-number', [ApplicationManagementController::class, 'updateControlNumber'])->name('applications.control-number');
         Route::post('/applications/{application}/verify-payment', [ApplicationManagementController::class, 'verifyPayment'])->name('applications.verify-payment');
-        Route::post('/applications/{application}/verify-payment-package', [ApplicationManagementController::class, 'verifyPaymentPackage'])->name('applications.verify-payment-package');
         Route::get('/attendance', [ApplicationManagementController::class, 'attendance'])->name('attendance');
         Route::post('/attendance', [ApplicationManagementController::class, 'attendanceCreate'])->name('attendance.store');
         Route::get('/attendance/{session}', [ApplicationManagementController::class, 'attendanceShow'])->name('attendance.show');

@@ -116,12 +116,12 @@ When you **Register**, pick one category:
 ```mermaid
 flowchart TD
     Reg[Register page] --> Choice{Registration category}
-    Choice -->|New applicant| NA[Upload education certificates<br/>certified by advocate]
-    Choice -->|Previously trained person| TP[Upload previous training certificate<br/>+ registration number]
+    Choice -->|New applicant| NA[Education backgrounds<br/>advocate-certified certificates]
+    Choice -->|Previously trained person| TP[Education with mandatory WRRB Certificate]
     NA --> Wait[Wait for staff approval]
     TP --> Wait
     Wait --> Approved{Approved?}
-    Approved -->|Yes| Profile[Complete profile]
+    Approved -->|Yes| Profile[Complete / update profile]
     Approved -->|Rejected| Resubmit[Update application & resubmit]
     Resubmit --> Wait
 ```
@@ -129,7 +129,7 @@ flowchart TD
 | Category | Who should choose it | What you provide |
 |----------|----------------------|------------------|
 | **New applicant** | First-time WRRB trainee | Personal details + one or more education backgrounds with certificate uploads |
-| **Previously trained person** | Already trained by WRRB before | Previous course, year, registration number, training certificate |
+| **Previously trained person** | Already trained by WRRB before | Personal details + education background that must include a **WRRB Certificate** upload (other education levels allowed too) |
 
 After registration you see **Registration pending verification** until staff approve your account.
 
@@ -140,7 +140,9 @@ Once approved, go to **My profile** (or **Complete my profile** on the dashboard
 You must add:
 - Full name, email, phone, region, district
 - Company or private, gender, date of birth, position
-- At least **one education background** with a certificate file (PDF, JPG, or PNG)
+- Education background with certificate file(s) (PDF, JPG, or PNG)
+  - **New applicants:** at least one education entry
+  - **Previously trained persons:** at least one entry with level **WRRB Certificate** (additional education entries are optional)
 
 ```mermaid
 flowchart LR
@@ -230,7 +232,7 @@ flowchart TB
 | **Approve** | Information is complete and valid |
 | **Reject** | Information is wrong or incomplete — always add a reason |
 
-**Previously trained persons:** On approval, the system may auto-complete their legacy application (payment, exam passed, certificate).
+**Previously trained persons:** On approval, the system may auto-complete their legacy application (payment, exam passed). Staff review their education background, including the mandatory WRRB Certificate.
 
 ### 5.2 Review applications
 
@@ -393,7 +395,7 @@ flowchart TD
 | Problem | Likely cause | What to do |
 |---------|--------------|------------|
 | Cannot apply for training | Registration not approved | Wait for staff or check registration status |
-| Cannot apply for training | Profile incomplete | Complete **My profile** with education + certificate |
+| Cannot apply for training | Profile incomplete | Complete **My profile** (education + certificates; trained persons need WRRB Certificate) |
 | Email already registered | Same email used before | Use **Login** instead of Register |
 | Payment page but no registration number | Payment not confirmed | Click **Confirm payment** after paying |
 | Attendance scan fails | Wrong registration number or wrong course | Use number from **My Applications** for that course |

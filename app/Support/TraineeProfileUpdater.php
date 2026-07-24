@@ -107,20 +107,7 @@ class TraineeProfileUpdater
 
     public static function updateLegacyTrainingApplication(User $user, Request $request, array $validated, TrainingApplication $legacyApplication): void
     {
-        $certificatePath = $legacyApplication->certificate_path;
-
-        if ($request->hasFile('training_certificate')) {
-            if ($legacyApplication->certificate_path) {
-                Storage::disk('local')->delete($legacyApplication->certificate_path);
-            }
-
-            $certificatePath = $request->file('training_certificate')->store('certificates/legacy', 'local');
-        }
-
         $legacyApplication->update([
-            'course_id' => $validated['course_id'],
-            'trained_year' => $validated['trained_year'],
-            'certificate_number' => $validated['certificate_number'],
             'first_name' => $validated['first_name'],
             'middle_name' => $validated['middle_name'] ?? null,
             'last_name' => $validated['last_name'],
@@ -134,7 +121,6 @@ class TraineeProfileUpdater
             'gender' => $validated['gender'],
             'date_of_birth' => $validated['date_of_birth'],
             'position' => $validated['position'],
-            'certificate_path' => $certificatePath,
         ]);
     }
 }

@@ -64,7 +64,7 @@
                     @if($course->description)
                         <p class="text-gray-600 mt-3 text-sm">{{ $course->description }}</p>
                     @endif
-                    <p class="mt-4 text-sm text-gray-500">{{ __('After you submit, you will receive a control number for payment.') }}</p>
+                    <p class="mt-4 text-sm text-gray-500">{{ __('After you submit, WRRB staff will issue a 12-digit control number for payment.') }}</p>
                 </div>
             </div>
         </div>

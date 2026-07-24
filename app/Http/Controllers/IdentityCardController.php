@@ -32,7 +32,10 @@ class IdentityCardController extends Controller
         if ($statusFilter === 'eligible') {
             $query->where('status', 'payment_completed')
                 ->where('application_review_status', 'approved')
-                ->whereNotNull('account_verified_at')
+                ->where(function ($q) {
+                    $q->whereNotNull('account_verified_at')
+                        ->orWhereNotNull('payment_verified_at');
+                })
                 ->whereNotNull('payment_verified_at')
                 ->where('exam_passed', true)
                 ->whereNotNull('exam_results_published_at')

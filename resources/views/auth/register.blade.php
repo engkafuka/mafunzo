@@ -9,11 +9,12 @@
         }
     </style>
     @php
+        $priorCourses = $priorCourses ?? collect();
         $initialStep = 1;
         $hasEducationErrors = collect($errors->keys())->contains(fn ($key) => str_starts_with($key, 'education'));
         if ($errors->hasAny(['password', 'password_confirmation'])) {
             $initialStep = 4;
-        } elseif ($hasEducationErrors || $errors->hasAny(['course_id', 'trained_year', 'certificate_number', 'training_certificate'])) {
+        } elseif ($hasEducationErrors || $errors->has('prior_course_id')) {
             $initialStep = 3;
         } elseif ($errors->hasAny(['first_name', 'middle_name', 'last_name', 'email', 'phone', 'region', 'district', 'gender', 'date_of_birth', 'position', 'company_or_private', 'company_name', 'company_address', 'profile_photo'])) {
             $initialStep = 2;
@@ -62,6 +63,21 @@
                      this.educationEntries.splice(index, 1);
                  }
              },
+             ensureTrainedEducationDefaults() {
+                 if (this.category !== "trained_person") {
+                     return;
+                 }
+                 if (!this.educationEntries.length) {
+                     this.addEducation();
+                 }
+                 const first = this.educationEntries[0];
+                 if (!first.level) {
+                     first.level = "wrrb_certificate";
+                     first.institution = first.institution || "WRRB";
+                     first.program = first.program || "others";
+                     first.program_other = first.program_other || "WRRB Certificate";
+                 }
+             },
              validateStep(current) {
                  const form = this.$refs.regForm;
                  const fields = form.querySelectorAll("[data-step=\"" + current + "\"]");
@@ -100,6 +116,9 @@
              nextStep() {
                  if (this.validateStep(this.step)) {
                      this.step = Math.min(this.step + 1, 4);
+                     if (this.step === 3) {
+                         this.ensureTrainedEducationDefaults();
+                     }
                  }
              },
              prevStep() {
@@ -108,6 +127,9 @@
              goToStep(n) {
                  if (n < this.step || this.validateStep(this.step)) {
                      this.step = n;
+                     if (this.step === 3) {
+                         this.ensureTrainedEducationDefaults();
+                     }
                  }
              }
          }'>
@@ -176,6 +198,7 @@
                                        : 'border-gray-200 bg-white hover:border-[#0a71ab]/40 hover:bg-gray-50'">
                                 <input type="radio" name="registration_category" value="{{ $value }}"
                                        x-model="category" data-step="1" required
+                                       @change="ensureTrainedEducationDefaults()"
                                        class="sr-only">
                                 <span class="flex items-center gap-3">
                                     <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg"
@@ -247,18 +270,7 @@
                     </div>
                 </div>
 
-                <div class="mt-4 grid gap-4 sm:grid-cols-2">
-                    <div>
-                        <x-input-label for="region" :value="__('Region')" />
-                        <x-text-input id="region" class="block mt-1 w-full" type="text" name="region" :value="old('region')" required data-step="2" />
-                        <x-input-error :messages="$errors->get('region')" class="mt-2" />
-                    </div>
-                    <div>
-                        <x-input-label for="district" :value="__('District')" />
-                        <x-text-input id="district" class="block mt-1 w-full" type="text" name="district" :value="old('district')" required data-step="2" />
-                        <x-input-error :messages="$errors->get('district')" class="mt-2" />
-                    </div>
-                </div>
+                <x-tanzania-location-fields :region="old('region')" :district="old('district')" :step="2" />
 
                 <div class="mt-4 grid gap-4 sm:grid-cols-2">
                     <div>
@@ -267,7 +279,6 @@
                             <option value="">{{ __('Select...') }}</option>
                             <option value="male" {{ old('gender') === 'male' ? 'selected' : '' }}>{{ __('Male') }}</option>
                             <option value="female" {{ old('gender') === 'female' ? 'selected' : '' }}>{{ __('Female') }}</option>
-                            <option value="other" {{ old('gender') === 'other' ? 'selected' : '' }}>{{ __('Other') }}</option>
                         </select>
                         <x-input-error :messages="$errors->get('gender')" class="mt-2" />
                     </div>
@@ -331,60 +342,29 @@
                 </div>
             </div>
 
-            {{-- Step 3: Category-specific --}}
-            <div x-show="step === 3" x-cloak x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0 translate-x-4" x-transition:enter-end="opacity-100 translate-x-0">
-                {{-- New applicant --}}
-                <div x-show="category === 'new_applicant'" x-transition>
+            {{--
+                Mount education by category (not by step).
+                If we destroy it when leaving step 3, certificate files and values are lost on submit.
+            --}}
+            <template x-if="category === 'new_applicant'">
+                <div x-show="step === 3" x-cloak
+                     x-transition:enter="transition ease-out duration-200"
+                     x-transition:enter-start="opacity-0 translate-x-4"
+                     x-transition:enter-end="opacity-100 translate-x-0">
                     <x-education-background-repeater />
                 </div>
+            </template>
 
-                {{-- Trained person --}}
-                <div x-show="category === 'trained_person'" x-cloak x-transition>
-                    <h2 class="text-sm font-semibold text-gray-900">{{ __('Previous training') }}</h2>
-                    <p class="mt-1 text-sm text-gray-500">{{ __('Details of your prior WRRB training.') }}</p>
-
-                    <div class="mt-4 grid gap-4 sm:grid-cols-2">
-                        <div>
-                            <x-input-label for="course_id" :value="__('Course trained')" />
-                            <select id="course_id" name="course_id" data-step="3"
-                                    x-bind:required="category === 'trained_person'" x-bind:disabled="category !== 'trained_person'"
-                                    class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-[#0a71ab] focus:ring-[#0a71ab]">
-                                <option value="">{{ __('Select course') }}</option>
-                                @foreach($courses as $course)
-                                    <option value="{{ $course->id }}" {{ (string) old('course_id') === (string) $course->id ? 'selected' : '' }}>
-                                        {{ $course->name }} ({{ $course->session_year }})
-                                    </option>
-                                @endforeach
-                            </select>
-                            <x-input-error :messages="$errors->get('course_id')" class="mt-2" />
-                        </div>
-                        <div>
-                            <x-input-label for="trained_year" :value="__('Year trained')" />
-                            <x-text-input id="trained_year" class="block mt-1 w-full" type="number" name="trained_year" :value="old('trained_year')"
-                                          min="2000" max="2100" data-step="3"
-                                          x-bind:required="category === 'trained_person'" x-bind:disabled="category !== 'trained_person'" />
-                            <x-input-error :messages="$errors->get('trained_year')" class="mt-2" />
-                        </div>
-                    </div>
-                    <div class="mt-4">
-                        <x-input-label for="certificate_number" :value="__('Certificate number')" />
-                        <x-text-input id="certificate_number" class="block mt-1 w-full" type="text" name="certificate_number" :value="old('certificate_number')"
-                                      x-bind:required="category === 'trained_person'" x-bind:disabled="category !== 'trained_person'" data-step="3" />
-                        <x-input-error :messages="$errors->get('certificate_number')" class="mt-2" />
-                    </div>
-                    <div class="mt-4">
-                        <x-input-label for="training_certificate" :value="__('Training certificate')" />
-                        <x-certificate-upload-field
-                            id="training_certificate"
-                            name="training_certificate"
-                            :step="3"
-                            x-bind:required="category === 'trained_person'"
-                            x-bind:disabled="category !== 'trained_person'"
-                        />
-                        <x-input-error :messages="$errors->get('training_certificate')" class="mt-2" />
-                    </div>
+            <template x-if="category === 'trained_person'">
+                <div x-show="step === 3" x-cloak
+                     x-transition:enter="transition ease-out duration-200"
+                     x-transition:enter-start="opacity-0 translate-x-4"
+                     x-transition:enter-end="opacity-100 translate-x-0"
+                     class="space-y-6">
+                    <x-prior-course-select :courses="$priorCourses" :data-step="3" />
+                    <x-education-background-repeater :include-wrrb="true" />
                 </div>
-            </div>
+            </template>
 
             {{-- Step 4: Account --}}
             <div x-show="step === 4" x-cloak x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0 translate-x-4" x-transition:enter-end="opacity-100 translate-x-0">

@@ -29,15 +29,20 @@ class StaffWorkQueue
             'pending_application_reviews' => TrainingApplication::query()
                 ->where('application_review_status', 'pending')
                 ->whereIn('status', ['pending_payment', 'payment_completed'])
+                ->whereNotNull('course_id')
+                ->where('application_type', '!=', 'legacy_expert')
                 ->count(),
             'pending_payment_verifications' => TrainingApplication::query()
                 ->whereNull('payment_verified_at')
+                ->whereNotNull('course_id')
+                ->where('application_type', '!=', 'legacy_expert')
                 ->where(function ($q) {
                     $q->where('status', 'payment_completed')
                         ->orWhereNotNull('payment_completed_at');
                 })
                 ->count(),
             'unpublished_exam_results' => TrainingApplication::query()
+                ->whereNotNull('course_id')
                 ->whereNotNull('exam_uploaded_at')
                 ->whereNull('exam_results_published_at')
                 ->count(),

@@ -22,16 +22,12 @@
                         <p class="mt-2 text-indigo-600 font-medium">{{ $stats['pending_review'] }} {{ __('pending') }}</p>
                     @endif
                 </a>
-                <a href="{{ route('app-management.applications', ['status_filter' => 'pending_account']) }}" class="block p-6 bg-white rounded-lg shadow hover:shadow-md border border-gray-200">
-                    <h3 class="text-lg font-semibold text-gray-900">{{ __('Verify Accounts') }}</h3>
-                    <p class="mt-1 text-sm text-gray-600">{{ __('Verify trainee accounts.') }}</p>
-                    @if($stats['pending_account_verify'] > 0)
-                        <p class="mt-2 text-amber-600 font-medium">{{ $stats['pending_account_verify'] }} {{ __('pending') }}</p>
-                    @endif
-                </a>
                 <a href="{{ route('app-management.applications', ['status_filter' => 'pending_payment']) }}" class="block p-6 bg-white rounded-lg shadow hover:shadow-md border border-gray-200">
                     <h3 class="text-lg font-semibold text-gray-900">{{ __('Review Payments') }}</h3>
                     <p class="mt-1 text-sm text-gray-600">{{ __('Verify payment completion.') }}</p>
+                    @if(($stats['pending_payment_verify'] ?? 0) > 0)
+                        <p class="mt-2 text-amber-600 font-medium">{{ $stats['pending_payment_verify'] }} {{ __('pending') }}</p>
+                    @endif
                 </a>
                 <a href="{{ route('app-management.attendance') }}" class="block p-6 bg-white rounded-lg shadow hover:shadow-md border border-gray-200">
                     <h3 class="text-lg font-semibold text-gray-900">{{ __('Attendance (QR)') }}</h3>

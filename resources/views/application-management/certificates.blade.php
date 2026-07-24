@@ -65,7 +65,7 @@
                             <tr>
                                 <td class="px-4 py-3 text-sm font-mono">{{ $app->registration_number }}</td>
                                 <td class="px-4 py-3 text-sm">{{ $app->first_name }} {{ $app->last_name }}</td>
-                                <td class="px-4 py-3 text-sm">{{ $app->course->name }}</td>
+                                <td class="px-4 py-3 text-sm">{{ $app->course?->name ?? '—' }}</td>
                                 <td class="px-4 py-3 text-sm">
                                     @if($app->isEligibleForCertificate())
                                         <a href="{{ route('app-management.certificates.show', $app) }}" target="_blank" class="text-indigo-600 hover:text-indigo-800 font-medium">{{ __('View / Print') }}</a>

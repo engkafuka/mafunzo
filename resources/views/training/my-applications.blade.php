@@ -33,9 +33,11 @@
                         <div class="border-b border-gray-200 last:border-0 py-4 first:pt-0 last:pb-0">
                             <div class="flex flex-wrap items-start justify-between gap-3">
                                 <div class="min-w-0">
-                                    <h3 class="font-medium text-gray-900">{{ $app->course->name }}</h3>
+                                    <h3 class="font-medium text-gray-900">{{ $app->course?->name ?? __('Prior WRRB training (registration)') }}</h3>
                                     <p class="text-sm text-gray-500 mt-1">
-                                        {{ __('Session') }} {{ $app->course->session_year }} &middot;
+                                        @if($app->course)
+                                            {{ __('Session') }} {{ $app->course->session_year }} &middot;
+                                        @endif
                                         {{ $app->first_name }} {{ $app->last_name }}
                                     </p>
                                     <span class="mt-2 inline-flex items-center rounded-md border px-2.5 py-1 text-xs font-medium {{ $toneClasses }}">
@@ -57,11 +59,14 @@
                                     @endif
                                     @if($app->status === 'pending_payment')
                                         <a href="{{ route('training.payment', $app) }}" class="text-sm text-indigo-600 hover:text-indigo-800 font-medium">
-                                            {{ __('Pay / Confirm') }}
+                                            {{ $app->hasControlNumber() ? __('View payment details') : __('Awaiting control number') }}
                                         </a>
                                     @endif
-                                    @if($app->registration_number)
+                                    @if($app->payment_verified_at && $app->registration_number)
                                         <span class="text-sm font-mono font-semibold text-green-600">{{ $app->registration_number }}</span>
+                                        <a href="{{ route('training.confirmation', $app) }}" class="text-sm text-indigo-600 hover:text-indigo-800 font-medium">
+                                            {{ __('View registration number') }}
+                                        </a>
                                     @endif
                                     @if($app->hasPublishedExamResults())
                                         <a href="{{ route('training.exam-results') }}" class="text-sm font-medium text-indigo-600 hover:text-indigo-800">

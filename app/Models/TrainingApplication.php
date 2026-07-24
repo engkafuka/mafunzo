@@ -6,6 +6,7 @@ use App\Models\Concerns\Auditable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\Rule;
 
 class TrainingApplication extends Model
 {
@@ -29,6 +30,7 @@ class TrainingApplication extends Model
         'gender',
         'date_of_birth',
         'position',
+        'assigned_position',
         'control_number',
         'payment_completed_at',
         'registration_number',
@@ -93,6 +95,11 @@ class TrainingApplication extends Model
      */
     public function isOpen(): bool
     {
+        // Prior-training records do not block applying for a new course.
+        if ($this->isLegacyExpert()) {
+            return false;
+        }
+
         if (! in_array($this->status, ['pending_payment', 'payment_completed'], true)) {
             return false;
         }
@@ -111,6 +118,7 @@ class TrainingApplication extends Model
     public function scopeOpen(Builder $query): Builder
     {
         return $query
+            ->where('application_type', '!=', 'legacy_expert')
             ->whereIn('status', ['pending_payment', 'payment_completed'])
             ->where(function ($q) {
                 $q->whereNull('application_review_status')
@@ -150,22 +158,28 @@ class TrainingApplication extends Model
             ],
             [
                 'key' => 'payment_completed',
-                'label' => __('Payment completed'),
+                'label' => $this->isLegacyExpert()
+                    ? __('Prior training recorded (payment not required)')
+                    : __('Payment completed'),
                 'met' => $this->status === 'payment_completed',
             ],
             [
                 'key' => 'application_approved',
-                'label' => __('Application approved'),
+                'label' => $this->isLegacyExpert()
+                    ? __('Registration / prior training approved')
+                    : __('Application approved'),
                 'met' => $this->application_review_status === 'approved',
             ],
             [
                 'key' => 'account_verified',
-                'label' => __('Account verified by staff'),
-                'met' => $this->account_verified_at !== null,
+                'label' => __('Account confirmed'),
+                'met' => $this->hasAccountConfirmed(),
             ],
             [
                 'key' => 'payment_verified',
-                'label' => __('Payment verified by staff'),
+                'label' => $this->isLegacyExpert()
+                    ? __('Prior training verified by staff')
+                    : __('Payment verified by staff'),
                 'met' => $this->payment_verified_at !== null,
             ],
             [
@@ -195,9 +209,19 @@ class TrainingApplication extends Model
     {
         return $this->status === 'payment_completed'
             && $this->application_review_status === 'approved'
-            && $this->account_verified_at !== null
+            && $this->hasAccountConfirmed()
             && $this->payment_verified_at !== null
             && $this->exam_passed === true;
+    }
+
+    /**
+     * Account confirmation is set on application approve / payment verify
+     * (no separate verify-account staff step).
+     */
+    public function hasAccountConfirmed(): bool
+    {
+        return $this->account_verified_at !== null
+            || $this->payment_verified_at !== null;
     }
 
     public function hasPublishedExamResults(): bool
@@ -266,6 +290,26 @@ class TrainingApplication extends Model
             && in_array($this->status, ['pending_payment', 'payment_completed'], true);
     }
 
+    public function hasControlNumber(): bool
+    {
+        return filled($this->control_number);
+    }
+
+    /**
+     * Staff-issued payment control number: exactly 12 digits.
+     *
+     * @return list<string|\Illuminate\Validation\Rules\Unique>
+     */
+    public static function controlNumberRules(?int $ignoreApplicationId = null): array
+    {
+        $unique = Rule::unique('training_applications', 'control_number');
+        if ($ignoreApplicationId) {
+            $unique = $unique->ignore($ignoreApplicationId);
+        }
+
+        return ['required', 'digits:12', $unique];
+    }
+
     public function canBeReviewedByStaff(): bool
     {
         return $this->status === 'payment_completed'
@@ -302,6 +346,19 @@ class TrainingApplication extends Model
         }
 
         return str_replace('_', ' ', ucwords($position, '_'));
+    }
+
+    /**
+     * Final role after exam rules (falls back to applied position).
+     */
+    public function effectivePosition(): ?string
+    {
+        return $this->assigned_position ?: $this->position;
+    }
+
+    public function effectivePositionLabel(): ?string
+    {
+        return self::positionLabel($this->effectivePosition());
     }
 
     /**
