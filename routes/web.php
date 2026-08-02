@@ -1,5 +1,8 @@
 <?php
 
+use App\Http\Controllers\LicenseNominationController;
+use App\Http\Controllers\LicenseChangeRequestController;
+use App\Http\Controllers\LicenseChangeRequestManagementController;
 use App\Http\Controllers\ApplicationManagementController;
 use App\Http\Controllers\AuditLogController;
 use App\Http\Controllers\CourseController;
@@ -55,6 +58,12 @@ Route::middleware('auth')->group(function () {
         Route::put('/trainee/profile', [TraineeProfileController::class, 'update'])->name('trainee.profile.update');
         Route::post('/trainee/profile', [TraineeProfileController::class, 'store'])->name('trainee.profile.store');
         Route::get('/trainee/profile/certificate/{educationBackground}', [TraineeProfileController::class, 'showCertificate'])->name('trainee.profile.certificate');
+
+        Route::get('/licensing/nominations/{nomination}', [LicenseNominationController::class, 'show'])->name('licensing.nominations.show');
+        Route::post('/licensing/nominations/{nomination}/accept', [LicenseNominationController::class, 'accept'])->name('licensing.nominations.accept');
+        Route::post('/licensing/nominations/{nomination}/reject', [LicenseNominationController::class, 'reject'])->name('licensing.nominations.reject');
+        Route::post('/licensing/nominations/{nomination}/change-requests', [LicenseChangeRequestController::class, 'store'])->name('licensing.change-requests.store');
+        Route::post('/licensing/change-requests/{changeRequest}/cancel', [LicenseChangeRequestController::class, 'cancel'])->name('licensing.change-requests.cancel');
 
         Route::prefix('training')->name('training.')->group(function () {
             Route::get('/', [TrainingApplicationController::class, 'selectCourse'])->name('select-course');
@@ -130,6 +139,11 @@ Route::middleware('auth')->group(function () {
         Route::post('/identity-cards/{identityCard}/revoke', [IdentityCardController::class, 'revoke'])->name('identity-cards.revoke');
         Route::get('/identity-cards/{identityCard}/view', [IdentityCardController::class, 'view'])->name('identity-cards.view');
         Route::get('/identity-cards/{identityCard}/download', [IdentityCardController::class, 'download'])->name('identity-cards.download');
+
+        Route::get('/licensing-change-requests', [LicenseChangeRequestManagementController::class, 'index'])->name('licensing-change-requests.index');
+        Route::get('/licensing-change-requests/{changeRequest}', [LicenseChangeRequestManagementController::class, 'show'])->name('licensing-change-requests.show');
+        Route::post('/licensing-change-requests/{changeRequest}/approve', [LicenseChangeRequestManagementController::class, 'approve'])->name('licensing-change-requests.approve');
+        Route::post('/licensing-change-requests/{changeRequest}/reject', [LicenseChangeRequestManagementController::class, 'reject'])->name('licensing-change-requests.reject');
 
         Route::prefix('reports')->name('reports.')->group(function () {
             Route::get('/', [ReportController::class, 'index'])->name('index');

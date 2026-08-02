@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\AttendanceRecord;
 use App\Models\AttendanceSession;
 use App\Models\Course;
+use App\Models\LicenseChangeRequest;
 use App\Models\TrainingApplication;
 use App\Models\User;
 use App\Notifications\TraineeStatusNotification;
@@ -35,6 +36,7 @@ class ApplicationManagementController extends Controller
                 ->whereNotNull('course_id')
                 ->where('application_type', '!=', 'legacy_expert')
                 ->count(),
+            'pending_licensing_changes' => LicenseChangeRequest::where('status', LicenseChangeRequest::STATUS_PENDING)->count(),
         ];
         return view('application-management.index', compact('stats'));
     }
