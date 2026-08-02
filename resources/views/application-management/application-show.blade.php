@@ -15,7 +15,7 @@
             @endif
 
             <div class="mb-4">
-                <a href="{{ route('app-management.applications') }}" class="text-indigo-600 hover:text-indigo-800">{{ __('&larr; Back to list') }}</a>
+                <x-back-link :href="route('app-management.applications')">{{ __('Back to list') }}</x-back-link>
             </div>
 
             @php

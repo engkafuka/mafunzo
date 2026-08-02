@@ -15,7 +15,7 @@
             @endif
 
             <div class="mb-4">
-                <a href="{{ route('app-management.index') }}" class="text-indigo-600 hover:text-indigo-800">{{ __('&larr; Back to Application Management') }}</a>
+                <x-back-link :href="route('app-management.index')">{{ __('Back to Application Management') }}</x-back-link>
             </div>
 
             <p class="mb-4 text-sm text-gray-600">

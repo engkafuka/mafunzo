@@ -7,6 +7,9 @@
 
     <div class="page-shell">
         <div class="page-inner-7xl">
+            <div class="mb-4">
+                <x-back-link :href="route('app-management.index')">{{ __('Back to Application Management') }}</x-back-link>
+            </div>
             <p class="mb-6 text-sm text-gray-600">{{ __('Generate and download operational reports for WRRB training.') }}</p>
 
             <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">

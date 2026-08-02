@@ -240,7 +240,10 @@
 <body>
     <div class="toolbar no-print">
         <button type="button" class="btn-print" onclick="window.print()">{{ __('Print certificate') }}</button>
-        <a href="{{ route('app-management.certificates') }}" class="btn-back">{{ __('Back to list') }}</a>
+        <a href="{{ route('app-management.certificates') }}" class="btn-back" style="display:inline-flex;align-items:center;gap:6px;">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5 3 12m0 0 7.5-7.5M3 12h18"/></svg>
+            {{ __('Back to list') }}
+        </a>
     </div>
 
     <div class="sheet">

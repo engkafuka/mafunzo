@@ -28,7 +28,7 @@
         <div class="page-inner-7xl space-y-4"
              x-data="{ columnsOpen: false }">
             <div class="flex flex-wrap items-center justify-between gap-3">
-                <a href="{{ route('app-management.reports.index') }}" class="text-[#0a71ab] hover:underline text-sm">&larr; {{ __('Back to reports') }}</a>
+                <x-back-link :href="route('app-management.reports.index')" class="text-sm text-[#0a71ab] hover:text-[#085a89] hover:underline">{{ __('Back to reports') }}</x-back-link>
                 <p class="text-sm text-gray-500">{{ __(':count matching', ['count' => $applications->total()]) }}</p>
             </div>
 

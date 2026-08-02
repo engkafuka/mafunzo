@@ -41,9 +41,9 @@
                             <x-input-error :messages="$errors->get('confirm_details')" class="mt-1" />
 
                             <div class="form-actions pt-2">
-                                <a href="{{ route('training.select-course') }}" class="text-gray-600 hover:text-gray-900 text-center sm:text-left">
+                                <x-back-link :href="route('training.select-course')" class="text-gray-600 hover:text-gray-900 text-center sm:text-left justify-center sm:justify-start">
                                     {{ __('Back to courses') }}
-                                </a>
+                                </x-back-link>
                                 <x-primary-button type="submit">{{ __('Submit Application') }}</x-primary-button>
                             </div>
                         </form>

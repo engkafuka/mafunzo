@@ -15,7 +15,7 @@
             @endif
 
             <div>
-                <a href="{{ route('app-management.licensing-change-requests.index') }}" class="text-indigo-600 hover:text-indigo-800 text-sm">{{ __('&larr; Back to list') }}</a>
+                <x-back-link :href="route('app-management.licensing-change-requests.index')" class="text-sm">{{ __('Back to list') }}</x-back-link>
             </div>
 
             <div class="bg-white shadow-sm sm:rounded-lg overflow-hidden">

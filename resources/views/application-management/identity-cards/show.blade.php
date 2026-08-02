@@ -15,7 +15,7 @@
             @endif
 
             <div>
-                <a href="{{ route('app-management.identity-cards.index') }}" class="text-indigo-600 hover:text-indigo-800">{{ __('&larr; Back to ID cards') }}</a>
+                <x-back-link :href="route('app-management.identity-cards.index')">{{ __('Back to ID cards') }}</x-back-link>
             </div>
 
             <div class="grid gap-6 lg:grid-cols-2">

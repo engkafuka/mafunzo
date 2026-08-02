@@ -8,7 +8,7 @@
     <div class="page-shell">
         <div class="page-inner-4xl space-y-6">
             <div>
-                <a href="{{ route('training.my-applications') }}" class="text-sm font-medium text-indigo-600 hover:text-indigo-800">{{ __('&larr; Back to my applications') }}</a>
+                <x-back-link :href="route('training.my-applications')" class="text-sm font-medium">{{ __('Back to my applications') }}</x-back-link>
             </div>
 
             <div class="bg-white shadow-sm sm:rounded-lg overflow-hidden">

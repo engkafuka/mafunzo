@@ -172,7 +172,7 @@
             @endif
 
             <p>
-                <a href="{{ route('notifications.index') }}" class="text-sm text-[#0a71ab] hover:underline">{{ __('Back to notifications') }}</a>
+                <x-back-link :href="route('notifications.index')" class="text-sm text-[#0a71ab] hover:text-[#085a89] hover:underline">{{ __('Back to notifications') }}</x-back-link>
             </p>
         </div>
     </div>

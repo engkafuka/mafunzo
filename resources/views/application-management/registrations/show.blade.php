@@ -15,7 +15,7 @@
             @endif
 
             <div class="mb-4">
-                <a href="{{ route('app-management.registrations.index') }}" class="text-indigo-600 hover:text-indigo-800">{{ __('&larr; Back to registrations') }}</a>
+                <x-back-link :href="route('app-management.registrations.index')">{{ __('Back to registrations') }}</x-back-link>
             </div>
 
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">

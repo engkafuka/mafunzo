@@ -15,9 +15,9 @@
             @endif
 
             <div class="mb-4">
-                <a href="{{ $isTrainerPortal ?? false ? route('dashboard') : route('app-management.index') }}" class="text-indigo-600 hover:text-indigo-800">
-                    {{ ($isTrainerPortal ?? false) ? __('&larr; Back to dashboard') : __('&larr; Back to Application Management') }}
-                </a>
+                <x-back-link :href="$isTrainerPortal ?? false ? route('dashboard') : route('app-management.index')">
+                    {{ ($isTrainerPortal ?? false) ? __('Back to dashboard') : __('Back to Application Management') }}
+                </x-back-link>
             </div>
 
             <form method="GET" class="mb-6">

@@ -4,9 +4,9 @@
             <h2 class="font-semibold text-xl text-gray-800 leading-tight">
                 {{ __('Audit Entry') }}
             </h2>
-            <a href="{{ route('audit-logs.index') }}" class="text-sm text-indigo-600 hover:text-indigo-800 font-medium">
+            <x-back-link :href="route('audit-logs.index')" class="text-sm font-medium">
                 {{ __('Back to audit trail') }}
-            </a>
+            </x-back-link>
         </div>
     </x-slot>
 
