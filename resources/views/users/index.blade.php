@@ -28,6 +28,7 @@
                         <option value="trainer" {{ request('role') === 'trainer' ? 'selected' : '' }}>{{ __('Trainer') }}</option>
                         <option value="staff" {{ request('role') === 'staff' ? 'selected' : '' }}>{{ __('Staff') }}</option>
                         <option value="trainee" {{ request('role') === 'trainee' ? 'selected' : '' }}>{{ __('Trainee') }}</option>
+                        <option value="interview" {{ request('role') === 'interview' ? 'selected' : '' }}>{{ __('Interview only') }}</option>
                     </select>
                     <button type="submit" class="px-3 py-1.5 bg-gray-200 rounded-md text-sm hover:bg-gray-300">{{ __('Filter') }}</button>
                 </form>
@@ -55,10 +56,18 @@
                                             @elseif($user->role === 'admin') bg-indigo-100 text-indigo-800
                                             @elseif($user->role === 'trainer') bg-blue-100 text-blue-800
                                             @elseif($user->role === 'staff') bg-amber-100 text-amber-800
+                                            @elseif($user->role === 'interview') bg-sky-100 text-sky-800
                                             @else bg-gray-100 text-gray-800
                                             @endif">
                                             {{ __(ucfirst(str_replace('_', ' ', $user->role))) }}
                                         </span>
+                                        @if($user->interviewRoles->isNotEmpty())
+                                            <div class="mt-1 flex flex-wrap gap-1">
+                                                @foreach($user->interviewRoles as $ir)
+                                                    <span class="inline-flex px-1.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 text-[10px] font-medium">{{ $ir->roleLabel() }}</span>
+                                                @endforeach
+                                            </div>
+                                        @endif
                                     </td>
                                     <td class="px-4 py-3 text-right text-sm">
                                         <a href="{{ route('users.edit', $user) }}" class="text-indigo-600 hover:text-indigo-800 font-medium">{{ __('Edit') }}</a>

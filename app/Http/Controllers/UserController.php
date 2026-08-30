@@ -17,7 +17,7 @@ class UserController extends Controller
      */
     public function index(Request $request): View
     {
-        $query = User::query()->orderBy('name');
+        $query = User::query()->with('interviewRoles')->orderBy('name');
 
         if ($request->filled('role')) {
             $query->where('role', $request->role);

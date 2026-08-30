@@ -25,6 +25,12 @@
                         </x-nav-link>
                     @endif
 
+                    @if(Auth::user()->canAccessInterviewModule())
+                        <x-nav-link :href="route('interview.dashboard')" :active="request()->routeIs('interview.*')">
+                            {{ __('Interviews') }}
+                        </x-nav-link>
+                    @endif
+
                     @if(in_array(Auth::user()->role, ['super_admin', 'admin'], true))
                         <x-nav-link :href="route('courses.index')" :active="request()->routeIs('courses.*')">
                             {{ __('Course Management') }}
@@ -132,6 +138,12 @@
                 </x-responsive-nav-link>
                 <x-responsive-nav-link :href="route('app-management.reports.index')" :active="request()->routeIs('app-management.reports.*')">
                     {{ __('Reports') }}
+                </x-responsive-nav-link>
+            @endif
+
+            @if(Auth::user()->canAccessInterviewModule())
+                <x-responsive-nav-link :href="route('interview.dashboard')" :active="request()->routeIs('interview.*')">
+                    {{ __('Interviews') }}
                 </x-responsive-nav-link>
             @endif
 

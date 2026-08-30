@@ -19,6 +19,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'registration.approved' => \App\Http\Middleware\EnsureRegistrationApproved::class,
             'exam_management' => \App\Http\Middleware\EnsureUserCanManageExamResults::class,
             'licensing.api' => \App\Http\Middleware\EnsureLicensingApiToken::class,
+            'interview.access' => \App\Http\Middleware\EnsureInterviewAccess::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

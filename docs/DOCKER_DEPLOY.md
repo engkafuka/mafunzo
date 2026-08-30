@@ -3,6 +3,72 @@
 Run **Laravel (PHP-FPM) + nginx in Docker**. Keep the **existing PostgreSQL on the host**.  
 Test on port **8080** while the current site on **:80** stays online. Cut over only after checks pass.
 
+**Learn locally first** (this machine) before touching live. Local Docker uses its **own Postgres container**, so live data is never at risk.
+
+---
+
+## Learn locally first (Windows)
+
+You already have Docker Desktop. Goal: open `http://127.0.0.1:8080` from containers.
+
+### What you will run
+
+```text
+Browser → localhost:8080 → nginx container → PHP-FPM container
+                                              │
+                                              ▼
+                                    postgres container
+                                    (empty local DB, not live)
+```
+
+### Step L1 — Start Docker Desktop
+
+Open **Docker Desktop** and wait until it says it is running.
+
+### Step L2 — From the project folder
+
+```powershell
+cd C:\Projects\mafunzo
+
+# Build images and start 3 containers: nginx, app, postgres
+docker compose -f docker-compose.yml -f docker-compose.local.yml up --build -d
+```
+
+First build can take 5–15 minutes (downloads PHP, Composer, Postgres).
+
+### Step L3 — Watch until healthy
+
+```powershell
+docker compose -f docker-compose.yml -f docker-compose.local.yml ps
+docker compose -f docker-compose.yml -f docker-compose.local.yml logs -f app
+```
+
+Press `Ctrl+C` to stop following logs (containers keep running).
+
+### Step L4 — Open the app
+
+- Site: http://127.0.0.1:8080  
+- Health: http://127.0.0.1:8080/up  
+- API: http://127.0.0.1:8080/api/v1/licensing/trained-staff  
+
+The local DB is **empty**, so login users from live will not exist until you register a new user or import a dump. Empty trained-staff `data: []` is expected.
+
+### Useful local commands
+
+```powershell
+# Shell inside the app container
+docker compose -f docker-compose.yml -f docker-compose.local.yml exec app php artisan --version
+docker compose -f docker-compose.yml -f docker-compose.local.yml exec app php artisan migrate:status
+
+# Stop (keeps the local DB volume)
+docker compose -f docker-compose.yml -f docker-compose.local.yml down
+
+# Stop and DELETE the local Docker database
+docker compose -f docker-compose.yml -f docker-compose.local.yml down -v
+```
+
+When local works, go to **Step 0** below for the live server.
+
 ---
 
 ## Architecture (Phase 1)

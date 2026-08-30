@@ -6,14 +6,21 @@ use App\Models\Course;
 use App\Models\TrainingApplication;
 use App\Models\WarehouseIdentityCard;
 use App\Support\StaffWorkQueue;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
 
 class DashboardController extends Controller
 {
-    public function __invoke(Request $request): View
+    public function __invoke(Request $request): View|RedirectResponse
     {
         $user = $request->user();
+
+        // Interview-only accounts land in the interview module, not training dashboard
+        if ($user && $user->isInterviewOnly() && $user->canAccessInterviewModule()) {
+            return redirect()->route('interview.dashboard');
+        }
+
         $currentApplication = null;
         $nextCourse = null;
         $publishedExamResultsCount = 0;

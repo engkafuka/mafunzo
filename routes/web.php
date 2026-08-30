@@ -155,4 +155,5 @@ Route::middleware('auth')->group(function () {
     // Trainee profile routes moved to registration.approved group above
 });
 
+require __DIR__.'/interview.php';
 require __DIR__.'/auth.php';

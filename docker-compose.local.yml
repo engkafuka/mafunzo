@@ -1,0 +1,47 @@
+# Local learning overlay — isolated Postgres, does NOT use live DB.
+#
+# Usage (from project root):
+#   docker compose -f docker-compose.yml -f docker-compose.local.yml up --build -d
+#
+# App: http://127.0.0.1:8080
+# Stop: docker compose -f docker-compose.yml -f docker-compose.local.yml down
+
+services:
+  app:
+    environment:
+      APP_ENV: local
+      APP_DEBUG: "true"
+      APP_URL: http://127.0.0.1:8080
+      DB_CONNECTION: pgsql
+      DB_HOST: postgres
+      DB_PORT: "5432"
+      RUN_MIGRATIONS: "true"
+      CACHE_CONFIG: "false"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  nginx:
+    ports:
+      - "8080:80"
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: mafunzo-postgres-local
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${DB_DATABASE:-mafunzo}
+      POSTGRES_USER: ${DB_USERNAME:-mafunzo_user}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-mafunzo}
+    volumes:
+      - pgdata_local:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U \"$$POSTGRES_USER\" -d \"$$POSTGRES_DB\""]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+    networks:
+      - mafunzo
+
+volumes:
+  pgdata_local:

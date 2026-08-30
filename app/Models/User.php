@@ -253,6 +253,7 @@ class User extends Authenticatable
             'trainer' => 'Trainer',
             'staff' => 'Staff',
             'trainee' => 'Trainee',
+            'interview' => 'Interview only',
         ];
     }
 
@@ -265,7 +266,14 @@ class User extends Authenticatable
             'trainer' => 'Trainer',
             'staff' => 'Staff',
             'trainee' => 'Trainee',
+            'interview' => 'Interview only',
         ];
+    }
+
+    /** Account used only for the interview module (no training menus). */
+    public function isInterviewOnly(): bool
+    {
+        return $this->role === 'interview';
     }
 
     public function isSuperAdmin(): bool
@@ -291,5 +299,32 @@ class User extends Authenticatable
     public function canManageExamResults(): bool
     {
         return in_array($this->role, ['super_admin', 'admin', 'staff', 'trainer'], true);
+    }
+
+    public function interviewRoles()
+    {
+        return $this->hasMany(InterviewUserRole::class);
+    }
+
+    public function hasInterviewRole(string ...$roles): bool
+    {
+        if ($this->isSuperAdmin()) {
+            return true;
+        }
+
+        if ($roles === []) {
+            return $this->interviewRoles()->exists();
+        }
+
+        return $this->interviewRoles()->whereIn('role', $roles)->exists();
+    }
+
+    public function canAccessInterviewModule(): bool
+    {
+        if ($this->isSuperAdmin()) {
+            return true;
+        }
+
+        return $this->interviewRoles()->exists();
     }
 }
