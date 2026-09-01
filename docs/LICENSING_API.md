@@ -78,7 +78,9 @@ pending  →  accepted  →  licensed
 GET /api/v1/licensing/trained-staff
 ```
 
-Returns staff who completed training/payment, passed the exam, have a registration number, hold an eligible final position, and are **not** currently reserved or under an active license.
+Returns staff who completed training/payment, passed the exam, have a registration number, hold an **earned** eligible final position (`assigned_position`), and are **not** currently reserved or under an active license.
+
+**Gated positions:** `manager` and `quality_assurance` appear only when exam score and education requirements are met (Manager: degree + score ≥ 70; Quality Assurance: agriculture diploma + score ≥ 50). Other eligible positions use `assigned_position` only.
 
 #### Query parameters
 
@@ -107,6 +109,7 @@ Authorization: Bearer <token>
     {
       "registration_number": "WRRB/2026/1/0004",
       "full_name": "Mary A Kinabo",
+      "email": "mary.kinabo@example.com",
       "final_position": "store_keeper",
       "final_position_label": "Store Keeper",
       "course_id": 5,

@@ -17,6 +17,17 @@ class LicensingTrainedStaffQuery
         return array_keys(config('licensing.eligible_positions', []));
     }
 
+    /**
+     * @return list<string>
+     */
+    public static function gatedPositionKeys(): array
+    {
+        return array_values(array_intersect(
+            array_keys(config('position_exam_rules.positions', [])),
+            self::eligiblePositionKeys(),
+        ));
+    }
+
     public static function normalizePosition(?string $position): ?string
     {
         if ($position === null || $position === '') {
@@ -60,8 +71,6 @@ class LicensingTrainedStaffQuery
 
     public static function baseQuery(): Builder
     {
-        $eligible = self::eligiblePositionKeys();
-
         $reservedRegistrationNumbers = LicenseNomination::reservedQuery()
             ->pluck('registration_number')
             ->filter()
@@ -69,7 +78,7 @@ class LicensingTrainedStaffQuery
             ->values()
             ->all();
 
-        return TrainingApplication::query()
+        $query = TrainingApplication::query()
             ->with(['course', 'user'])
             ->where('status', 'payment_completed')
             ->where('application_review_status', 'approved')
@@ -81,16 +90,55 @@ class LicensingTrainedStaffQuery
             ->where('exam_passed', true)
             ->whereNotNull('exam_results_published_at')
             ->whereNotNull('registration_number')
+            ->whereNotNull('assigned_position')
             ->when($reservedRegistrationNumbers !== [], function ($q) use ($reservedRegistrationNumbers) {
                 $q->whereNotIn('registration_number', $reservedRegistrationNumbers);
-            })
-            ->where(function ($q) use ($eligible) {
-                $q->whereIn('assigned_position', $eligible)
-                    ->orWhere(function ($inner) use ($eligible) {
-                        $inner->whereNull('assigned_position')
-                            ->whereIn('position', $eligible);
-                    });
             });
+
+        return self::applyAssignedPositionEligibility($query);
+    }
+
+    /**
+     * Restrict listing to earned assigned positions; manager and QA also require score + education gates.
+     */
+    public static function applyAssignedPositionEligibility(Builder $query): Builder
+    {
+        $eligible = self::eligiblePositionKeys();
+        $gated = config('position_exam_rules.positions', []);
+        $nonGated = array_values(array_diff($eligible, array_keys($gated)));
+
+        return $query->where(function ($q) use ($gated, $nonGated, $eligible) {
+            if ($nonGated !== []) {
+                $q->whereIn('assigned_position', $nonGated);
+            }
+
+            foreach ($gated as $positionKey => $rules) {
+                if (! in_array($positionKey, $eligible, true)) {
+                    continue;
+                }
+
+                $minScore = (float) ($rules['min_score'] ?? 0);
+                $requiredEducation = PositionExamAssigner::normalizeRequiredEducation($rules);
+
+                $q->orWhere(function ($inner) use ($positionKey, $minScore, $requiredEducation) {
+                    $inner->where('assigned_position', $positionKey)
+                        ->where('exam_score', '>=', $minScore);
+
+                    if ($requiredEducation !== []) {
+                        $inner->where(function ($edu) use ($requiredEducation) {
+                            foreach ($requiredEducation as $requirement) {
+                                $edu->orWhereHas('user.educationBackgrounds', function ($eb) use ($requirement) {
+                                    $eb->where('level', $requirement['level']);
+                                    if ($requirement['program'] !== null) {
+                                        $eb->where('program', $requirement['program']);
+                                    }
+                                });
+                            }
+                        });
+                    }
+                });
+            }
+        });
     }
 
     public static function applyFilters(Builder $query, Request $request): Builder
@@ -101,13 +149,7 @@ class LicensingTrainedStaffQuery
             return $query->whereRaw('1 = 0');
         }
 
-        $query->where(function ($q) use ($positions) {
-            $q->whereIn('assigned_position', $positions)
-                ->orWhere(function ($inner) use ($positions) {
-                    $inner->whereNull('assigned_position')
-                        ->whereIn('position', $positions);
-                });
-        });
+        $query->whereIn('assigned_position', $positions);
 
         if ($request->filled('course_id')) {
             $query->where('course_id', $request->integer('course_id'));
@@ -137,7 +179,7 @@ class LicensingTrainedStaffQuery
 
     public static function toApiRow(TrainingApplication $application): array
     {
-        $finalPosition = $application->effectivePosition();
+        $finalPosition = $application->assigned_position;
 
         return [
             'registration_number' => $application->registration_number,
@@ -146,8 +188,9 @@ class LicensingTrainedStaffQuery
                 $application->middle_name,
                 $application->last_name,
             ])->filter()->implode(' ')),
+            'email' => $application->email ?: $application->user?->email,
             'final_position' => $finalPosition,
-            'final_position_label' => $application->effectivePositionLabel(),
+            'final_position_label' => TrainingApplication::positionLabel($finalPosition),
             'course_id' => $application->course_id,
             'session_year' => $application->course?->session_year,
         ];

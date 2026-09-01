@@ -32,8 +32,8 @@ class LicenseNominationService
 
         $application = LicensingTrainedStaffQuery::baseQuery()
             ->where('registration_number', $registrationNumber)
-            ->get()
-            ->first(fn (TrainingApplication $app) => $app->effectivePosition() === $finalPosition);
+            ->where('assigned_position', $finalPosition)
+            ->first();
 
         if (! $application || ! $application->user_id) {
             throw ValidationException::withMessages([

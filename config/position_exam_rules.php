@@ -40,7 +40,7 @@ return [
             'required_education' => [
                 ['level' => 'diploma', 'program' => 'agriculture'],
             ],
-            'min_score' => 60,
+            'min_score' => 50,
         ],
     ],
 ];

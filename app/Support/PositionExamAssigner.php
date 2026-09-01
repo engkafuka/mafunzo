@@ -152,6 +152,26 @@ class PositionExamAssigner
     }
 
     /**
+     * Whether stored exam score and education satisfy licensing gates for a final position.
+     */
+    public static function meetsLicensedPositionRequirements(TrainingApplication $application, string $positionKey): bool
+    {
+        $rules = config('position_exam_rules.positions.'.$positionKey);
+        if (! is_array($rules)) {
+            return true;
+        }
+
+        if ($application->exam_score === null) {
+            return false;
+        }
+
+        $minScore = (float) ($rules['min_score'] ?? 0);
+
+        return (float) $application->exam_score >= $minScore
+            && self::meetsPositionEducation($application, $positionKey);
+    }
+
+    /**
      * Stable auto-pick among fallback positions (same application → same fallback).
      *
      * @param  list<string>  $fallbacks
