@@ -2,12 +2,15 @@
 
 <div>
     <label class="block text-sm font-medium text-gray-700">{{ __('Company name') }}</label>
-    <input type="text" name="name" value="{{ old('name', $company?->name) }}" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm">
+    <input type="text" name="name" value="{{ old('name', $company?->name) }}" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm uppercase" style="text-transform: uppercase;">
+    <p class="mt-1 text-xs text-gray-500">{{ __('Saved in uppercase.') }}</p>
     @error('name')<p class="text-sm text-red-600 mt-1">{{ $message }}</p>@enderror
 </div>
 <div>
-    <label class="block text-sm font-medium text-gray-700">{{ __('Registration number') }}</label>
-    <input type="text" name="registration_number" value="{{ old('registration_number', $company?->registration_number) }}" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm">
+    <label class="block text-sm font-medium text-gray-700">{{ __('Registration number') }} <span class="text-red-600">*</span></label>
+    <input type="text" name="registration_number" value="{{ old('registration_number', $company?->registration_number) }}" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm" placeholder="{{ __('Unique company registration number') }}">
+    <p class="mt-1 text-xs text-gray-500">{{ __('Must be unique. Used to prevent duplicate companies.') }}</p>
+    @error('registration_number')<p class="text-sm text-red-600 mt-1">{{ $message }}</p>@enderror
 </div>
 <div>
     <label class="block text-sm font-medium text-gray-700">{{ __('Contact person') }}</label>

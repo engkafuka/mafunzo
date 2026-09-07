@@ -37,7 +37,9 @@ Route::middleware(['auth', 'verified', 'interview.access'])->prefix('interviews'
     });
 
     Route::middleware('interview.access:admin')->group(function () {
-        Route::resource('companies', CompanyController::class)->except(['show', 'destroy']);
+        Route::resource('companies', CompanyController::class)->except(['show']);
+        Route::post('companies/{company}/deactivate', [CompanyController::class, 'deactivate'])
+            ->name('companies.deactivate');
 
         Route::resource('question-sets', QuestionSetController::class)->except(['destroy']);
         Route::post('question-sets/{question_set}/questions', [QuestionSetController::class, 'storeQuestion'])->name('question-sets.questions.store');

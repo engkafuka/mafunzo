@@ -52,11 +52,36 @@
                             @forelse($companies as $company)
                                 <tr>
                                     <td class="px-4 py-3 text-sm font-medium text-gray-900">{{ $company->name }}</td>
-                                    <td class="px-4 py-3 text-sm text-gray-600">{{ $company->registration_number ?: '—' }}</td>
+                                    <td class="px-4 py-3 text-sm text-gray-600 font-mono">{{ $company->registration_number ?: '—' }}</td>
                                     <td class="px-4 py-3 text-sm text-gray-600">{{ $company->sessions_count }}</td>
-                                    <td class="px-4 py-3 text-sm capitalize">{{ $company->status }}</td>
-                                    <td class="px-4 py-3 text-right text-sm">
+                                    <td class="px-4 py-3 text-sm">
+                                        @if($company->status === 'active')
+                                            <span class="inline-flex rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-800">{{ __('Active') }}</span>
+                                        @else
+                                            <span class="inline-flex rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-700">{{ __('Inactive') }}</span>
+                                        @endif
+                                    </td>
+                                    <td class="px-4 py-3 text-right text-sm whitespace-nowrap">
                                         <a href="{{ route('interview.companies.edit', $company) }}" class="text-indigo-600 hover:text-indigo-800">{{ __('Edit') }}</a>
+
+                                        @if($company->canBeDeleted())
+                                            <form method="POST"
+                                                  action="{{ route('interview.companies.destroy', $company) }}"
+                                                  class="inline ms-2"
+                                                  onsubmit="return confirm(@js(__('Permanently delete this company? This cannot be undone.')))">
+                                                @csrf
+                                                @method('DELETE')
+                                                <button type="submit" class="text-red-600 hover:text-red-800">{{ __('Delete') }}</button>
+                                            </form>
+                                        @elseif($company->status === 'active')
+                                            <form method="POST"
+                                                  action="{{ route('interview.companies.deactivate', $company) }}"
+                                                  class="inline ms-2"
+                                                  onsubmit="return confirm(@js(__('This company has interview sessions. Deactivate it instead of deleting?')))">
+                                                @csrf
+                                                <button type="submit" class="text-amber-700 hover:text-amber-900">{{ __('Deactivate') }}</button>
+                                            </form>
+                                        @endif
                                     </td>
                                 </tr>
                             @empty
