@@ -5,6 +5,11 @@
     <a href="{{ route('interview.sessions.index') }}" class="px-3 py-1.5 rounded-md text-sm {{ request()->routeIs('interview.sessions.*') || request()->routeIs('interview.scoring.*') || request()->routeIs('interview.review.*') ? 'bg-indigo-600 text-white' : 'bg-white text-gray-700 border border-gray-200' }}">
         {{ __('Sessions') }}
     </a>
+    @if(Auth::user()->hasInterviewRole('admin', 'chair', 'approver', 'viewer'))
+        <a href="{{ route('interview.reports.index') }}" class="px-3 py-1.5 rounded-md text-sm {{ request()->routeIs('interview.reports.*') ? 'bg-indigo-600 text-white' : 'bg-white text-gray-700 border border-gray-200' }}">
+            {{ __('Reports') }}
+        </a>
+    @endif
     @if(Auth::user()->hasInterviewRole('admin'))
         <a href="{{ route('interview.companies.index') }}" class="px-3 py-1.5 rounded-md text-sm {{ request()->routeIs('interview.companies.*') ? 'bg-indigo-600 text-white' : 'bg-white text-gray-700 border border-gray-200' }}">
             {{ __('Companies') }}

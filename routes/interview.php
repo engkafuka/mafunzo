@@ -3,6 +3,7 @@
 use App\Http\Controllers\Interview\CompanyController;
 use App\Http\Controllers\Interview\DashboardController;
 use App\Http\Controllers\Interview\QuestionSetController;
+use App\Http\Controllers\Interview\ReportController;
 use App\Http\Controllers\Interview\ReviewController;
 use App\Http\Controllers\Interview\ScoringController;
 use App\Http\Controllers\Interview\SessionController;
@@ -14,6 +15,26 @@ Route::middleware(['auth', 'verified', 'interview.access'])->prefix('interviews'
 
     // Static session paths must be registered BEFORE sessions/{session}
     Route::get('sessions', [SessionController::class, 'index'])->name('sessions.index');
+
+    Route::middleware('interview.access:admin,chair,approver,viewer')->group(function () {
+        Route::get('reports', [ReportController::class, 'index'])->name('reports.index');
+
+        Route::get('reports/company-register', [ReportController::class, 'companyRegister'])->name('reports.company-register');
+        Route::get('reports/company-register/export/csv', [ReportController::class, 'companyRegisterCsv'])->name('reports.company-register.export.csv');
+        Route::get('reports/company-register/export/pdf', [ReportController::class, 'companyRegisterPdf'])->name('reports.company-register.export.pdf');
+
+        Route::get('reports/panel-attendance', [ReportController::class, 'panelAttendance'])->name('reports.panel-attendance');
+        Route::get('reports/panel-attendance/export/csv', [ReportController::class, 'panelAttendanceCsv'])->name('reports.panel-attendance.export.csv');
+        Route::get('reports/panel-attendance/export/pdf', [ReportController::class, 'panelAttendancePdf'])->name('reports.panel-attendance.export.pdf');
+
+        Route::get('reports/audit-extract', [ReportController::class, 'auditExtract'])->name('reports.audit-extract');
+        Route::get('reports/audit-extract/export/csv', [ReportController::class, 'auditExtractCsv'])->name('reports.audit-extract.export.csv');
+        Route::get('reports/audit-extract/export/pdf', [ReportController::class, 'auditExtractPdf'])->name('reports.audit-extract.export.pdf');
+
+        Route::get('reports/pass-rate', [ReportController::class, 'passRate'])->name('reports.pass-rate');
+        Route::get('reports/pass-rate/export/csv', [ReportController::class, 'passRateCsv'])->name('reports.pass-rate.export.csv');
+        Route::get('reports/pass-rate/export/pdf', [ReportController::class, 'passRatePdf'])->name('reports.pass-rate.export.pdf');
+    });
 
     Route::middleware('interview.access:admin')->group(function () {
         Route::resource('companies', CompanyController::class)->except(['show', 'destroy']);
