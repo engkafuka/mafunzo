@@ -23,7 +23,7 @@
             </div>
 
             {{-- Filters --}}
-            <form method="GET" action="{{ route('interview.user-roles.index') }}" class="mb-4 flex flex-wrap gap-2 items-center">
+            <form method="GET" action="{{ route('interview.user-roles.index') }}" class="mb-4 filter-bar items-stretch sm:items-center">
                 <select name="interview_role" class="rounded-md border-gray-300 shadow-sm text-sm focus:border-indigo-500 focus:ring-indigo-500">
                     <option value="">{{ __('All Roles') }}</option>
                     @foreach($rolesConfig as $key => $label)
@@ -43,7 +43,7 @@
                     <option value="inactive" @selected(($filters['status'] ?? '') === 'inactive')>{{ __('No roles') }}</option>
                 </select>
 
-                <div class="relative flex-1 min-w-[200px]">
+                <div class="relative flex-1 min-w-[200px] w-full sm:w-auto">
                     <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-4.35-4.35M17 11A6 6 0 1 1 5 11a6 6 0 0 1 12 0z"/>
                     </svg>
@@ -54,7 +54,7 @@
 
                 <button type="submit" class="px-3 py-1.5 bg-gray-800 text-white rounded-md text-sm hover:bg-gray-700">{{ __('Filter') }}</button>
                 @if(request()->hasAny(['q', 'interview_role', 'type', 'status']))
-                    <a href="{{ route('interview.user-roles.index') }}" class="px-3 py-1.5 text-sm text-gray-600 hover:text-gray-900">{{ __('Clear') }}</a>
+                    <a href="{{ route('interview.user-roles.index') }}" class="px-3 py-1.5 text-sm text-gray-600 hover:text-gray-900 text-center">{{ __('Clear') }}</a>
                 @endif
             </form>
 

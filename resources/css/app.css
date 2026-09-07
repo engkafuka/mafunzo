@@ -6,6 +6,14 @@
     html {
         -webkit-text-size-adjust: 100%;
         text-size-adjust: 100%;
+        /* Slightly denser type on phones; desktop stays at Tailwind default scale */
+        font-size: 15px;
+    }
+
+    @media (min-width: 640px) {
+        html {
+            font-size: 16px;
+        }
     }
 
     body {
@@ -26,11 +34,11 @@
 @layer components {
     /* Standard authenticated page wrapper */
     .page-shell {
-        @apply py-6 sm:py-8 lg:py-12;
+        @apply py-4 sm:py-6 lg:py-8;
     }
 
     .page-inner {
-        @apply mx-auto w-full min-w-0 px-4 sm:px-6 lg:px-8;
+        @apply mx-auto w-full min-w-0 px-3 sm:px-6 lg:px-8;
     }
 
     .page-inner-7xl {
@@ -57,6 +65,12 @@
 
     .table-responsive table {
         @apply min-w-full;
+    }
+
+    /* Slightly tighter table cells on small screens */
+    .table-responsive table th,
+    .table-responsive table td {
+        @apply px-3 py-2 sm:px-4 sm:py-3;
     }
 
     /* Card grids for dashboards */
@@ -86,13 +100,22 @@
     .filter-bar select,
     .filter-bar input[type="search"],
     .filter-bar input[type="text"],
-    .filter-bar input[type="date"] {
+    .filter-bar input[type="date"],
+    .filter-bar input[type="number"],
+    .filter-bar button,
+    .filter-bar a {
         @apply w-full sm:w-auto min-w-0;
     }
 
-    /* Page title in layout header */
+    /* Page title in layout header — wins over hardcoded text-xl on h2 slots */
     .page-title {
         @apply text-lg sm:text-xl font-semibold text-gray-800 leading-snug break-words;
+    }
+
+    .page-title h1,
+    .page-title h2,
+    .page-title h3 {
+        @apply text-lg sm:text-xl font-semibold text-gray-800 leading-snug break-words m-0;
     }
 
     /* Pagination row on small screens */

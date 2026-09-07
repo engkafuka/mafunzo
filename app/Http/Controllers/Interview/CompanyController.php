@@ -5,17 +5,43 @@ namespace App\Http\Controllers\Interview;
 use App\Http\Controllers\Controller;
 use App\Models\InterviewCompany;
 use App\Support\Interview\InterviewAuditLogger;
+use App\Support\PaginationHelper;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
 
 class CompanyController extends Controller
 {
-    public function index(): View
+    public function index(Request $request): View
     {
-        $companies = InterviewCompany::withCount('sessions')->orderBy('name')->paginate(20);
+        $query = InterviewCompany::withCount('sessions')->orderBy('name');
 
-        return view('interview.companies.index', compact('companies'));
+        if ($request->filled('q')) {
+            $term = '%'.addcslashes($request->string('q')->toString(), '%_\\').'%';
+            $query->where(function ($qry) use ($term) {
+                $qry->where('name', 'ilike', $term)
+                    ->orWhere('registration_number', 'ilike', $term)
+                    ->orWhere('contact_person', 'ilike', $term)
+                    ->orWhere('contact_email', 'ilike', $term)
+                    ->orWhere('contact_phone', 'ilike', $term);
+            });
+        }
+
+        if ($request->filled('status')) {
+            $status = $request->string('status')->toString();
+            abort_unless(in_array($status, ['active', 'inactive'], true), 404);
+            $query->where('status', $status);
+        }
+
+        $companies = $query->paginate(PaginationHelper::PER_PAGE)->withQueryString();
+
+        return view('interview.companies.index', [
+            'companies' => $companies,
+            'filters' => [
+                'q' => $request->q,
+                'status' => $request->status,
+            ],
+        ]);
     }
 
     public function create(): View

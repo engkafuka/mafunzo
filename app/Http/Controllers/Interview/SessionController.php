@@ -10,6 +10,7 @@ use App\Models\InterviewUserRole;
 use App\Models\User;
 use App\Support\Interview\InterviewAuditLogger;
 use App\Support\Interview\InterviewSessionService;
+use App\Support\PaginationHelper;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -23,6 +24,8 @@ class SessionController extends Controller
     public function index(Request $request): View
     {
         $user = $request->user();
+        $sessionStatuses = config('interview.session_statuses', []);
+        $interviewTypes = config('interview.interview_types', []);
 
         $query = InterviewSession::with(['company', 'questionSet', 'panelists'])
             ->latest('id');
@@ -31,9 +34,64 @@ class SessionController extends Controller
             $query->whereHas('panelists', fn ($q) => $q->where('user_id', $user->id));
         }
 
-        $sessions = $query->paginate(20);
+        if ($request->filled('q')) {
+            $term = '%'.addcslashes($request->string('q')->toString(), '%_\\').'%';
+            $query->where(function ($qry) use ($term) {
+                $qry->where('session_code', 'ilike', $term)
+                    ->orWhere('interviewee_name', 'ilike', $term)
+                    ->orWhere('interviewee_title', 'ilike', $term)
+                    ->orWhere('venue', 'ilike', $term)
+                    ->orWhereHas('company', function ($company) use ($term) {
+                        $company->where('name', 'ilike', $term)
+                            ->orWhere('registration_number', 'ilike', $term);
+                    });
+            });
+        }
 
-        return view('interview.sessions.index', compact('sessions'));
+        if ($request->filled('status')) {
+            $status = $request->string('status')->toString();
+            abort_unless(array_key_exists($status, $sessionStatuses), 404);
+            $query->where('status', $status);
+        }
+
+        if ($request->filled('company_id')) {
+            $query->where('company_id', $request->integer('company_id'));
+        }
+
+        if ($request->filled('interview_type')) {
+            $type = $request->string('interview_type')->toString();
+            abort_unless(array_key_exists($type, $interviewTypes), 404);
+            $query->where('interview_type', $type);
+        }
+
+        if ($request->filled('from_date')) {
+            $query->whereDate('interview_date', '>=', $request->date('from_date'));
+        }
+
+        if ($request->filled('to_date')) {
+            $query->whereDate('interview_date', '<=', $request->date('to_date'));
+        }
+
+        $sessions = $query->paginate(PaginationHelper::PER_PAGE)->withQueryString();
+
+        $companies = InterviewCompany::query()
+            ->orderBy('name')
+            ->get(['id', 'name']);
+
+        return view('interview.sessions.index', [
+            'sessions' => $sessions,
+            'companies' => $companies,
+            'sessionStatuses' => $sessionStatuses,
+            'interviewTypes' => $interviewTypes,
+            'filters' => [
+                'q' => $request->q,
+                'status' => $request->status,
+                'company_id' => $request->company_id,
+                'interview_type' => $request->interview_type,
+                'from_date' => $request->from_date,
+                'to_date' => $request->to_date,
+            ],
+        ]);
     }
 
     public function create(): View
@@ -105,7 +163,10 @@ class SessionController extends Controller
     public function edit(InterviewSession $session, Request $request): View
     {
         abort_unless($request->user()->hasInterviewRole('admin'), 403);
-        abort_if($session->status === InterviewSession::STATUS_COMPLETED, 403);
+        abort_if(in_array($session->status, [
+            InterviewSession::STATUS_COMPLETED,
+            InterviewSession::STATUS_CANCELLED,
+        ], true), 403);
 
         $companies = InterviewCompany::where('status', 'active')->orderBy('name')->get();
         $questionSets = InterviewQuestionSet::where('is_active', true)->orderBy('title')->get();
@@ -122,7 +183,10 @@ class SessionController extends Controller
     public function update(Request $request, InterviewSession $session): RedirectResponse
     {
         abort_unless($request->user()->hasInterviewRole('admin'), 403);
-        abort_if($session->status === InterviewSession::STATUS_COMPLETED, 403);
+        abort_if(in_array($session->status, [
+            InterviewSession::STATUS_COMPLETED,
+            InterviewSession::STATUS_CANCELLED,
+        ], true), 403);
 
         $data = $request->validate([
             'company_id' => ['required', 'exists:interview_companies,id'],
@@ -173,6 +237,44 @@ class SessionController extends Controller
         }
 
         return back()->with('status', __('Scoring is now open for panelists.'));
+    }
+
+    public function cancel(Request $request, InterviewSession $session): RedirectResponse
+    {
+        abort_unless($request->user()->hasInterviewRole('admin'), 403);
+
+        $data = $request->validate([
+            'reason' => ['nullable', 'string', 'max:1000'],
+        ]);
+
+        try {
+            $this->sessionService->cancelSession(
+                $session,
+                $request->user(),
+                $data['reason'] ?? null
+            );
+        } catch (\Throwable $e) {
+            return back()->with('error', $e->getMessage());
+        }
+
+        return redirect()
+            ->route('interview.sessions.show', $session)
+            ->with('status', __('Interview session cancelled. Scores and history are kept.'));
+    }
+
+    public function destroy(Request $request, InterviewSession $session): RedirectResponse
+    {
+        abort_unless($request->user()->hasInterviewRole('admin'), 403);
+
+        try {
+            $this->sessionService->deleteSession($session, $request->user());
+        } catch (\Throwable $e) {
+            return back()->with('error', $e->getMessage());
+        }
+
+        return redirect()
+            ->route('interview.sessions.index')
+            ->with('status', __('Interview session deleted.'));
     }
 
     private function authorizeSessionAccess(Request $request, InterviewSession $session): void

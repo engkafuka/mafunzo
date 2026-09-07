@@ -49,8 +49,11 @@ class InterviewSessionService
 
     public function syncPanelists(InterviewSession $session, array $panelistUserIds, ?int $chairUserId): void
     {
-        if ($session->status === InterviewSession::STATUS_COMPLETED) {
-            throw new \RuntimeException('Cannot change panelists on a completed session.');
+        if (in_array($session->status, [
+            InterviewSession::STATUS_COMPLETED,
+            InterviewSession::STATUS_CANCELLED,
+        ], true)) {
+            throw new \RuntimeException('Cannot change panelists on a completed or cancelled session.');
         }
 
         $panelistUserIds = array_values(array_unique(array_map('intval', $panelistUserIds)));
@@ -155,5 +158,52 @@ class InterviewSessionService
             $approver,
             $session->id
         );
+    }
+
+    public function cancelSession(InterviewSession $session, User $actor, ?string $reason = null): void
+    {
+        if (! $session->canBeCancelled()) {
+            throw new \RuntimeException('This session cannot be cancelled in its current status.');
+        }
+
+        $session->update([
+            'status' => InterviewSession::STATUS_CANCELLED,
+        ]);
+
+        InterviewAuditLogger::log(
+            'session_cancelled',
+            'Interview session cancelled',
+            $actor,
+            $session->id,
+            array_filter([
+                'session_code' => $session->session_code,
+                'previous_note' => $reason,
+            ])
+        );
+    }
+
+    public function deleteSession(InterviewSession $session, User $actor): void
+    {
+        if (! $session->canBeDeleted()) {
+            throw new \RuntimeException('Only draft or scheduled sessions can be deleted. Cancel active sessions instead.');
+        }
+
+        $meta = [
+            'session_code' => $session->session_code,
+            'company_id' => $session->company_id,
+            'interviewee_name' => $session->interviewee_name,
+            'interview_date' => $session->interview_date?->format('Y-m-d'),
+            'status' => $session->status,
+        ];
+
+        InterviewAuditLogger::log(
+            'session_deleted',
+            'Interview session permanently deleted',
+            $actor,
+            $session->id,
+            $meta
+        );
+
+        $session->delete();
     }
 }

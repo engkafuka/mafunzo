@@ -14,8 +14,30 @@
                 </a>
             </div>
 
+            <form method="GET" action="{{ route('interview.companies.index') }}" class="mb-4 filter-bar items-stretch sm:items-center">
+                <select name="status" class="rounded-md border-gray-300 shadow-sm text-sm focus:border-indigo-500 focus:ring-indigo-500">
+                    <option value="">{{ __('All Status') }}</option>
+                    <option value="active" @selected(($filters['status'] ?? '') === 'active')>{{ __('Active') }}</option>
+                    <option value="inactive" @selected(($filters['status'] ?? '') === 'inactive')>{{ __('Inactive') }}</option>
+                </select>
+
+                <div class="relative flex-1 min-w-[200px] w-full sm:w-auto">
+                    <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-4.35-4.35M17 11A6 6 0 1 1 5 11a6 6 0 0 1 12 0z"/>
+                    </svg>
+                    <input type="text" name="q" value="{{ $filters['q'] ?? '' }}"
+                           placeholder="{{ __('Search by name, registration, contact...') }}"
+                           class="w-full pl-9 rounded-md border-gray-300 shadow-sm text-sm focus:border-indigo-500 focus:ring-indigo-500">
+                </div>
+
+                <button type="submit" class="px-3 py-1.5 bg-gray-800 text-white rounded-md text-sm hover:bg-gray-700">{{ __('Filter') }}</button>
+                @if(request()->hasAny(['q', 'status']))
+                    <a href="{{ route('interview.companies.index') }}" class="px-3 py-1.5 text-sm text-gray-600 hover:text-gray-900 text-center">{{ __('Clear') }}</a>
+                @endif
+            </form>
+
             <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
-                <div class="overflow-x-auto">
+                <x-responsive-table>
                     <table class="min-w-full divide-y divide-gray-200">
                         <thead class="bg-gray-50">
                             <tr>
@@ -38,12 +60,12 @@
                                     </td>
                                 </tr>
                             @empty
-                                <tr><td colspan="5" class="px-4 py-6 text-center text-sm text-gray-500">{{ __('No companies yet.') }}</td></tr>
+                                <tr><td colspan="5" class="px-4 py-6 text-center text-sm text-gray-500">{{ __('No companies match the selected filters.') }}</td></tr>
                             @endforelse
                         </tbody>
                     </table>
-                </div>
-                <div class="p-4">{{ $companies->links() }}</div>
+                </x-responsive-table>
+                <div class="p-4 pagination-responsive">{{ $companies->links() }}</div>
             </div>
         </div>
     </div>

@@ -68,6 +68,12 @@ Route::middleware(['auth', 'verified', 'interview.access'])->prefix('interviews'
         Route::post('sessions/{session}/open-scoring', [SessionController::class, 'openScoring'])
             ->whereNumber('session')
             ->name('sessions.open-scoring');
+        Route::post('sessions/{session}/cancel', [SessionController::class, 'cancel'])
+            ->whereNumber('session')
+            ->name('sessions.cancel');
+        Route::delete('sessions/{session}', [SessionController::class, 'destroy'])
+            ->whereNumber('session')
+            ->name('sessions.destroy');
     });
 
     Route::get('sessions/{session}/score', [ScoringController::class, 'edit'])

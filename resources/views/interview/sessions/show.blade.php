@@ -57,11 +57,38 @@
                         <button type="submit" class="px-4 py-2 bg-green-600 text-white rounded-md text-sm font-semibold">{{ __('Open scoring') }}</button>
                     </form>
                 @endif
-                @if($session->status !== 'completed')
+                @if(! in_array($session->status, ['completed', 'cancelled'], true))
                     <a href="{{ route('interview.sessions.edit', $session) }}" class="px-4 py-2 bg-white border border-gray-300 rounded-md text-sm font-semibold">{{ __('Edit session') }}</a>
+                @endif
+
+                @if($session->canBeCancelled())
+                    <form method="POST"
+                          action="{{ route('interview.sessions.cancel', $session) }}"
+                          class="inline"
+                          onsubmit="return confirm(@js(__('Cancel this interview session? Scores and history will be kept, but it will be excluded from conducted reports.')))">
+                        @csrf
+                        <button type="submit" class="px-4 py-2 bg-amber-600 text-white rounded-md text-sm font-semibold">{{ __('Cancel session') }}</button>
+                    </form>
+                @endif
+
+                @if($session->canBeDeleted())
+                    <form method="POST"
+                          action="{{ route('interview.sessions.destroy', $session) }}"
+                          class="inline"
+                          onsubmit="return confirm(@js(__('Permanently delete this session? This cannot be undone.')))">
+                        @csrf
+                        @method('DELETE')
+                        <button type="submit" class="px-4 py-2 bg-red-600 text-white rounded-md text-sm font-semibold">{{ __('Delete session') }}</button>
+                    </form>
                 @endif
             @endif
         </div>
+
+        @if($session->isCancelled())
+            <div class="mb-6 rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+                {{ __('This session is cancelled. It is kept for history and excluded from conducted interview reports.') }}
+            </div>
+        @endif
 
         @if($session->result)
             <div class="bg-white shadow-sm sm:rounded-lg p-6">

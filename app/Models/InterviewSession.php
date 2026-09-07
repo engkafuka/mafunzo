@@ -113,4 +113,32 @@ class InterviewSession extends Model
     {
         return config('interview.interview_types')[$this->interview_type] ?? $this->interview_type;
     }
+
+    /**
+     * Early sessions with no scoring work can be permanently removed.
+     */
+    public function canBeDeleted(): bool
+    {
+        return in_array($this->status, [
+            self::STATUS_DRAFT,
+            self::STATUS_SCHEDULED,
+        ], true);
+    }
+
+    /**
+     * Active sessions can be cancelled (kept for history, excluded from conducted reports).
+     */
+    public function canBeCancelled(): bool
+    {
+        return in_array($this->status, [
+            self::STATUS_IN_PROGRESS,
+            self::STATUS_SCORING,
+            self::STATUS_UNDER_REVIEW,
+        ], true);
+    }
+
+    public function isCancelled(): bool
+    {
+        return $this->status === self::STATUS_CANCELLED;
+    }
 }
