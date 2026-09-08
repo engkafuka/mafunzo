@@ -34,7 +34,7 @@ return [
         'integrity' => 'Safety, integrity, and anti-fraud',
     ],
 
-    'default_pass_mark' => 50,
+    'default_pass_mark' => 60,
 
     'variance_threshold' => 3, // flag when panelists differ by more than this on a question
 ];
