@@ -6,13 +6,13 @@ use App\Http\Controllers\Controller;
 use App\Models\InterviewCompany;
 use App\Models\InterviewQuestionSet;
 use App\Models\InterviewSession;
-use App\Models\InterviewUserRole;
 use App\Models\User;
 use App\Support\Interview\InterviewAuditLogger;
 use App\Support\Interview\InterviewSessionService;
 use App\Support\PaginationHelper;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 
 class SessionController extends Controller
@@ -98,10 +98,7 @@ class SessionController extends Controller
     {
         $companies = InterviewCompany::where('status', 'active')->orderBy('name')->get();
         $questionSets = InterviewQuestionSet::where('is_active', true)->orderBy('title')->get();
-        $panelistCandidates = User::whereHas('interviewRoles', fn ($q) => $q->whereIn('role', [
-            InterviewUserRole::ROLE_PANELIST,
-            InterviewUserRole::ROLE_CHAIR,
-        ]))->orderBy('name')->get();
+        $panelistCandidates = User::panelistCandidatesQuery()->get();
 
         return view('interview.sessions.create', compact('companies', 'questionSets', 'panelistCandidates'));
     }
@@ -123,6 +120,8 @@ class SessionController extends Controller
             'panelist_ids.*' => ['integer', 'exists:users,id'],
             'chair_user_id' => ['nullable', 'integer', 'exists:users,id'],
         ]);
+
+        $this->assertPanelistsAreAssignable($data['panelist_ids']);
 
         $session = InterviewSession::create([
             'session_code' => $this->sessionService->generateSessionCode(),
@@ -170,12 +169,11 @@ class SessionController extends Controller
 
         $companies = InterviewCompany::where('status', 'active')->orderBy('name')->get();
         $questionSets = InterviewQuestionSet::where('is_active', true)->orderBy('title')->get();
-        $panelistCandidates = User::whereHas('interviewRoles', fn ($q) => $q->whereIn('role', [
-            InterviewUserRole::ROLE_PANELIST,
-            InterviewUserRole::ROLE_CHAIR,
-        ]))->orderBy('name')->get();
-
         $session->load('panelists');
+
+        $panelistCandidates = User::panelistCandidatesQuery(
+            $session->panelists->pluck('user_id')->all()
+        )->get();
 
         return view('interview.sessions.edit', compact('session', 'companies', 'questionSets', 'panelistCandidates'));
     }
@@ -203,6 +201,11 @@ class SessionController extends Controller
             'panelist_ids.*' => ['integer', 'exists:users,id'],
             'chair_user_id' => ['nullable', 'integer', 'exists:users,id'],
         ]);
+
+        $this->assertPanelistsAreAssignable(
+            $data['panelist_ids'],
+            $session->panelists()->pluck('user_id')->all()
+        );
 
         $session->update([
             'company_id' => $data['company_id'],
@@ -288,5 +291,18 @@ class SessionController extends Controller
         $assigned = $session->panelists()->where('user_id', $user->id)->exists();
 
         abort_unless($assigned, 403);
+    }
+
+    /** @param list<int|string> $panelistIds @param list<int|string> $existingAssigneeIds */
+    private function assertPanelistsAreAssignable(array $panelistIds, array $existingAssigneeIds = []): void
+    {
+        $allowedIds = User::panelistCandidatesQuery($existingAssigneeIds)->pluck('id')->all();
+        $invalid = array_diff(array_map('intval', $panelistIds), $allowedIds);
+
+        if ($invalid !== []) {
+            throw ValidationException::withMessages([
+                'panelist_ids' => __('One or more selected panelists are inactive or not eligible.'),
+            ]);
+        }
     }
 }

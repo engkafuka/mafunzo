@@ -73,9 +73,17 @@
     <label class="block text-sm font-medium text-gray-700 mb-2">{{ __('Panelists') }}</label>
     <div class="space-y-2 max-h-48 overflow-y-auto border border-gray-200 rounded-md p-3">
         @forelse($panelistCandidates as $user)
-            <label class="flex items-center gap-2 text-sm">
-                <input type="checkbox" name="panelist_ids[]" value="{{ $user->id }}" @checked(in_array($user->id, $selectedPanelists))>
-                <span>{{ $user->name }} ({{ $user->email }})</span>
+            @php($isInactive = ! $user->isInterviewStatusActive())
+            <label class="flex items-center gap-2 text-sm {{ $isInactive ? 'text-gray-400' : '' }}">
+                <input type="checkbox" name="panelist_ids[]" value="{{ $user->id }}"
+                       @checked(in_array($user->id, $selectedPanelists))
+                       @disabled($isInactive && ! in_array($user->id, $selectedPanelists))>
+                <span>
+                    {{ $user->name }} ({{ $user->email }})
+                    @if($isInactive)
+                        <span class="text-xs text-red-600 font-medium">({{ __('Inactive') }})</span>
+                    @endif
+                </span>
             </label>
         @empty
             <p class="text-sm text-gray-500">{{ __('Assign panelist or chair roles under Module roles first.') }}</p>
@@ -88,7 +96,12 @@
     <select name="chair_user_id" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm">
         <option value="">{{ __('None selected') }}</option>
         @foreach($panelistCandidates as $user)
-            <option value="{{ $user->id }}" @selected((string) $chairId === (string) $user->id)>{{ $user->name }}</option>
+            @php($isInactive = ! $user->isInterviewStatusActive())
+            <option value="{{ $user->id }}"
+                    @selected((string) $chairId === (string) $user->id)
+                    @disabled($isInactive && (string) $chairId !== (string) $user->id)>
+                {{ $user->name }}@if($isInactive) ({{ __('Inactive') }})@endif
+            </option>
         @endforeach
     </select>
 </div>

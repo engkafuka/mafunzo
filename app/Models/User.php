@@ -4,6 +4,7 @@ namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
 use App\Models\Concerns\Auditable;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
@@ -368,6 +369,52 @@ class User extends Authenticatable
     public function interviewRoles()
     {
         return $this->hasMany(InterviewUserRole::class);
+    }
+
+    public function scopeInterviewStatusActive(Builder $query): Builder
+    {
+        return $query->where(function (Builder $q) {
+            $q->where('interview_status', 'active')
+                ->orWhereNull('interview_status');
+        });
+    }
+
+    public function scopeInterviewPanelistOrChair(Builder $query): Builder
+    {
+        return $query->whereHas('interviewRoles', fn (Builder $q) => $q->whereIn('role', [
+            InterviewUserRole::ROLE_PANELIST,
+            InterviewUserRole::ROLE_CHAIR,
+        ]));
+    }
+
+    /**
+     * Active panelists/chairs for session assignment.
+     * Pass existing assignee IDs on edit so already-assigned inactive users remain visible.
+     */
+    public static function panelistCandidatesQuery(?array $includeUserIds = null): Builder
+    {
+        return static::query()
+            ->where(function (Builder $query) use ($includeUserIds) {
+                $query->where(function (Builder $active) {
+                    $active->interviewStatusActive()->interviewPanelistOrChair();
+                });
+
+                if ($includeUserIds !== null && $includeUserIds !== []) {
+                    $query->orWhereIn('id', $includeUserIds);
+                }
+            })
+            ->orderBy('name');
+    }
+
+    public function isAssignableAsPanelist(): bool
+    {
+        if (! $this->isInterviewStatusActive()) {
+            return false;
+        }
+
+        return $this->interviewRoles()
+            ->whereIn('role', [InterviewUserRole::ROLE_PANELIST, InterviewUserRole::ROLE_CHAIR])
+            ->exists();
     }
 
     public function hasInterviewRole(string ...$roles): bool
