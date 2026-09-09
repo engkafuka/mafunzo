@@ -52,11 +52,8 @@ class UserRoleController extends Controller
         }
 
         if ($request->filled('status')) {
-            if ($request->status === 'active') {
-                $query->whereHas('interviewRoles');
-            } elseif ($request->status === 'inactive') {
-                $query->whereDoesntHave('interviewRoles');
-            }
+            abort_unless(in_array($request->status, ['active', 'inactive'], true), 404);
+            $query->where('interview_status', $request->status);
         }
 
         $users = $query->paginate(PaginationHelper::PER_PAGE)->withQueryString();
@@ -121,6 +118,7 @@ class UserRoleController extends Controller
             'email' => $request->email,
             'password' => Hash::make($request->password),
             'role' => 'interview', // system role: no training menus
+            'interview_status' => 'active',
             'email_verified_at' => now(),
             'registration_status' => 'approved',
         ]);
@@ -193,18 +191,117 @@ class UserRoleController extends Controller
         return back()->with('status', __(':name interview roles updated.', ['name' => $user->name]));
     }
 
+    public function edit(User $user): View|RedirectResponse
+    {
+        $this->assertInterviewModuleUser($user);
+
+        return view('interview.user-roles.edit', [
+            'user' => $user->load('interviewRoles'),
+            'rolesConfig' => config('interview.roles'),
+        ]);
+    }
+
     public function update(Request $request, User $user): RedirectResponse
     {
-        $validRoles = array_keys(config('interview.roles'));
+        $this->assertInterviewModuleUser($user);
 
-        $data = $request->validate([
+        $validRoles = array_keys(config('interview.roles'));
+        $isInterviewOnly = $user->isInterviewOnly();
+
+        $rules = [
+            'interview_status' => ['required', 'in:active,inactive'],
             'roles' => ['nullable', 'array'],
             'roles.*' => ['string', 'in:'.implode(',', $validRoles)],
+        ];
+
+        if ($isInterviewOnly) {
+            $rules['first_name'] = ValidationRules::personName();
+            $rules['middle_name'] = ValidationRules::personName(false);
+            $rules['last_name'] = ValidationRules::personName();
+            $rules['email'] = ['required', 'string', 'lowercase', 'email', 'max:255', 'unique:users,email,'.$user->id];
+            $rules['phone'] = ['nullable', 'string', 'max:50', 'regex:/^[0-9+\-\s()]+$/'];
+            if ($request->filled('password')) {
+                $rules['password'] = ValidationRules::password();
+            }
+        }
+
+        $data = $request->validate($rules, ValidationRules::requiredMessages(), [
+            'first_name' => __('first name'),
+            'middle_name' => __('middle name'),
+            'last_name' => __('last name'),
+            'email' => __('email'),
+            'phone' => __('phone'),
+            'password' => __('password'),
+            'interview_status' => __('status'),
+            'roles' => __('interview roles'),
         ]);
 
-        $request->merge(['user_id' => $user->id, 'roles' => $data['roles'] ?? []]);
+        $profileChanges = [];
 
-        return $this->store($request);
+        if ($isInterviewOnly) {
+            $name = trim($data['first_name'].' '.($data['middle_name'] ?? '').' '.$data['last_name']);
+
+            $profileData = [
+                'name' => $name,
+                'first_name' => $data['first_name'],
+                'middle_name' => $data['middle_name'] ?? null,
+                'last_name' => $data['last_name'],
+                'email' => $data['email'],
+                'phone' => $data['phone'] ?? null,
+                'interview_status' => $data['interview_status'],
+            ];
+
+            if ($request->filled('password')) {
+                $profileData['password'] = Hash::make($request->password);
+            }
+
+            foreach ($profileData as $field => $value) {
+                if ($user->{$field} != $value) {
+                    $profileChanges[$field] = $field === 'password' ? '[changed]' : $value;
+                }
+            }
+
+            $user->update($profileData);
+        } else {
+            if ($user->interview_status !== $data['interview_status']) {
+                $profileChanges['interview_status'] = $data['interview_status'];
+            }
+
+            $user->update(['interview_status' => $data['interview_status']]);
+        }
+
+        $newRoles = $data['roles'] ?? [];
+        $existing = $user->interviewRoles()->pluck('role')->all();
+        $toAdd = array_diff($newRoles, $existing);
+        $toRemove = array_diff($existing, $newRoles);
+
+        foreach ($toAdd as $role) {
+            InterviewUserRole::create(['user_id' => $user->id, 'role' => $role]);
+        }
+
+        if ($toRemove !== []) {
+            InterviewUserRole::where('user_id', $user->id)
+                ->whereIn('role', $toRemove)
+                ->delete();
+        }
+
+        InterviewAuditLogger::log(
+            'interview_user_updated',
+            'Interview user details updated',
+            $request->user(),
+            null,
+            [
+                'user_id' => $user->id,
+                'profile_changes' => $profileChanges,
+                'added_roles' => array_values($toAdd),
+                'removed_roles' => array_values($toRemove),
+                'final_roles' => $newRoles,
+            ]
+        );
+
+        return redirect()
+            ->route('interview.user-roles.index')
+            ->with('status', __(':name updated.', ['name' => $user->fresh()->name]));
     }
 
     public function destroy(Request $request, User $user, string $role): RedirectResponse
@@ -222,5 +319,10 @@ class UserRoleController extends Controller
         );
 
         return back()->with('status', __('Role removed.'));
+    }
+
+    private function assertInterviewModuleUser(User $user): void
+    {
+        abort_unless($user->isInterviewModuleUser(), 404);
     }
 }

@@ -27,6 +27,7 @@ class User extends Authenticatable
         'phone',
         'password',
         'role',
+        'interview_status',
         'registration_category',
         'registration_status',
         'registration_reviewed_at',
@@ -276,6 +277,69 @@ class User extends Authenticatable
         return $this->role === 'interview';
     }
 
+    /** @return list<string> */
+    public function nameParts(): array
+    {
+        if (filled($this->first_name) || filled($this->last_name)) {
+            return array_values(array_filter([
+                $this->first_name,
+                $this->middle_name,
+                $this->last_name,
+            ], fn ($part) => filled($part)));
+        }
+
+        return preg_split('/\s+/', trim((string) $this->name), -1, PREG_SPLIT_NO_EMPTY) ?: [];
+    }
+
+    public function displayFirstName(): string
+    {
+        if (filled($this->first_name)) {
+            return $this->first_name;
+        }
+
+        return $this->nameParts()[0] ?? '';
+    }
+
+    public function displayMiddleName(): ?string
+    {
+        if (filled($this->middle_name)) {
+            return $this->middle_name;
+        }
+
+        $parts = $this->nameParts();
+
+        if (count($parts) <= 2) {
+            return null;
+        }
+
+        return implode(' ', array_slice($parts, 1, -1));
+    }
+
+    public function displayLastName(): string
+    {
+        if (filled($this->last_name)) {
+            return $this->last_name;
+        }
+
+        $parts = $this->nameParts();
+
+        if (count($parts) <= 1) {
+            return '';
+        }
+
+        return (string) end($parts);
+    }
+
+    public function isInterviewStatusActive(): bool
+    {
+        return ($this->interview_status ?? 'active') === 'active';
+    }
+
+    public function isInterviewModuleUser(): bool
+    {
+        return $this->isInterviewOnly() || $this->interviewRoles()->exists();
+    }
+
     public function isSuperAdmin(): bool
     {
         return $this->role === 'super_admin';
@@ -323,6 +387,10 @@ class User extends Authenticatable
     {
         if ($this->isSuperAdmin()) {
             return true;
+        }
+
+        if (! $this->isInterviewStatusActive()) {
+            return false;
         }
 
         return $this->interviewRoles()->exists();

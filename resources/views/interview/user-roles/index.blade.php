@@ -40,7 +40,7 @@
                 <select name="status" class="rounded-md border-gray-300 shadow-sm text-sm focus:border-indigo-500 focus:ring-indigo-500">
                     <option value="">{{ __('All Status') }}</option>
                     <option value="active" @selected(($filters['status'] ?? '') === 'active')>{{ __('Active') }}</option>
-                    <option value="inactive" @selected(($filters['status'] ?? '') === 'inactive')>{{ __('No roles') }}</option>
+                    <option value="inactive" @selected(($filters['status'] ?? '') === 'inactive')>{{ __('Inactive') }}</option>
                 </select>
 
                 <div class="relative flex-1 min-w-[200px] w-full sm:w-auto">
@@ -77,9 +77,9 @@
                                 @php
                                     $initials = collect(explode(' ', $user->name))->map(fn ($p) => mb_substr($p, 0, 1))->take(2)->implode('');
                                     $isInterviewOnly = $user->role === 'interview';
-                                    $hasRoles = $user->interviewRoles->isNotEmpty();
+                                    $isActive = ($user->interview_status ?? 'active') === 'active';
                                 @endphp
-                                <tr class="hover:bg-gray-50" x-data="{ editing: false }">
+                                <tr class="hover:bg-gray-50">
                                     <td class="px-4 py-3">
                                         <div class="flex items-center gap-3">
                                             <div class="shrink-0 w-9 h-9 rounded-full bg-[#0a71ab] text-white flex items-center justify-center text-xs font-semibold uppercase">
@@ -102,8 +102,7 @@
                                         @endif
                                     </td>
                                     <td class="px-4 py-3">
-                                        {{-- Display mode --}}
-                                        <div x-show="!editing" class="flex flex-wrap gap-1">
+                                        <div class="flex flex-wrap gap-1">
                                             @forelse($user->interviewRoles as $assignment)
                                                 <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-xs font-medium">
                                                     {{ $assignment->roleLabel() }}
@@ -117,37 +116,18 @@
                                                 <span class="text-xs text-gray-400">{{ __('None') }}</span>
                                             @endforelse
                                         </div>
-
-                                        {{-- Edit mode --}}
-                                        <form x-show="editing" x-cloak method="POST" action="{{ route('interview.user-roles.update', $user) }}" class="space-y-2">
-                                            @csrf @method('PUT')
-                                            <div class="flex flex-wrap gap-2">
-                                                @foreach($rolesConfig as $key => $label)
-                                                    <label class="inline-flex items-center gap-1 text-xs bg-gray-50 border border-gray-200 rounded px-2 py-1 cursor-pointer">
-                                                        <input type="checkbox" name="roles[]" value="{{ $key }}"
-                                                               @checked($user->interviewRoles->contains('role', $key))
-                                                               class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500">
-                                                        {{ $label }}
-                                                    </label>
-                                                @endforeach
-                                            </div>
-                                            <div class="flex gap-2">
-                                                <button type="submit" class="px-2 py-1 bg-indigo-600 text-white text-xs rounded font-medium">{{ __('Save') }}</button>
-                                                <button type="button" @click="editing = false" class="px-2 py-1 bg-gray-100 text-gray-700 text-xs rounded">{{ __('Cancel') }}</button>
-                                            </div>
-                                        </form>
                                     </td>
                                     <td class="px-4 py-3">
-                                        @if($hasRoles)
+                                        @if($isActive)
                                             <span class="inline-flex px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800">{{ __('Active') }}</span>
                                         @else
-                                            <span class="inline-flex px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">{{ __('No roles') }}</span>
+                                            <span class="inline-flex px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">{{ __('Inactive') }}</span>
                                         @endif
                                     </td>
                                     <td class="px-4 py-3 text-right text-sm whitespace-nowrap">
-                                        <button type="button" @click="editing = !editing" class="text-indigo-600 hover:text-indigo-800 font-medium text-sm">
-                                            {{ __('Edit roles') }}
-                                        </button>
+                                        <a href="{{ route('interview.user-roles.edit', $user) }}" class="text-indigo-600 hover:text-indigo-800 font-medium text-sm">
+                                            {{ __('Edit') }}
+                                        </a>
                                     </td>
                                 </tr>
                             @empty

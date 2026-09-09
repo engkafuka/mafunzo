@@ -58,6 +58,16 @@ class LoginRequest extends FormRequest
             ]);
         }
 
+        $user = Auth::user();
+
+        if ($user && $user->isInterviewOnly() && ! $user->isInterviewStatusActive()) {
+            Auth::logout();
+
+            throw ValidationException::withMessages([
+                'email' => __('This account has been deactivated. Contact your administrator.'),
+            ]);
+        }
+
         RateLimiter::clear($this->throttleKey());
     }
 

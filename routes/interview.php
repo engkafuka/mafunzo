@@ -50,6 +50,7 @@ Route::middleware(['auth', 'verified', 'interview.access'])->prefix('interviews'
 
         Route::get('user-roles', [UserRoleController::class, 'index'])->name('user-roles.index');
         Route::get('user-roles/create', [UserRoleController::class, 'create'])->name('user-roles.create');
+        Route::get('user-roles/{user}/edit', [UserRoleController::class, 'edit'])->name('user-roles.edit');
         Route::post('user-roles/users', [UserRoleController::class, 'storeUser'])->name('user-roles.store-user');
         Route::post('user-roles', [UserRoleController::class, 'store'])->name('user-roles.store');
         Route::put('user-roles/{user}', [UserRoleController::class, 'update'])->name('user-roles.update');
