@@ -45,11 +45,19 @@ class InterviewFixQ1MaxCommand extends Command
             return self::SUCCESS;
         }
 
-        $questionIds = $this->resolveQuestionIds($sessions, $sortOrder, $fromMax);
+        $questionIds = $this->resolveQuestionIds($sessions, $sortOrder, $fromMax, $toMax);
         if ($questionIds->isEmpty()) {
-            $this->error("No Q{$sortOrder} questions with max_mark={$fromMax} found for these sessions.");
+            $this->error("No Q{$sortOrder} question found for these sessions (expected max_mark={$fromMax}, or already {$toMax} with scores above {$toMax}).");
+            $this->showQuestionDiagnostics($sessions, $sortOrder);
 
             return self::FAILURE;
+        }
+
+        $scoresAlreadyScaled = $this->scoresAlreadyScaled($sessions, $questionIds, $toMax);
+        if ($scoresAlreadyScaled) {
+            $this->warn("Q{$sortOrder} scores already appear scaled (all ≤ {$toMax}). Nothing to do.");
+
+            return self::SUCCESS;
         }
 
         $scoreQuery = InterviewScore::query()
@@ -160,15 +168,91 @@ class InterviewFixQ1MaxCommand extends Command
     }
 
     /** @return Collection<int, int> */
-    private function resolveQuestionIds(Collection $sessions, int $sortOrder, int $fromMax): Collection
+    private function resolveQuestionIds(Collection $sessions, int $sortOrder, int $fromMax, int $toMax): Collection
     {
         return $sessions
-            ->map(fn (InterviewSession $session) => $session->questionSet?->questions
-                ->first(fn ($q) => (int) $q->sort_order === $sortOrder && (int) $q->max_mark === $fromMax)
-                ?->id)
+            ->map(function (InterviewSession $session) use ($sortOrder, $fromMax, $toMax) {
+                $question = $session->questionSet?->questions
+                    ->first(fn ($q) => (int) $q->sort_order === $sortOrder);
+
+                if (! $question) {
+                    return null;
+                }
+
+                $maxMark = (int) $question->max_mark;
+
+                if ($maxMark === $fromMax) {
+                    return $question->id;
+                }
+
+                // Question max may already have been edited in the UI; scores can still be on the old scale.
+                if ($maxMark === $toMax && $this->sessionHasOversizedScores($session, $question->id, $toMax)) {
+                    return $question->id;
+                }
+
+                return null;
+            })
             ->filter()
             ->unique()
             ->values();
+    }
+
+    private function sessionHasOversizedScores(InterviewSession $session, int $questionId, int $toMax): bool
+    {
+        return InterviewScore::query()
+            ->where('session_id', $session->id)
+            ->where('question_id', $questionId)
+            ->whereNotNull('score')
+            ->where('score', '>', $toMax)
+            ->exists();
+    }
+
+    /** @param Collection<int, int> $questionIds */
+    private function scoresAlreadyScaled(Collection $sessions, Collection $questionIds, int $toMax): bool
+    {
+        return ! InterviewScore::query()
+            ->whereIn('session_id', $sessions->pluck('id'))
+            ->whereIn('question_id', $questionIds)
+            ->whereNotNull('score')
+            ->where('score', '>', $toMax)
+            ->exists();
+    }
+
+    private function showQuestionDiagnostics(Collection $sessions, int $sortOrder): void
+    {
+        $rows = $sessions->map(function (InterviewSession $session) use ($sortOrder) {
+            $question = $session->questionSet?->questions
+                ->first(fn ($q) => (int) $q->sort_order === $sortOrder);
+
+            if (! $question) {
+                return [
+                    $session->session_code,
+                    $session->questionSet?->title ?? '—',
+                    '—',
+                    '—',
+                    '—',
+                ];
+            }
+
+            $scores = InterviewScore::query()
+                ->where('session_id', $session->id)
+                ->where('question_id', $question->id)
+                ->whereNotNull('score')
+                ->pluck('score');
+
+            return [
+                $session->session_code,
+                $session->questionSet?->title ?? '—',
+                (string) $question->id,
+                (string) $question->max_mark,
+                $scores->isEmpty()
+                    ? 'no scores'
+                    : $scores->min().' – '.$scores->max().' ('.$scores->count().' rows)',
+            ];
+        });
+
+        $this->line('Diagnostics:');
+        $this->table(['Session', 'Question set', 'Q'.$sortOrder.' id', 'Q'.$sortOrder.' max', 'Q'.$sortOrder.' scores'], $rows->all());
     }
 
     /** @return Collection<int, array<string, mixed>> */
