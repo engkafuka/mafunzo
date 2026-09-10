@@ -135,7 +135,7 @@ class InterviewScoringService
         }
     }
 
-    public function consolidateResults(InterviewSession $session): InterviewResult
+    public function consolidateResults(InterviewSession $session, bool $preserveWorkflow = false): InterviewResult
     {
         $session->load(['questionSet.activeQuestions', 'scores', 'panelists.user']);
 
@@ -186,31 +186,43 @@ class InterviewScoringService
 
         $passed = $percentage >= (float) $session->pass_mark;
 
+        $existing = InterviewResult::query()->where('session_id', $session->id)->first();
+        $preserveDecision = $preserveWorkflow
+            && $existing
+            && $existing->decision_status !== 'pending';
+
+        $payload = [
+            'total_score' => round($totalAverage, 2),
+            'max_possible_score' => $maxPossible,
+            'percentage' => $percentage,
+            'passed' => $passed,
+            'calculation_snapshot' => [
+                'questions' => $perQuestion,
+                'variance_flags' => $varianceFlags,
+                'calculated_at' => now()->toIso8601String(),
+            ],
+        ];
+
+        if (! $preserveDecision) {
+            $payload['recommendation'] = $passed ? 'recommend' : 'do_not_recommend';
+            $payload['decision_status'] = 'pending';
+        }
+
         $result = InterviewResult::updateOrCreate(
             ['session_id' => $session->id],
-            [
-                'total_score' => round($totalAverage, 2),
-                'max_possible_score' => $maxPossible,
-                'percentage' => $percentage,
-                'passed' => $passed,
-                'recommendation' => $passed ? 'recommend' : 'do_not_recommend',
-                'decision_status' => 'pending',
-                'calculation_snapshot' => [
-                    'questions' => $perQuestion,
-                    'variance_flags' => $varianceFlags,
-                    'calculated_at' => now()->toIso8601String(),
-                ],
-            ]
+            $payload
         );
 
-        $session->update(['status' => InterviewSession::STATUS_UNDER_REVIEW]);
+        if (! $preserveDecision) {
+            $session->update(['status' => InterviewSession::STATUS_UNDER_REVIEW]);
+        }
 
         InterviewAuditLogger::log(
             'results_consolidated',
             'Interview results consolidated after all panelists submitted',
             null,
             $session->id,
-            ['percentage' => $percentage, 'passed' => $passed]
+            ['percentage' => $percentage, 'passed' => $passed, 'preserve_workflow' => $preserveDecision]
         );
 
         return $result;
