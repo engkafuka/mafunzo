@@ -34,6 +34,10 @@ Route::middleware(['auth', 'verified', 'interview.access'])->prefix('interviews'
         Route::get('reports/pass-rate', [ReportController::class, 'passRate'])->name('reports.pass-rate');
         Route::get('reports/pass-rate/export/csv', [ReportController::class, 'passRateCsv'])->name('reports.pass-rate.export.csv');
         Route::get('reports/pass-rate/export/pdf', [ReportController::class, 'passRatePdf'])->name('reports.pass-rate.export.pdf');
+
+        Route::get('reports/panel-comments', [ReportController::class, 'panelComments'])->name('reports.panel-comments');
+        Route::get('reports/panel-comments/export/csv', [ReportController::class, 'panelCommentsCsv'])->name('reports.panel-comments.export.csv');
+        Route::get('reports/panel-comments/export/pdf', [ReportController::class, 'panelCommentsPdf'])->name('reports.panel-comments.export.pdf');
     });
 
     Route::middleware('interview.access:admin')->group(function () {

@@ -8,7 +8,9 @@ use App\Models\InterviewSession;
 use App\Support\Interview\InterviewAuditExtractReport;
 use App\Support\Interview\InterviewCompanyReport;
 use App\Support\Interview\InterviewPanelAttendanceReport;
+use App\Support\Interview\InterviewPanelCommentsReport;
 use App\Support\Interview\InterviewPassRateByCompanyReport;
+use App\Models\User;
 use App\Support\PaginationHelper;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
@@ -158,6 +160,67 @@ class ReportController extends Controller
         return InterviewPassRateByCompanyReport::exportPdf($request);
     }
 
+    public function panelComments(Request $request): View
+    {
+        $this->validatePanelCommentsFilters($request);
+        $this->applyPanelCommentsDefaults($request);
+
+        $view = InterviewPanelCommentsReport::resolveView($request);
+
+        $data = [
+            'companies' => $this->companies(),
+            'sessionOptions' => $this->sessionOptions(),
+            'sessionStatuses' => config('interview.session_statuses', []),
+            'panelistOptions' => $this->panelistOptions(),
+            'viewMode' => $view,
+            'commentsOnly' => InterviewPanelCommentsReport::commentsOnly($request),
+        ];
+
+        if ($view === InterviewPanelCommentsReport::VIEW_SESSION) {
+            if ($request->filled('session_id')) {
+                $session = InterviewSession::query()
+                    ->with(['company', 'result', 'panelists.user'])
+                    ->findOrFail($request->integer('session_id'));
+
+                $data['session'] = $session;
+                $data['groupedScores'] = InterviewPanelCommentsReport::scoresGroupedByPanelist($session, $request);
+            }
+        } elseif ($view === InterviewPanelCommentsReport::VIEW_GROUPED) {
+            $data['sessions'] = InterviewPanelCommentsReport::sessionsQuery($request)
+                ->with(['company', 'result', 'panelists.user'])
+                ->paginate(PaginationHelper::PER_PAGE)
+                ->withQueryString();
+
+            $data['groupedBySession'] = $data['sessions']->getCollection()->mapWithKeys(
+                fn (InterviewSession $session) => [
+                    $session->id => InterviewPanelCommentsReport::scoresGroupedByPanelist($session, $request),
+                ]
+            );
+        } else {
+            $data['rows'] = InterviewPanelCommentsReport::query($request)
+                ->paginate(PaginationHelper::PER_PAGE)
+                ->withQueryString();
+        }
+
+        return view('interview.reports.panel-comments', $data);
+    }
+
+    public function panelCommentsCsv(Request $request): StreamedResponse
+    {
+        $this->validatePanelCommentsFilters($request);
+        $this->applyPanelCommentsExportDefaults($request);
+
+        return InterviewPanelCommentsReport::exportCsv($request);
+    }
+
+    public function panelCommentsPdf(Request $request): Response
+    {
+        $this->validatePanelCommentsFilters($request);
+        $this->applyPanelCommentsExportDefaults($request);
+
+        return InterviewPanelCommentsReport::exportPdf($request);
+    }
+
     private function companies()
     {
         return InterviewCompany::query()
@@ -236,5 +299,48 @@ class ReportController extends Controller
             'action' => ['nullable', 'string', 'max:100'],
             'q' => ['nullable', 'string', 'max:200'],
         ]);
+    }
+
+    private function validatePanelCommentsFilters(Request $request): void
+    {
+        $this->validatePanelFilters($request);
+
+        $request->validate([
+            'view' => ['nullable', 'in:table,grouped,session'],
+            'comments_only' => ['nullable', 'boolean'],
+            'panelist_user_id' => ['nullable', 'integer', 'exists:users,id'],
+        ]);
+    }
+
+    private function applyPanelCommentsDefaults(Request $request): void
+    {
+        if ($request->query->count() === 0) {
+            $request->merge([
+                'from_date' => now()->toDateString(),
+                'to_date' => now()->toDateString(),
+                'status' => 'conducted',
+                'comments_only' => '1',
+                'view' => InterviewPanelCommentsReport::VIEW_TABLE,
+            ]);
+        } elseif (! $request->has('comments_only')) {
+            $request->merge(['comments_only' => '1']);
+        }
+    }
+
+    private function applyPanelCommentsExportDefaults(Request $request): void
+    {
+        $this->applyExportDefaults($request, withStatus: true);
+
+        if (! $request->has('comments_only')) {
+            $request->merge(['comments_only' => '1']);
+        }
+    }
+
+    private function panelistOptions()
+    {
+        return User::query()
+            ->whereHas('interviewRoles', fn ($q) => $q->whereIn('role', ['panelist', 'chair']))
+            ->orderBy('name')
+            ->get(['id', 'name', 'email']);
     }
 }

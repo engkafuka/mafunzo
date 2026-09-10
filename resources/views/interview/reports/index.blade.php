@@ -30,6 +30,11 @@
                     <h3 class="text-lg font-semibold text-gray-900">{{ __('Pass rate by company') }}</h3>
                     <p class="mt-1 text-sm text-gray-600">{{ __('Company-level pass/fail counts, pass rate, and average score. Export as PDF or Excel (CSV).') }}</p>
                 </a>
+
+                <a href="{{ route('interview.reports.panel-comments') }}" class="block p-6 bg-white rounded-lg shadow hover:shadow-md border border-gray-200">
+                    <h3 class="text-lg font-semibold text-gray-900">{{ __('Panel comments') }}</h3>
+                    <p class="mt-1 text-sm text-gray-600">{{ __('Panelist comments per session and question. Table, grouped, or session detail views. Export as PDF or Excel (CSV).') }}</p>
+                </a>
             </div>
         </div>
     </div>
