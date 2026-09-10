@@ -1,6 +1,6 @@
 <div class="space-y-4">
     @forelse($sessions as $session)
-        @php($panelGroups = $groupedBySession[$session->id] ?? collect())
+        @php($panelGroups = ($groupedBySession ?? collect())->get($session->id, collect()))
         <div class="bg-white shadow-sm sm:rounded-lg border border-gray-200 overflow-hidden">
             <div class="px-4 py-3 bg-gray-50 border-b border-gray-200">
                 <div class="flex flex-wrap items-start justify-between gap-2">
@@ -37,7 +37,7 @@
                                 @foreach($scores as $score)
                                     <div class="rounded-md border border-gray-100 bg-gray-50 p-3">
                                         <div class="text-xs uppercase text-gray-500 mb-1">
-                                            {{ __('Q:number — :category', ['number' => $score->question?->sort_order, 'category' => $score->question?->categoryLabel()]) }}
+                                            {{ __('Q:number (:category)', ['number' => $score->question?->sort_order, 'category' => $score->question?->categoryLabel()]) }}
                                             · {{ __('Score') }}: {{ $score->score ?? '—' }}
                                         </div>
                                         <p class="text-sm text-gray-800 whitespace-pre-wrap">{{ $score->comment ?: '—' }}</p>

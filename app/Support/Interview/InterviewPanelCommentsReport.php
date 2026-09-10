@@ -7,6 +7,7 @@ use App\Models\InterviewSession;
 use App\Models\InterviewSessionPanelist;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Support\Collection;
@@ -46,8 +47,7 @@ class InterviewPanelCommentsReport
             ->select('interview_scores.*')
             ->join('interview_sessions', 'interview_sessions.id', '=', 'interview_scores.session_id')
             ->join('interview_questions', 'interview_questions.id', '=', 'interview_scores.question_id')
-            ->with(['session.company', 'session.result', 'question', 'panelist'])
-            ->where('interview_scores.status', 'submitted');
+            ->with(['session.company', 'session.result', 'question', 'panelist']);
 
         self::applyScoreFilters($query, $request);
         self::applySessionFilters($query, $request);
@@ -93,13 +93,19 @@ class InterviewPanelCommentsReport
         return $query->orderByDesc('interview_date')->orderByDesc('id');
     }
 
-    public static function applyScoreFilters(Builder $query, Request $request): void
+    public static function applyScoreFilters(Builder|Relation $query, Request $request): void
     {
-        $query->where('interview_scores.status', 'submitted');
+        if ($query instanceof Relation) {
+            $query = $query->getQuery();
+        }
+
+        $table = $query->getModel()->getTable();
+
+        $query->where($table.'.status', 'submitted');
 
         if (self::commentsOnly($request)) {
-            $query->whereNotNull('interview_scores.comment')
-                ->where('interview_scores.comment', '!=', '');
+            $query->whereNotNull($table.'.comment')
+                ->where($table.'.comment', '!=', '');
         }
     }
 
@@ -116,9 +122,7 @@ class InterviewPanelCommentsReport
     /** @return Collection<int, Collection<int, InterviewScore>> */
     public static function scoresGroupedByPanelist(InterviewSession $session, Request $request): Collection
     {
-        $query = $session->scores()
-            ->with(['question', 'panelist'])
-            ->where('status', 'submitted');
+        $query = $session->scores()->with(['question', 'panelist']);
 
         self::applyScoreFilters($query, $request);
 
