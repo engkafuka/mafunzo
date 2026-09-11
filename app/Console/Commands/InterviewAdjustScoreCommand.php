@@ -8,6 +8,7 @@ use App\Models\InterviewSession;
 use App\Support\Interview\InterviewCompanyReport;
 use App\Support\Interview\InterviewScoringService;
 use Illuminate\Console\Command;
+use Illuminate\Support\Collection;
 
 class InterviewAdjustScoreCommand extends Command
 {
@@ -16,7 +17,7 @@ class InterviewAdjustScoreCommand extends Command
                             {--target-percentage= : Target consolidated percentage}
                             {--target-total= : Target consolidated total score}
                             {--recommendation= : Optional recommendation after adjustment (recommend, do_not_recommend, conditional)}
-                            {--question= : Question sort order to adjust (auto-picks if omitted)}
+                            {--question= : Restrict adjustment to one question sort order}
                             {--preserve-workflow : Keep decision status and reviewer fields (default when omitted)}
                             {--reset-workflow : Reset decision status to pending and auto recommendation}
                             {--no-audit : Do not write new interview audit log entries}
@@ -90,45 +91,11 @@ class InterviewAdjustScoreCommand extends Command
             return $this->applyRecommendationOnly($session, $recommendation, $dryRun);
         }
 
-        $question = $this->resolveQuestion($session, $questionSortOrder, $totalDelta);
-        if (! $question) {
-            $this->error('Could not find a question with enough headroom for the adjustment.');
+        $plan = $this->buildAdjustmentPlan($session, $totalDelta, $questionSortOrder);
+        if ($plan === null) {
+            $this->error('Could not distribute the score adjustment across submitted panel scores.');
+            $this->line('Needed total change: '.($totalDelta >= 0 ? '+' : '').$totalDelta);
             $this->showQuestionHeadroom($session);
-
-            return self::FAILURE;
-        }
-
-        $scoreRows = $session->scores
-            ->where('question_id', $question->id)
-            ->where('status', 'submitted')
-            ->values();
-
-        if ($scoreRows->isEmpty()) {
-            $this->error('No submitted scores found for the selected question.');
-
-            return self::FAILURE;
-        }
-
-        $adjustments = $scoreRows->map(function (InterviewScore $row) use ($question, $totalDelta) {
-            $newScore = round((float) $row->score + $totalDelta, 2);
-
-            return [
-                'id' => $row->id,
-                'panelist' => $row->panelist?->name ?? ('User #'.$row->panelist_user_id),
-                'old' => (float) $row->score,
-                'new' => $newScore,
-                'valid' => $newScore >= 0 && $newScore <= (float) $question->max_mark,
-            ];
-        });
-
-        if ($adjustments->contains(fn (array $row) => ! $row['valid'])) {
-            $this->error("Adjusting Q{$question->sort_order} by {$totalDelta} would exceed 0–{$question->max_mark} for one or more panelists.");
-            $this->table(['Panelist', 'Old', 'New', 'Valid'], $adjustments->map(fn (array $row) => [
-                $row['panelist'],
-                $row['old'],
-                $row['new'],
-                $row['valid'] ? 'yes' : 'no',
-            ])->all());
 
             return self::FAILURE;
         }
@@ -138,7 +105,6 @@ class InterviewAdjustScoreCommand extends Command
             [
                 ['Session', $session->session_code, ''],
                 ['Company', $session->company?->name ?? '—', ''],
-                ['Question adjusted', 'Q'.$question->sort_order.' (max '.$question->max_mark.')', ''],
                 ['Total score', $currentTotal.' / '.$maxPossible, $desiredTotal.' / '.$maxPossible],
                 ['Percentage', $currentPercentage.'%', $desiredPercentage.'%'],
                 ['Passed', $session->result->passed ? 'Yes' : 'No', ($desiredPercentage >= (float) $session->pass_mark) ? 'Yes' : 'No'],
@@ -147,11 +113,16 @@ class InterviewAdjustScoreCommand extends Command
             ]
         );
 
-        $this->table(['Panelist', 'Old score', 'New score'], $adjustments->map(fn (array $row) => [
-            $row['panelist'],
-            $row['old'],
-            $row['new'],
-        ])->all());
+        $this->table(
+            ['Question', 'Panelist', 'Old score', 'New score', 'Change'],
+            $plan->map(fn (array $row) => [
+                'Q'.$row['sort_order'],
+                $row['panelist'],
+                $row['old'],
+                $row['new'],
+                ($row['change'] >= 0 ? '+' : '').number_format($row['change'], 2),
+            ])->all()
+        );
 
         if ($dryRun) {
             $this->info('[DRY RUN] No changes written.');
@@ -159,7 +130,7 @@ class InterviewAdjustScoreCommand extends Command
             return self::SUCCESS;
         }
 
-        foreach ($adjustments as $row) {
+        foreach ($plan as $row) {
             InterviewScore::query()->whereKey($row['id'])->update(['score' => $row['new']]);
         }
 
@@ -181,6 +152,101 @@ class InterviewAdjustScoreCommand extends Command
         return self::SUCCESS;
     }
 
+    /**
+     * @return Collection<int, array{id: int, sort_order: int, panelist: string, old: float, new: float, change: float}>|null
+     */
+    private function buildAdjustmentPlan(
+        InterviewSession $session,
+        float $totalDelta,
+        mixed $questionSortOrder,
+    ): ?Collection {
+        $remaining = abs($totalDelta);
+        $direction = $totalDelta >= 0 ? 1 : -1;
+        $pending = collect();
+
+        $questions = $session->questionSet->activeQuestions->sortBy('sort_order')->values();
+
+        if ($questionSortOrder !== null && $questionSortOrder !== '') {
+            $questions = $questions->filter(
+                fn (InterviewQuestion $question) => (int) $question->sort_order === (int) $questionSortOrder
+            )->values();
+
+            if ($questions->isEmpty()) {
+                return null;
+            }
+        }
+
+        while ($remaining > 0.009) {
+            $bestQuestion = null;
+            $bestApply = 0.0;
+
+            foreach ($questions as $question) {
+                $apply = $this->maxApplicableDelta($session, $question, $direction, $remaining);
+                if ($apply > $bestApply) {
+                    $bestApply = $apply;
+                    $bestQuestion = $question;
+                }
+            }
+
+            if (! $bestQuestion || $bestApply <= 0) {
+                return null;
+            }
+
+            $rows = $session->scores
+                ->where('question_id', $bestQuestion->id)
+                ->where('status', 'submitted');
+
+            foreach ($rows as $row) {
+                $old = (float) $row->score;
+                $change = round($direction * $bestApply, 2);
+                $new = round($old + $change, 2);
+
+                $pending->push([
+                    'id' => $row->id,
+                    'sort_order' => (int) $bestQuestion->sort_order,
+                    'panelist' => $row->panelist?->name ?? ('User #'.$row->panelist_user_id),
+                    'old' => $old,
+                    'new' => $new,
+                    'change' => $change,
+                ]);
+
+                $row->score = $new;
+            }
+
+            $remaining = round($remaining - $bestApply, 2);
+        }
+
+        return $pending->isEmpty() ? null : $pending;
+    }
+
+    private function maxApplicableDelta(
+        InterviewSession $session,
+        InterviewQuestion $question,
+        int $direction,
+        float $remaining,
+    ): float {
+        $rows = $session->scores
+            ->where('question_id', $question->id)
+            ->where('status', 'submitted');
+
+        if ($rows->isEmpty()) {
+            return 0.0;
+        }
+
+        $limits = $rows->map(function (InterviewScore $row) use ($question, $direction) {
+            $score = (float) $row->score;
+            $maxMark = (float) $question->max_mark;
+
+            return $direction > 0
+                ? max(0.0, $maxMark - $score)
+                : max(0.0, $score);
+        });
+
+        $headroom = round((float) $limits->min(), 2);
+
+        return max(0.0, min($remaining, $headroom));
+    }
+
     private function applyRecommendationOnly(InterviewSession $session, ?string $recommendation, bool $dryRun): int
     {
         if ($recommendation === null) {
@@ -198,44 +264,6 @@ class InterviewAdjustScoreCommand extends Command
         return self::SUCCESS;
     }
 
-    private function resolveQuestion(
-        InterviewSession $session,
-        mixed $questionSortOrder,
-        float $totalDelta,
-    ): ?InterviewQuestion {
-        $questions = $session->questionSet->activeQuestions->sortBy('sort_order')->values();
-
-        if ($questionSortOrder !== null && $questionSortOrder !== '') {
-            $question = $questions->first(fn (InterviewQuestion $q) => (int) $q->sort_order === (int) $questionSortOrder);
-
-            return $question && $this->questionHasHeadroom($session, $question, $totalDelta) ? $question : null;
-        }
-
-        return $questions
-            ->reverse()
-            ->first(fn (InterviewQuestion $question) => $this->questionHasHeadroom($session, $question, $totalDelta));
-    }
-
-    private function questionHasHeadroom(InterviewSession $session, InterviewQuestion $question, float $totalDelta): bool
-    {
-        $rows = $session->scores
-            ->where('question_id', $question->id)
-            ->where('status', 'submitted');
-
-        if ($rows->isEmpty()) {
-            return false;
-        }
-
-        foreach ($rows as $row) {
-            $newScore = (float) $row->score + $totalDelta;
-            if ($newScore < 0 || $newScore > (float) $question->max_mark) {
-                return false;
-            }
-        }
-
-        return true;
-    }
-
     private function showQuestionHeadroom(InterviewSession $session): void
     {
         $rows = $session->questionSet->activeQuestions
@@ -247,14 +275,18 @@ class InterviewAdjustScoreCommand extends Command
                     ->pluck('score')
                     ->map(fn ($score) => (float) $score);
 
+                $minHeadroomUp = $scores->isEmpty()
+                    ? null
+                    : $scores->map(fn (float $score) => (float) $question->max_mark - $score)->min();
+
                 return [
                     'Q'.$question->sort_order,
                     $question->max_mark,
                     $scores->isEmpty() ? '—' : number_format($scores->avg(), 2),
-                    $scores->isEmpty() ? '—' : number_format((float) $question->max_mark - $scores->max(), 2),
+                    $minHeadroomUp === null ? '—' : number_format($minHeadroomUp, 2),
                 ];
             });
 
-        $this->table(['Question', 'Max', 'Average', 'Headroom to max'], $rows->all());
+        $this->table(['Question', 'Max', 'Average', 'Min headroom up'], $rows->all());
     }
 }
