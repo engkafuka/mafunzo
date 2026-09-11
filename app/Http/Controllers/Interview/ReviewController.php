@@ -34,7 +34,7 @@ class ReviewController extends Controller
             );
         }
 
-        $session->load(['company', 'questionSet', 'result', 'panelists.user']);
+        $session->load(['company', 'questionSet', 'result.reviewer', 'panelists.user']);
         $consolidatedScores = $this->scoringService->scoresVisibleTo($user, $session);
 
         return view('interview.review.show', compact('session', 'consolidatedScores'));

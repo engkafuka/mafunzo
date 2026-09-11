@@ -61,6 +61,53 @@
         @if(Auth::user()->hasInterviewRole('admin', 'approver') && $session->result && $session->result->decision_status === 'confirmed')
             <div class="bg-white shadow-sm sm:rounded-lg p-6">
                 <h3 class="font-medium mb-3">{{ __('Final approval') }}</h3>
+
+                <div class="mb-5 rounded-lg border border-gray-200 bg-gray-50 p-4 text-sm">
+                    <h4 class="font-medium text-gray-900 mb-3">{{ __('Chair review summary') }}</h4>
+                    <dl class="grid gap-3 sm:grid-cols-2">
+                        <div>
+                            <dt class="text-gray-500">{{ __('Recommendation') }}</dt>
+                            <dd class="mt-1">
+                                <span @class([
+                                    'inline-flex rounded-full px-2.5 py-0.5 text-xs font-semibold',
+                                    'bg-green-100 text-green-800' => $session->result->recommendation === 'recommend',
+                                    'bg-red-100 text-red-800' => $session->result->recommendation === 'do_not_recommend',
+                                    'bg-amber-100 text-amber-800' => $session->result->recommendation === 'conditional',
+                                    'bg-gray-100 text-gray-700' => ! in_array($session->result->recommendation, ['recommend', 'do_not_recommend', 'conditional'], true),
+                                ])>
+                                    {{ \App\Support\Interview\InterviewCompanyReport::recommendationLabel($session->result->recommendation) }}
+                                </span>
+                            </dd>
+                        </div>
+                        <div>
+                            <dt class="text-gray-500">{{ __('Interview outcome') }}</dt>
+                            <dd class="mt-1 font-semibold">
+                                {{ $session->result->passed ? __('Pass') : __('Fail') }}
+                                · {{ $session->result->percentage }}%
+                                · {{ $session->result->total_score }} / {{ $session->result->max_possible_score }}
+                            </dd>
+                        </div>
+                        @if($session->result->reviewer)
+                            <div>
+                                <dt class="text-gray-500">{{ __('Reviewed by') }}</dt>
+                                <dd class="mt-1 font-medium">{{ $session->result->reviewer->name }}</dd>
+                            </div>
+                        @endif
+                        @if($session->result->reviewed_at)
+                            <div>
+                                <dt class="text-gray-500">{{ __('Reviewed at') }}</dt>
+                                <dd class="mt-1 font-medium">{{ $session->result->reviewed_at->format('d M Y, H:i') }}</dd>
+                            </div>
+                        @endif
+                    </dl>
+                    @if(filled($session->result->chair_notes))
+                        <div class="mt-4 border-t border-gray-200 pt-3">
+                            <dt class="text-gray-500">{{ __('Chair notes') }}</dt>
+                            <dd class="mt-1 whitespace-pre-wrap text-gray-800">{{ $session->result->chair_notes }}</dd>
+                        </div>
+                    @endif
+                </div>
+
                 <div class="flex gap-3">
                     <form method="POST" action="{{ route('interview.review.approve', $session) }}">
                         @csrf
