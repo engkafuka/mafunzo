@@ -12,6 +12,9 @@
             </div>
 
             <form method="GET" class="filter-bar mb-6">
+                <input type="text" name="q" value="{{ request('q') }}"
+                       placeholder="{{ __('Search name, registration, control number, email…') }}"
+                       class="rounded-md border-gray-300 text-sm min-w-[14rem]">
                 <select name="course_id" class="rounded-md border-gray-300 text-sm">
                     <option value="">{{ __('All courses') }}</option>
                     @foreach($courses as $c)

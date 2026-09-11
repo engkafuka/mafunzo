@@ -64,6 +64,21 @@ class ApplicationManagementController extends Controller
             $query->where('course_id', $request->course_id);
         }
 
+        if ($request->filled('q')) {
+            $term = '%'.addcslashes(trim($request->string('q')->toString()), '%_\\').'%';
+            $query->where(function ($qry) use ($term) {
+                $qry->where('registration_number', 'like', $term)
+                    ->orWhere('control_number', 'like', $term)
+                    ->orWhere('first_name', 'like', $term)
+                    ->orWhere('middle_name', 'like', $term)
+                    ->orWhere('last_name', 'like', $term)
+                    ->orWhere('email', 'like', $term)
+                    ->orWhere('phone', 'like', $term)
+                    ->orWhere('company_name', 'like', $term)
+                    ->orWhereHas('course', fn ($course) => $course->where('name', 'like', $term));
+            });
+        }
+
         $applications = $query->paginate(PaginationHelper::PER_PAGE)->withQueryString();
         $courses = Course::orderBy('name')->get();
 

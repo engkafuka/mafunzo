@@ -13,6 +13,7 @@ use App\Support\PositionExamAssigner;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
+use Illuminate\Support\Facades\Log;
 use Illuminate\View\View;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
@@ -141,6 +142,7 @@ class ExamResultsController extends Controller
         ]);
 
         $course = Course::findOrFail($request->integer('course_id'));
+        $actor = auth()->user();
 
         $applications = TrainingApplication::query()
             ->with('user')
@@ -162,43 +164,69 @@ class ExamResultsController extends Controller
             ->update(['exam_results_published_at' => $publishedAt]);
 
         $drafted = 0;
+        $notificationFailures = 0;
+        $identityCardFailures = 0;
+
         foreach ($applications as $application) {
             $application->exam_results_published_at = $publishedAt;
             $application->loadMissing(['user', 'course', 'warehouseIdentityCard']);
 
             if ($application->user) {
-                $application->user->notify(new TraineeStatusNotification(
-                    __('Examination results published'),
-                    __('Your examination results for :course are now available.', [
-                        'course' => $course->name,
-                    ]),
-                    route('training.exam-results'),
-                    __('View results'),
-                ));
+                try {
+                    $application->user->notify(new TraineeStatusNotification(
+                        __('Examination results published'),
+                        __('Your examination results for :course are now available.', [
+                            'course' => $course->name,
+                        ]),
+                        route('training.exam-results'),
+                        __('View results'),
+                    ));
+                } catch (\Throwable $e) {
+                    $notificationFailures++;
+                    Log::warning('Exam results publish notification failed.', [
+                        'application_id' => $application->id,
+                        'user_id' => $application->user_id,
+                        'error' => $e->getMessage(),
+                    ]);
+                }
             }
 
-            if ($application->isEligibleForIdentityCard() && ! $application->warehouseIdentityCard) {
+            if ($application->isEligibleForIdentityCard() && ! $application->warehouseIdentityCard && $actor) {
                 try {
-                    IdentityCardService::generate($application, auth()->user());
+                    IdentityCardService::generate($application, $actor);
                     $drafted++;
-                } catch (\RuntimeException) {
-                    // Keep publishing successful even if draft generation fails for one trainee.
+                } catch (\Throwable $e) {
+                    $identityCardFailures++;
+                    Log::warning('Exam results publish identity card draft failed.', [
+                        'application_id' => $application->id,
+                        'error' => $e->getMessage(),
+                    ]);
                 }
             }
         }
 
-        AuditLogger::logAction(
-            __('Published examination results for :course', ['course' => $course->name]),
-            $course,
-            null,
-            ['published_count' => $applications->count(), 'id_drafts_created' => $drafted],
-        );
+        try {
+            AuditLogger::logAction(
+                __('Published examination results for :course', ['course' => $course->name]),
+                $course,
+                null,
+                ['published_count' => $applications->count(), 'id_drafts_created' => $drafted],
+            );
+        } catch (\Throwable $e) {
+            Log::warning('Exam results publish audit log failed.', [
+                'course_id' => $course->id,
+                'error' => $e->getMessage(),
+            ]);
+        }
 
         $message = __(':count examination result(s) published. Trainees can now view their results.', [
             'count' => $applications->count(),
         ]);
         if ($drafted > 0) {
             $message .= ' '.__(':count identity card draft(s) were created for eligible trainees.', ['count' => $drafted]);
+        }
+        if ($notificationFailures > 0 || $identityCardFailures > 0) {
+            $message .= ' '.__('Some trainee notifications or identity card drafts could not be created. Results are still published.');
         }
 
         return redirect()
