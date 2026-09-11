@@ -135,7 +135,11 @@ class InterviewScoringService
         }
     }
 
-    public function consolidateResults(InterviewSession $session, bool $preserveWorkflow = false): InterviewResult
+    public function consolidateResults(
+        InterviewSession $session,
+        bool $preserveWorkflow = false,
+        bool $audit = true,
+    ): InterviewResult
     {
         $session->load(['questionSet.activeQuestions', 'scores', 'panelists.user']);
 
@@ -217,13 +221,15 @@ class InterviewScoringService
             $session->update(['status' => InterviewSession::STATUS_UNDER_REVIEW]);
         }
 
-        InterviewAuditLogger::log(
-            'results_consolidated',
-            'Interview results consolidated after all panelists submitted',
-            null,
-            $session->id,
-            ['percentage' => $percentage, 'passed' => $passed, 'preserve_workflow' => $preserveDecision]
-        );
+        if ($audit) {
+            InterviewAuditLogger::log(
+                'results_consolidated',
+                'Interview results consolidated after all panelists submitted',
+                null,
+                $session->id,
+                ['percentage' => $percentage, 'passed' => $passed, 'preserve_workflow' => $preserveDecision]
+            );
+        }
 
         return $result;
     }
