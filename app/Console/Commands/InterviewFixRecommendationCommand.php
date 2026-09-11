@@ -13,6 +13,7 @@ class InterviewFixRecommendationCommand extends Command
                             {session : Interview session code, e.g. INT-20260910-NNVF}
                             {recommendation : recommend, do_not_recommend, or conditional}
                             {--note= : Optional note appended to chair notes}
+                            {--remove-note= : Remove this exact text from chair notes}
                             {--force : Allow change after final approval or rejection}
                             {--dry-run : Show what would change without writing}';
 
@@ -28,6 +29,7 @@ class InterviewFixRecommendationCommand extends Command
         $dryRun = (bool) $this->option('dry-run');
         $force = (bool) $this->option('force');
         $note = $this->option('note');
+        $removeNote = $this->option('remove-note');
 
         if (! in_array($recommendation, self::ALLOWED, true)) {
             $this->error('Recommendation must be one of: '.implode(', ', self::ALLOWED));
@@ -65,63 +67,104 @@ class InterviewFixRecommendationCommand extends Command
             ]
         );
 
-        if ($result->recommendation === $recommendation) {
+        $recommendationChanging = $result->recommendation !== $recommendation;
+        $notesChanging = is_string($removeNote) && trim($removeNote) !== '';
+
+        if (! $recommendationChanging && ! $notesChanging) {
             $this->warn('Recommendation is already set to '.InterviewCompanyReport::recommendationLabel($recommendation).'. Nothing to do.');
 
             return self::SUCCESS;
         }
 
-        if (in_array($result->decision_status, ['approved', 'rejected'], true) && ! $force) {
+        if ($recommendationChanging && in_array($result->decision_status, ['approved', 'rejected'], true) && ! $force) {
             $this->error('Final decision is already '.$result->decision_status.'. Use --force only if you understand the workflow impact.');
 
             return self::FAILURE;
         }
 
-        if ($recommendation === 'do_not_recommend' && $result->passed) {
+        if ($recommendationChanging && $recommendation === 'do_not_recommend' && $result->passed) {
             $this->warn('This session is marked Pass but recommendation will be set to Do not recommend.');
         }
 
-        if ($recommendation === 'recommend' && ! $result->passed) {
+        if ($recommendationChanging && $recommendation === 'recommend' && ! $result->passed) {
             $this->warn('This session is marked Fail but recommendation will be set to Recommend approval.');
         }
 
-        $this->info(($dryRun ? '[DRY RUN] ' : '').'Will change recommendation: '
-            .InterviewCompanyReport::recommendationLabel($result->recommendation)
-            .' → '
-            .InterviewCompanyReport::recommendationLabel($recommendation));
+        if ($recommendationChanging) {
+            $this->info(($dryRun ? '[DRY RUN] ' : '').'Will change recommendation: '
+                .InterviewCompanyReport::recommendationLabel($result->recommendation)
+                .' → '
+                .InterviewCompanyReport::recommendationLabel($recommendation));
+        }
+
+        if ($notesChanging) {
+            $strippedNotes = $this->stripNoteText((string) $result->chair_notes, trim($removeNote));
+            $this->line(($dryRun ? '[DRY RUN] ' : '').'Will remove note text from chair notes.');
+            if ($dryRun) {
+                $this->line('Chair notes after: '.($strippedNotes === '' ? '—' : $strippedNotes));
+            }
+        }
 
         if ($dryRun) {
             return self::SUCCESS;
         }
 
-        $updates = ['recommendation' => $recommendation];
+        $updates = [];
+        $previousRecommendation = $result->recommendation;
 
-        if (is_string($note) && trim($note) !== '') {
-            $existingNotes = trim((string) $result->chair_notes);
-            $append = trim($note);
-            $updates['chair_notes'] = $existingNotes === ''
-                ? $append
-                : $existingNotes."\n".$append;
+        if ($recommendationChanging) {
+            $updates['recommendation'] = $recommendation;
         }
 
-        $previousRecommendation = $result->recommendation;
+        $chairNotes = (string) $result->chair_notes;
+
+        if ($notesChanging) {
+            $chairNotes = $this->stripNoteText($chairNotes, trim($removeNote));
+        }
+
+        if (is_string($note) && trim($note) !== '') {
+            $append = trim($note);
+            $chairNotes = trim($chairNotes) === ''
+                ? $append
+                : trim($chairNotes)."\n".$append;
+        }
+
+        if ($notesChanging || (is_string($note) && trim($note) !== '')) {
+            $updates['chair_notes'] = trim($chairNotes) === '' ? null : trim($chairNotes);
+        }
+
+        if ($updates === []) {
+            return self::SUCCESS;
+        }
 
         $result->update($updates);
 
         InterviewAuditLogger::log(
-            'recommendation_corrected',
-            'Chair recommendation corrected via artisan command',
+            $notesChanging && ! $recommendationChanging ? 'chair_notes_corrected' : 'recommendation_corrected',
+            $notesChanging && ! $recommendationChanging
+                ? 'Chair notes corrected via artisan command'
+                : 'Chair recommendation corrected via artisan command',
             null,
             $session->id,
-            [
-                'from' => $previousRecommendation,
-                'to' => $recommendation,
+            array_filter([
+                'from' => $recommendationChanging ? $previousRecommendation : null,
+                'to' => $recommendationChanging ? $recommendation : null,
+                'removed_note' => $notesChanging ? trim($removeNote) : null,
                 'decision_status' => $result->decision_status,
-            ]
+            ]),
         );
 
-        $this->info('Recommendation updated for '.$session->session_code.'.');
+        $this->info('Interview review data updated for '.$session->session_code.'.');
 
         return self::SUCCESS;
+    }
+
+    private function stripNoteText(string $notes, string $removeText): string
+    {
+        $cleaned = str_replace($removeText, '', $notes);
+        $cleaned = preg_replace("/\r\n|\r|\n/", "\n", $cleaned) ?? $cleaned;
+        $cleaned = preg_replace("/\n{2,}/", "\n", $cleaned) ?? $cleaned;
+
+        return trim($cleaned);
     }
 }
