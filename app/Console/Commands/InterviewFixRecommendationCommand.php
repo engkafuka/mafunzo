@@ -14,6 +14,8 @@ class InterviewFixRecommendationCommand extends Command
                             {recommendation : recommend, do_not_recommend, or conditional}
                             {--note= : Optional note appended to chair notes}
                             {--remove-note= : Remove this exact text from chair notes}
+                            {--set-chair-notes= : Replace chair notes entirely}
+                            {--no-audit : Do not write interview audit log entries}
                             {--force : Allow change after final approval or rejection}
                             {--dry-run : Show what would change without writing}';
 
@@ -30,6 +32,8 @@ class InterviewFixRecommendationCommand extends Command
         $force = (bool) $this->option('force');
         $note = $this->option('note');
         $removeNote = $this->option('remove-note');
+        $setChairNotes = $this->option('set-chair-notes');
+        $noAudit = (bool) $this->option('no-audit');
 
         if (! in_array($recommendation, self::ALLOWED, true)) {
             $this->error('Recommendation must be one of: '.implode(', ', self::ALLOWED));
@@ -63,14 +67,16 @@ class InterviewFixRecommendationCommand extends Command
                 ['Outcome', $result->passed ? 'Pass' : 'Fail'],
                 ['Percentage', $result->percentage.'%'],
                 ['Recommendation', InterviewCompanyReport::recommendationLabel($result->recommendation)],
+                ['Chair notes', $result->chair_notes ?: '—'],
                 ['Decision status', InterviewCompanyReport::decisionLabel($result->decision_status)],
             ]
         );
 
         $recommendationChanging = $result->recommendation !== $recommendation;
-        $notesChanging = is_string($removeNote) && trim($removeNote) !== '';
+        $notesReplacing = is_string($setChairNotes);
+        $notesChanging = (is_string($removeNote) && trim($removeNote) !== '') || $notesReplacing;
 
-        if (! $recommendationChanging && ! $notesChanging) {
+        if (! $recommendationChanging && ! $notesChanging && ! (is_string($note) && trim($note) !== '')) {
             $this->warn('Recommendation is already set to '.InterviewCompanyReport::recommendationLabel($recommendation).'. Nothing to do.');
 
             return self::SUCCESS;
@@ -97,7 +103,9 @@ class InterviewFixRecommendationCommand extends Command
                 .InterviewCompanyReport::recommendationLabel($recommendation));
         }
 
-        if ($notesChanging) {
+        if ($notesReplacing) {
+            $this->line(($dryRun ? '[DRY RUN] ' : '').'Will set chair notes to: '.$setChairNotes);
+        } elseif ($notesChanging) {
             $strippedNotes = $this->stripNoteText((string) $result->chair_notes, trim($removeNote));
             $this->line(($dryRun ? '[DRY RUN] ' : '').'Will remove note text from chair notes.');
             if ($dryRun) {
@@ -116,21 +124,25 @@ class InterviewFixRecommendationCommand extends Command
             $updates['recommendation'] = $recommendation;
         }
 
-        $chairNotes = (string) $result->chair_notes;
+        if ($notesReplacing) {
+            $updates['chair_notes'] = trim($setChairNotes) === '' ? null : trim($setChairNotes);
+        } else {
+            $chairNotes = (string) $result->chair_notes;
 
-        if ($notesChanging) {
-            $chairNotes = $this->stripNoteText($chairNotes, trim($removeNote));
-        }
+            if (is_string($removeNote) && trim($removeNote) !== '') {
+                $chairNotes = $this->stripNoteText($chairNotes, trim($removeNote));
+            }
 
-        if (is_string($note) && trim($note) !== '') {
-            $append = trim($note);
-            $chairNotes = trim($chairNotes) === ''
-                ? $append
-                : trim($chairNotes)."\n".$append;
-        }
+            if (is_string($note) && trim($note) !== '') {
+                $append = trim($note);
+                $chairNotes = trim($chairNotes) === ''
+                    ? $append
+                    : trim($chairNotes)."\n".$append;
+            }
 
-        if ($notesChanging || (is_string($note) && trim($note) !== '')) {
-            $updates['chair_notes'] = trim($chairNotes) === '' ? null : trim($chairNotes);
+            if ($notesChanging || (is_string($note) && trim($note) !== '')) {
+                $updates['chair_notes'] = trim($chairNotes) === '' ? null : trim($chairNotes);
+            }
         }
 
         if ($updates === []) {
@@ -139,20 +151,23 @@ class InterviewFixRecommendationCommand extends Command
 
         $result->update($updates);
 
-        InterviewAuditLogger::log(
-            $notesChanging && ! $recommendationChanging ? 'chair_notes_corrected' : 'recommendation_corrected',
-            $notesChanging && ! $recommendationChanging
-                ? 'Chair notes corrected via artisan command'
-                : 'Chair recommendation corrected via artisan command',
-            null,
-            $session->id,
-            array_filter([
-                'from' => $recommendationChanging ? $previousRecommendation : null,
-                'to' => $recommendationChanging ? $recommendation : null,
-                'removed_note' => $notesChanging ? trim($removeNote) : null,
-                'decision_status' => $result->decision_status,
-            ]),
-        );
+        if (! $noAudit) {
+            InterviewAuditLogger::log(
+                $notesChanging && ! $recommendationChanging ? 'chair_notes_corrected' : 'recommendation_corrected',
+                $notesChanging && ! $recommendationChanging
+                    ? 'Chair notes corrected via artisan command'
+                    : 'Chair recommendation corrected via artisan command',
+                null,
+                $session->id,
+                array_filter([
+                    'from' => $recommendationChanging ? $previousRecommendation : null,
+                    'to' => $recommendationChanging ? $recommendation : null,
+                    'removed_note' => is_string($removeNote) && trim($removeNote) !== '' ? trim($removeNote) : null,
+                    'set_chair_notes' => $notesReplacing ? trim($setChairNotes) : null,
+                    'decision_status' => $result->decision_status,
+                ]),
+            );
+        }
 
         $this->info('Interview review data updated for '.$session->session_code.'.');
 
