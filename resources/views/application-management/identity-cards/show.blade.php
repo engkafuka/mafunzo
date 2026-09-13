@@ -63,6 +63,7 @@
                         @if($application->isEligibleForIdentityCard() && (! $card || $card->isDraft()))
                             <form method="POST" action="{{ route('app-management.identity-cards.generate', $application) }}">
                                 @csrf
+                                <x-return-input />
                                 <button type="submit" class="px-4 py-2 bg-indigo-600 text-white text-sm rounded-md hover:bg-indigo-700">
                                     {{ $card ? __('Regenerate draft') : __('Generate draft') }}
                                 </button>
@@ -72,6 +73,7 @@
                         @if($card?->isDraft())
                             <form method="POST" action="{{ route('app-management.identity-cards.publish', $card) }}" onsubmit="return confirm('{{ __('Publish this identity card to the trainee account?') }}');">
                                 @csrf
+                                <x-return-input />
                                 <button type="submit" class="px-4 py-2 bg-green-600 text-white text-sm rounded-md hover:bg-green-700">{{ __('Publish to trainee') }}</button>
                             </form>
                         @endif
@@ -95,6 +97,7 @@
                         @if($card?->isPublished() && auth()->user()->isAdminOrSuperAdmin())
                             <form method="POST" action="{{ route('app-management.identity-cards.revoke', $card) }}" onsubmit="return confirm('{{ __('Revoke this identity card?') }}');">
                                 @csrf
+                                <x-return-input />
                                 <button type="submit" class="px-4 py-2 bg-red-600 text-white text-sm rounded-md hover:bg-red-700">{{ __('Revoke') }}</button>
                             </form>
                         @endif

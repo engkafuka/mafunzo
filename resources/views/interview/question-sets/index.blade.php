@@ -20,7 +20,7 @@
                         <td class="px-4 py-3 text-sm">{{ $set->questions_count }}</td>
                         <td class="px-4 py-3 text-sm">{{ $set->is_active ? __('Yes') : __('No') }}</td>
                         <td class="px-4 py-3 text-right text-sm space-x-2">
-                            <a href="{{ route('interview.question-sets.show', $set) }}" class="text-indigo-600">{{ __('Manage questions') }}</a>
+                            <x-list-detail-link :href="route('interview.question-sets.show', $set)" class="text-indigo-600">{{ __('Manage questions') }}</x-list-detail-link>
                             <a href="{{ route('interview.question-sets.edit', $set) }}" class="text-gray-600">{{ __('Edit') }}</a>
                         </td>
                     </tr>

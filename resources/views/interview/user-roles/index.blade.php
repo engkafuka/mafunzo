@@ -125,9 +125,9 @@
                                         @endif
                                     </td>
                                     <td class="px-4 py-3 text-right text-sm whitespace-nowrap">
-                                        <a href="{{ route('interview.user-roles.edit', $user) }}" class="text-indigo-600 hover:text-indigo-800 font-medium text-sm">
+                                        <x-list-detail-link :href="route('interview.user-roles.edit', $user)" class="text-indigo-600 hover:text-indigo-800 font-medium text-sm">
                                             {{ __('Edit') }}
-                                        </a>
+                                        </x-list-detail-link>
                                     </td>
                                 </tr>
                             @empty

@@ -12,6 +12,7 @@
                     <form method="POST" action="{{ route('users.update', $user) }}" class="space-y-6">
                         @csrf
                         @method('PATCH')
+                        <x-return-input />
 
                         <div class="grid gap-6 sm:grid-cols-3">
                             <div>
@@ -61,7 +62,7 @@
                         </div>
 
                         <div class="flex items-center justify-between pt-4">
-                            <a href="{{ route('users.index') }}" class="text-gray-600 hover:text-gray-900">{{ __('Cancel') }}</a>
+                            <x-back-link :href="route('users.index')" class="text-gray-600 hover:text-gray-900">{{ __('Cancel') }}</x-back-link>
                             <x-primary-button type="submit">{{ __('Update User') }}</x-primary-button>
                         </div>
                     </form>

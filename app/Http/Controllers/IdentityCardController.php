@@ -7,6 +7,7 @@ use App\Models\Course;
 use App\Models\TrainingApplication;
 use App\Models\WarehouseIdentityCard;
 use App\Support\IdentityCardService;
+use App\Support\ListReturn;
 use App\Support\PaginationHelper;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -97,8 +98,7 @@ class IdentityCardController extends Controller
             return redirect()->back()->with('error', $exception->getMessage());
         }
 
-        return redirect()
-            ->route('app-management.identity-cards.show', $application)
+        return ListReturn::redirectPreserving(route('app-management.identity-cards.show', $application))
             ->with('status', __('Identity card draft generated.'));
     }
 
@@ -110,8 +110,7 @@ class IdentityCardController extends Controller
             return redirect()->back()->with('error', $exception->getMessage());
         }
 
-        return redirect()
-            ->route('app-management.identity-cards.show', $identityCard->training_application_id)
+        return ListReturn::redirectPreserving(route('app-management.identity-cards.show', $identityCard->training_application_id))
             ->with('status', __('Identity card published. The trainee can now download it.'));
     }
 
@@ -127,8 +126,7 @@ class IdentityCardController extends Controller
             return redirect()->back()->with('error', $exception->getMessage());
         }
 
-        return redirect()
-            ->route('app-management.identity-cards.show', $identityCard->training_application_id)
+        return ListReturn::redirectPreserving(route('app-management.identity-cards.show', $identityCard->training_application_id))
             ->with('status', __('Identity card revoked.'));
     }
 

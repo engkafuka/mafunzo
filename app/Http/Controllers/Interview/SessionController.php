@@ -9,6 +9,7 @@ use App\Models\InterviewSession;
 use App\Models\User;
 use App\Support\Interview\InterviewAuditLogger;
 use App\Support\Interview\InterviewSessionService;
+use App\Support\ListReturn;
 use App\Support\PaginationHelper;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -147,7 +148,7 @@ class SessionController extends Controller
 
         InterviewAuditLogger::log('session_created', 'Interview session created', $request->user(), $session->id);
 
-        return redirect()->route('interview.sessions.show', $session)->with('status', __('Interview session created.'));
+        return ListReturn::redirectPreserving(route('interview.sessions.show', $session))->with('status', __('Interview session created.'));
     }
 
     public function show(InterviewSession $session, Request $request): View
@@ -226,7 +227,7 @@ class SessionController extends Controller
             isset($data['chair_user_id']) ? (int) $data['chair_user_id'] : null
         );
 
-        return redirect()->route('interview.sessions.show', $session)->with('status', __('Interview session updated.'));
+        return ListReturn::redirectPreserving(route('interview.sessions.show', $session))->with('status', __('Interview session updated.'));
     }
 
     public function openScoring(Request $request, InterviewSession $session): RedirectResponse
@@ -260,8 +261,7 @@ class SessionController extends Controller
             return back()->with('error', $e->getMessage());
         }
 
-        return redirect()
-            ->route('interview.sessions.show', $session)
+        return ListReturn::redirectPreserving(route('interview.sessions.show', $session))
             ->with('status', __('Interview session cancelled. Scores and history are kept.'));
     }
 
@@ -275,8 +275,7 @@ class SessionController extends Controller
             return back()->with('error', $e->getMessage());
         }
 
-        return redirect()
-            ->route('interview.sessions.index')
+        return ListReturn::redirect(route('interview.sessions.index'))
             ->with('status', __('Interview session deleted.'));
     }
 

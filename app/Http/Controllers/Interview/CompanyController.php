@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\InterviewCompany;
 use App\Support\Interview\InterviewAuditLogger;
 use App\Support\PaginationHelper;
+use App\Support\ListReturn;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -61,7 +62,7 @@ class CompanyController extends Controller
             'registration_number' => $company->registration_number,
         ]);
 
-        return redirect()->route('interview.companies.index')->with('status', __('Company saved.'));
+        return ListReturn::redirect(route('interview.companies.index'))->with('status', __('Company saved.'));
     }
 
     public function edit(InterviewCompany $company): View
@@ -82,7 +83,7 @@ class CompanyController extends Controller
             'registration_number' => $company->registration_number,
         ]);
 
-        return redirect()->route('interview.companies.index')->with('status', __('Company updated.'));
+        return ListReturn::redirect(route('interview.companies.index'))->with('status', __('Company updated.'));
     }
 
     public function destroy(Request $request, InterviewCompany $company): RedirectResponse

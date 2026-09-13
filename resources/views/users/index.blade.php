@@ -70,7 +70,7 @@
                                         @endif
                                     </td>
                                     <td class="px-4 py-3 text-right text-sm">
-                                        <a href="{{ route('users.edit', $user) }}" class="text-indigo-600 hover:text-indigo-800 font-medium">{{ __('Edit') }}</a>
+                                        <x-list-detail-link :href="route('users.edit', $user)" class="text-indigo-600 hover:text-indigo-800 font-medium">{{ __('Edit') }}</x-list-detail-link>
                                         @if($user->id !== auth()->id())
                                             <form method="POST" action="{{ route('users.destroy', $user) }}" class="inline-block ms-2" onsubmit="return confirm('{{ __('Are you sure you want to delete this user?') }}');">
                                                 @csrf

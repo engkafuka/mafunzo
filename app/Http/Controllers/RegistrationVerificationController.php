@@ -6,6 +6,7 @@ use App\Models\Course;
 use App\Models\TrainingApplication;
 use App\Models\User;
 use App\Notifications\TraineeStatusNotification;
+use App\Support\ListReturn;
 use App\Support\PaginationHelper;
 use App\Support\TrainedPersonRegistrationRules;
 use Illuminate\Http\RedirectResponse;
@@ -42,7 +43,7 @@ class RegistrationVerificationController extends Controller
     public function show(User $user): View|RedirectResponse
     {
         if ($user->role !== 'trainee') {
-            return redirect()->route('app-management.registrations.index');
+            return ListReturn::redirect(route('app-management.registrations.index'));
         }
 
         $user->load(['educationBackgrounds', 'trainingApplications.course']);
@@ -60,7 +61,7 @@ class RegistrationVerificationController extends Controller
     public function approve(User $user): RedirectResponse
     {
         if ($user->role !== 'trainee' || $user->registration_status !== 'pending') {
-            return redirect()->route('app-management.registrations.index')->with('error', __('This registration cannot be approved.'));
+            return ListReturn::redirect(route('app-management.registrations.index'))->with('error', __('This registration cannot be approved.'));
         }
 
         if ($user->isTrainedPerson()) {
@@ -70,8 +71,7 @@ class RegistrationVerificationController extends Controller
                 ->first();
 
             if (! $legacyApplication || ! $legacyApplication->course_id) {
-                return redirect()
-                    ->route('app-management.registrations.show', $user)
+                return ListReturn::redirectPreserving(route('app-management.registrations.show', $user))
                     ->with('error', __('Link the course previously trained before approving this registration.'));
             }
         }
@@ -129,13 +129,13 @@ class RegistrationVerificationController extends Controller
             __('Open dashboard'),
         ));
 
-        return redirect()->route('app-management.registrations.show', $user)->with('status', __('Registration approved.'));
+        return ListReturn::redirectPreserving(route('app-management.registrations.show', $user))->with('status', __('Registration approved.'));
     }
 
     public function reject(Request $request, User $user): RedirectResponse
     {
         if ($user->role !== 'trainee' || $user->registration_status !== 'pending') {
-            return redirect()->route('app-management.registrations.index')->with('error', __('This registration cannot be rejected.'));
+            return ListReturn::redirect(route('app-management.registrations.index'))->with('error', __('This registration cannot be rejected.'));
         }
 
         $request->validate([
@@ -158,7 +158,7 @@ class RegistrationVerificationController extends Controller
             __('Update application'),
         ));
 
-        return redirect()->route('app-management.registrations.index')->with('status', __('Registration rejected.'));
+        return ListReturn::redirect(route('app-management.registrations.index'))->with('status', __('Registration rejected.'));
     }
 
     /**
@@ -168,7 +168,7 @@ class RegistrationVerificationController extends Controller
     public function updatePriorCourse(Request $request, User $user): RedirectResponse
     {
         if ($user->role !== 'trainee' || ! $user->isTrainedPerson()) {
-            return redirect()->route('app-management.registrations.index');
+            return ListReturn::redirect(route('app-management.registrations.index'));
         }
 
         $validated = $request->validate(
@@ -183,14 +183,12 @@ class RegistrationVerificationController extends Controller
             ->first();
 
         if (! $legacyApplication) {
-            return redirect()
-                ->route('app-management.registrations.show', $user)
+            return ListReturn::redirectPreserving(route('app-management.registrations.show', $user))
                 ->with('error', __('No previously trained application record was found.'));
         }
 
         if ($legacyApplication->hasPublishedExamResults()) {
-            return redirect()
-                ->route('app-management.registrations.show', $user)
+            return ListReturn::redirectPreserving(route('app-management.registrations.show', $user))
                 ->with('error', __('Cannot change the prior course after examination results are published.'));
         }
 
@@ -201,8 +199,7 @@ class RegistrationVerificationController extends Controller
             'trained_year' => $course->session_year,
         ]);
 
-        return redirect()
-            ->route('app-management.registrations.show', $user)
+        return ListReturn::redirectPreserving(route('app-management.registrations.show', $user))
             ->with('status', __('Prior course linked. Staff can record examination scores for this course after approval.'));
     }
 

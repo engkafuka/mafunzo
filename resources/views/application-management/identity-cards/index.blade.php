@@ -91,7 +91,7 @@
                                                 </svg>
                                                 <span class="sr-only">{{ __('View') }}</span>
                                             </a>
-                                            <a href="{{ route('app-management.identity-cards.show', $generatedCard->training_application_id) }}" class="text-gray-600 hover:text-gray-800 font-medium">{{ __('Manage') }}</a>
+                                            <x-list-detail-link :href="route('app-management.identity-cards.show', $generatedCard->training_application_id)" class="text-gray-600 hover:text-gray-800 font-medium">{{ __('Manage') }}</x-list-detail-link>
                                         </div>
                                     </td>
                                 </tr>
@@ -143,7 +143,7 @@
                                         @endif
                                     </td>
                                     <td class="px-4 py-3 text-right text-sm">
-                                        <a href="{{ route('app-management.identity-cards.show', $application) }}" class="text-indigo-600 hover:text-indigo-800 font-medium">{{ __('Manage') }}</a>
+                                        <x-list-detail-link :href="route('app-management.identity-cards.show', $application)" class="text-indigo-600 hover:text-indigo-800 font-medium">{{ __('Manage') }}</x-list-detail-link>
                                     </td>
                                 </tr>
                             @empty

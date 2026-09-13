@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\User;
 use App\Support\ValidationRules;
 use Illuminate\Http\RedirectResponse;
+use App\Support\ListReturn;
 use App\Support\PaginationHelper;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -80,7 +81,7 @@ class UserController extends Controller
             'password' => Hash::make($request->password),
         ]);
 
-        return redirect()->route('users.index')->with('status', __('User created successfully.'));
+        return ListReturn::redirect(route('users.index'))->with('status', __('User created successfully.'));
     }
 
     /**
@@ -89,7 +90,7 @@ class UserController extends Controller
     public function edit(User $user): View|RedirectResponse
     {
         if (! $this->canManageUser($user)) {
-            return redirect()->route('users.index')->with('error', __('You cannot edit this user.'));
+            return ListReturn::redirect(route('users.index'))->with('error', __('You cannot edit this user.'));
         }
         $roles = $this->assignableRoles();
         return view('users.edit', compact('user', 'roles'));
@@ -101,7 +102,7 @@ class UserController extends Controller
     public function update(Request $request, User $user): RedirectResponse
     {
         if (! $this->canManageUser($user)) {
-            return redirect()->route('users.index')->with('error', __('You cannot edit this user.'));
+            return ListReturn::redirect(route('users.index'))->with('error', __('You cannot edit this user.'));
         }
 
         $roles = array_keys($this->assignableRoles());
@@ -139,7 +140,7 @@ class UserController extends Controller
         }
         $user->update($data);
 
-        return redirect()->route('users.index')->with('status', __('User updated successfully.'));
+        return ListReturn::redirect(route('users.index'))->with('status', __('User updated successfully.'));
     }
 
     /**
@@ -148,17 +149,17 @@ class UserController extends Controller
     public function destroy(User $user): RedirectResponse
     {
         if ($user->id === auth()->id()) {
-            return redirect()->route('users.index')->with('error', __('You cannot delete your own account.'));
+            return ListReturn::redirect(route('users.index'))->with('error', __('You cannot delete your own account.'));
         }
         if ($user->role === 'super_admin' && User::where('role', 'super_admin')->count() <= 1) {
-            return redirect()->route('users.index')->with('error', __('Cannot delete the last Super Admin.'));
+            return ListReturn::redirect(route('users.index'))->with('error', __('Cannot delete the last Super Admin.'));
         }
         if (auth()->user()->role === 'admin' && in_array($user->role, ['super_admin', 'admin'], true)) {
-            return redirect()->route('users.index')->with('error', __('You cannot delete this user.'));
+            return ListReturn::redirect(route('users.index'))->with('error', __('You cannot delete this user.'));
         }
 
         $user->delete();
-        return redirect()->route('users.index')->with('status', __('User deleted successfully.'));
+        return ListReturn::redirect(route('users.index'))->with('status', __('User deleted successfully.'));
     }
 
     private function assignableRoles(): array

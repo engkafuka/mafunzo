@@ -65,7 +65,7 @@
                         <td class="px-4 py-3 text-sm">{{ $session->interviewee_name }}</td>
                         <td class="px-4 py-3 text-sm">{{ $session->interview_date?->format('Y-m-d') ?? '—' }}</td>
                         <td class="px-4 py-3 text-sm">{{ $session->statusLabel() }}</td>
-                        <td class="px-4 py-3 text-right text-sm"><a href="{{ route('interview.sessions.show', $session) }}" class="text-indigo-600">{{ __('View') }}</a></td>
+                        <td class="px-4 py-3 text-right text-sm"><x-list-detail-link :href="route('interview.sessions.show', $session)" class="text-indigo-600">{{ __('View') }}</x-list-detail-link></td>
                     </tr>
                 @empty
                     <tr><td colspan="6" class="px-4 py-6 text-center text-sm text-gray-500">{{ __('No sessions match the selected filters.') }}</td></tr>

@@ -7,6 +7,7 @@ use App\Models\InterviewSession;
 use App\Support\Interview\InterviewPdfExporter;
 use App\Support\Interview\InterviewScoringService;
 use App\Support\Interview\InterviewSessionService;
+use App\Support\ListReturn;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -69,7 +70,7 @@ class ScoringController extends Controller
         }
 
         if ($request->boolean('submit')) {
-            return redirect()->route('interview.sessions.show', $session)->with('status', __('Your scores have been submitted and locked.'));
+            return ListReturn::redirectPreserving(route('interview.sessions.show', $session))->with('status', __('Your scores have been submitted and locked.'));
         }
 
         return back()->with('status', __('Draft scores saved.'));

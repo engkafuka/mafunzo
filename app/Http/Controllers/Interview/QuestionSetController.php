@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\InterviewQuestion;
 use App\Models\InterviewQuestionSet;
 use App\Support\Interview\InterviewAuditLogger;
+use App\Support\ListReturn;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -45,7 +46,7 @@ class QuestionSetController extends Controller
             'question_set_id' => $set->id,
         ]);
 
-        return redirect()->route('interview.question-sets.show', $set)->with('status', __('Question set created.'));
+        return ListReturn::redirectPreserving(route('interview.question-sets.show', $set))->with('status', __('Question set created.'));
     }
 
     public function show(InterviewQuestionSet $questionSet): View
@@ -74,7 +75,7 @@ class QuestionSetController extends Controller
             'is_active' => $request->boolean('is_active'),
         ]);
 
-        return redirect()->route('interview.question-sets.show', $questionSet)->with('status', __('Question set updated.'));
+        return ListReturn::redirectPreserving(route('interview.question-sets.show', $questionSet))->with('status', __('Question set updated.'));
     }
 
     public function storeQuestion(Request $request, InterviewQuestionSet $questionSet): RedirectResponse

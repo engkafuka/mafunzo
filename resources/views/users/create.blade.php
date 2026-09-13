@@ -60,7 +60,7 @@
                         </div>
 
                         <div class="flex items-center justify-between pt-4">
-                            <a href="{{ route('users.index') }}" class="text-gray-600 hover:text-gray-900">{{ __('Cancel') }}</a>
+                            <x-back-link :href="route('users.index')" class="text-gray-600 hover:text-gray-900">{{ __('Cancel') }}</x-back-link>
                             <x-primary-button type="submit">{{ __('Create User') }}</x-primary-button>
                         </div>
                     </form>

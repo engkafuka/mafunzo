@@ -49,6 +49,7 @@
                     <div class="px-6 py-4 bg-gray-50 border-t space-y-4">
                         <form method="POST" action="{{ route('app-management.licensing-change-requests.approve', $changeRequest) }}" class="space-y-3">
                             @csrf
+                            <x-return-input />
                             <div>
                                 <x-input-label for="approve_notes" :value="__('Notes (optional)')" />
                                 <textarea id="approve_notes" name="review_notes" rows="2" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm">{{ old('review_notes') }}</textarea>
@@ -58,6 +59,7 @@
 
                         <form method="POST" action="{{ route('app-management.licensing-change-requests.reject', $changeRequest) }}" class="space-y-3" onsubmit="return confirm('{{ __('Reject this change request?') }}');">
                             @csrf
+                            <x-return-input />
                             <div>
                                 <x-input-label for="reject_notes" :value="__('Rejection reason')" />
                                 <textarea id="reject_notes" name="review_notes" rows="2" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm" required>{{ old('review_notes') }}</textarea>

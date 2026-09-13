@@ -4,6 +4,10 @@
         @include('interview._alerts')
         @include('interview._nav')
 
+        <div class="mb-4">
+            <x-back-link :href="route('interview.sessions.show', $session)" :preserve-return="false">{{ __('Back to session') }}</x-back-link>
+        </div>
+
         @if($session->result)
             <div class="bg-white shadow-sm sm:rounded-lg p-6 mb-6">
                 <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm mb-4">

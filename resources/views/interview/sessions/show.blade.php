@@ -3,6 +3,10 @@
     <div class="page-shell"><div class="page-inner-7xl">
         @include('interview._alerts') @include('interview._nav')
 
+        <div class="mb-4">
+            <x-back-link :href="route('interview.sessions.index')">{{ __('Back to sessions') }}</x-back-link>
+        </div>
+
         <div class="bg-white shadow-sm sm:rounded-lg p-6 mb-6 space-y-3">
             <div class="flex flex-wrap justify-between gap-3">
                 <div>
@@ -44,7 +48,7 @@
             @endif
 
             @if(in_array($session->status, ['under_review', 'completed'], true))
-                <a href="{{ route('interview.review.show', $session) }}" class="px-4 py-2 bg-white border border-gray-300 rounded-md text-sm font-semibold">{{ __('View consolidated results') }}</a>
+                <x-list-detail-link :href="route('interview.review.show', $session)" class="px-4 py-2 bg-white border border-gray-300 rounded-md text-sm font-semibold">{{ __('View consolidated results') }}</x-list-detail-link>
                 @if($session->result)
                     <a href="{{ route('interview.review.export.pdf', $session) }}" class="px-4 py-2 bg-white border border-gray-300 rounded-md text-sm font-semibold">{{ __('Download PDF') }}</a>
                 @endif

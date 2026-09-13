@@ -12,6 +12,7 @@ use App\Notifications\TraineeStatusNotification;
 use App\Support\ApplicationsExporter;
 use App\Support\CertificateDateFormatter;
 use App\Support\CertificateSignatureStorage;
+use App\Support\ListReturn;
 use App\Support\PaginationHelper;
 use App\Support\QrCodeGenerator;
 use Illuminate\Http\RedirectResponse;
@@ -95,7 +96,7 @@ class ApplicationManagementController extends Controller
 
         $application->update($updates);
 
-        return redirect()->route('app-management.applications.show', $application)
+        return ListReturn::redirectPreserving(route('app-management.applications.show', $application))
             ->with('status', $request->action === 'approve' ? __('Application approved.') : __('Application rejected.'));
     }
 
@@ -105,12 +106,12 @@ class ApplicationManagementController extends Controller
     public function updateControlNumber(Request $request, TrainingApplication $application): RedirectResponse
     {
         if ($application->status === 'pending_registration') {
-            return redirect()->route('app-management.applications.show', $application)
+            return ListReturn::redirectPreserving(route('app-management.applications.show', $application))
                 ->with('error', __('This application is not ready for a control number yet.'));
         }
 
         if ($application->payment_verified_at) {
-            return redirect()->route('app-management.applications.show', $application)
+            return ListReturn::redirectPreserving(route('app-management.applications.show', $application))
                 ->with('error', __('Control number cannot be changed after payment has been verified.'));
         }
 
@@ -136,7 +137,7 @@ class ApplicationManagementController extends Controller
             ));
         }
 
-        return redirect()->route('app-management.applications.show', $application)
+        return ListReturn::redirectPreserving(route('app-management.applications.show', $application))
             ->with('status', __('Control number saved.'));
     }
 
@@ -147,24 +148,24 @@ class ApplicationManagementController extends Controller
     public function verifyPayment(TrainingApplication $application): RedirectResponse
     {
         if ($application->status === 'pending_registration') {
-            return redirect()->route('app-management.applications.show', $application)
+            return ListReturn::redirectPreserving(route('app-management.applications.show', $application))
                 ->with('error', __('This application is not ready for payment verification yet.'));
         }
 
         if (! $application->hasControlNumber()) {
-            return redirect()->route('app-management.applications.show', $application)
+            return ListReturn::redirectPreserving(route('app-management.applications.show', $application))
                 ->with('error', __('Enter a 12-digit control number before verifying payment.'));
         }
 
         if (! preg_match('/^\d{12}$/', (string) $application->control_number)) {
-            return redirect()->route('app-management.applications.show', $application)
+            return ListReturn::redirectPreserving(route('app-management.applications.show', $application))
                 ->with('error', __('Control number must be exactly 12 digits before verifying payment.'));
         }
 
         $this->markPaymentVerified($application);
         $this->notifyTraineePaymentVerified($application);
 
-        return redirect()->route('app-management.applications.show', $application)->with('status', __('Payment verified.'));
+        return ListReturn::redirectPreserving(route('app-management.applications.show', $application))->with('status', __('Payment verified.'));
     }
 
     private function markPaymentVerified(TrainingApplication $application): void
@@ -235,7 +236,7 @@ class ApplicationManagementController extends Controller
             'qr_token' => AttendanceSession::generateQrToken(),
         ]);
 
-        return redirect()->route('app-management.attendance.show', $session);
+        return ListReturn::redirectPreserving(route('app-management.attendance.show', $session));
     }
 
     /**
@@ -393,9 +394,9 @@ class ApplicationManagementController extends Controller
     public function certificateIssue(TrainingApplication $application): RedirectResponse
     {
         if (! $application->isEligibleForCertificate()) {
-            return redirect()->route('app-management.certificates')->with('error', __('Not eligible for certificate.'));
+            return ListReturn::redirect(route('app-management.certificates'))->with('error', __('Not eligible for certificate.'));
         }
         $application->update(['certificate_issued_at' => now()]);
-        return redirect()->route('app-management.certificates')->with('status', __('Certificate issued.'));
+        return ListReturn::redirect(route('app-management.certificates'))->with('status', __('Certificate issued.'));
     }
 }

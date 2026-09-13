@@ -95,9 +95,9 @@
                                         {{ $log->description }}
                                     </td>
                                     <td class="px-4 py-3 text-right text-sm" data-label="{{ __('Details') }}">
-                                        <a href="{{ route('audit-logs.show', $log) }}" class="text-indigo-600 hover:text-indigo-800 font-medium">
+                                        <x-list-detail-link :href="route('audit-logs.show', $log)" class="text-indigo-600 hover:text-indigo-800 font-medium">
                                             {{ __('View') }}
-                                        </a>
+                                        </x-list-detail-link>
                                     </td>
                                 </tr>
                             @empty

@@ -61,7 +61,7 @@
                                     </td>
                                     <td class="px-4 py-3 text-sm text-gray-600">{{ $item->created_at?->format('Y-m-d H:i') }}</td>
                                     <td class="px-4 py-3 text-sm text-right">
-                                        <a href="{{ route('app-management.licensing-change-requests.show', $item) }}" class="text-indigo-600 hover:text-indigo-800 font-medium">{{ __('Review') }}</a>
+                                        <x-list-detail-link :href="route('app-management.licensing-change-requests.show', $item)" class="text-indigo-600 hover:text-indigo-800 font-medium">{{ __('Review') }}</x-list-detail-link>
                                     </td>
                                 </tr>
                             @empty

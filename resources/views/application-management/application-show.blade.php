@@ -63,6 +63,7 @@
                         @unless($application->payment_verified_at)
                             <form method="POST" action="{{ route('app-management.applications.control-number', $application) }}" class="mt-4 rounded-lg border border-gray-200 bg-gray-50 p-4 space-y-3">
                                 @csrf
+                                <x-return-input />
                                 <div>
                                     <x-input-label for="control_number" :value="__('Control number (12 digits)')" />
                                     <x-text-input id="control_number" name="control_number" type="text" inputmode="numeric" pattern="[0-9]{12}" maxlength="12"
@@ -148,11 +149,13 @@
                             @if($application->canBeReviewedByStaff())
                                 <form method="POST" action="{{ route('app-management.applications.review', $application) }}" class="inline">
                                     @csrf
+                                    <x-return-input />
                                     <input type="hidden" name="action" value="approve">
                                     <x-primary-button type="submit">{{ __('Approve application') }}</x-primary-button>
                                 </form>
                                 <form method="POST" action="{{ route('app-management.applications.review', $application) }}" class="inline">
                                     @csrf
+                                    <x-return-input />
                                     <input type="hidden" name="action" value="reject">
                                     <x-danger-button type="submit">{{ __('Reject application') }}</x-danger-button>
                                 </form>
@@ -161,6 +164,7 @@
                                 @if($application->hasControlNumber())
                                     <form method="POST" action="{{ route('app-management.applications.verify-payment', $application) }}" class="inline">
                                         @csrf
+                                        <x-return-input />
                                         <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-sm">{{ __('Verify payment') }}</button>
                                     </form>
                                 @else

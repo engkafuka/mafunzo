@@ -62,7 +62,7 @@
                                         @endif
                                     </td>
                                     <td class="px-4 py-3 text-right text-sm whitespace-nowrap">
-                                        <a href="{{ route('interview.companies.edit', $company) }}" class="text-indigo-600 hover:text-indigo-800">{{ __('Edit') }}</a>
+                                        <x-list-detail-link :href="route('interview.companies.edit', $company)" class="text-indigo-600 hover:text-indigo-800">{{ __('Edit') }}</x-list-detail-link>
 
                                         @if($company->canBeDeleted())
                                             <form method="POST"

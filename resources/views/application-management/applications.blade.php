@@ -69,7 +69,7 @@
                                         @if(!$app->payment_verified_at && in_array($app->status, ['pending_payment', 'payment_completed'], true))<span class="text-amber-600">· {{ __('No payment verify') }}</span>@endif
                                     </td>
                                     <td class="px-4 py-3 text-right">
-                                        <a href="{{ route('app-management.applications.show', $app) }}" class="text-indigo-600 hover:text-indigo-800 font-medium text-sm">{{ __('View') }}</a>
+                                        <x-list-detail-link :href="route('app-management.applications.show', $app)" class="text-indigo-600 hover:text-indigo-800 font-medium text-sm">{{ __('View') }}</x-list-detail-link>
                                     </td>
                                 </tr>
                             @empty

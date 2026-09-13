@@ -46,7 +46,7 @@
                                     <td class="px-4 py-3 text-sm text-gray-700">{{ $session->interviewee_name }}</td>
                                     <td class="px-4 py-3 text-sm">{{ $session->statusLabel() }}</td>
                                     <td class="px-4 py-3 text-right text-sm">
-                                        <a href="{{ route('interview.sessions.show', $session) }}" class="text-indigo-600 hover:text-indigo-800">{{ __('View') }}</a>
+                                        <x-list-detail-link :href="route('interview.sessions.show', $session)" class="text-indigo-600 hover:text-indigo-800">{{ __('View') }}</x-list-detail-link>
                                     </td>
                                 </tr>
                             @empty

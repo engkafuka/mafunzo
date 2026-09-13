@@ -3,6 +3,10 @@
     <div class="page-shell"><div class="page-inner-7xl">
         @include('interview._alerts') @include('interview._nav')
 
+        <div class="mb-4">
+            <x-back-link :href="route('interview.question-sets.index')">{{ __('Back to question sets') }}</x-back-link>
+        </div>
+
         <div class="bg-white shadow-sm sm:rounded-lg p-6 mb-6">
             <div class="flex flex-wrap items-start justify-between gap-3">
                 <div>

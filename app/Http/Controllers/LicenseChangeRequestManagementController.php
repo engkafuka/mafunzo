@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\LicenseChangeRequest;
 use App\Support\LicenseChangeRequestService;
+use App\Support\ListReturn;
 use App\Support\PaginationHelper;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -56,8 +57,7 @@ class LicenseChangeRequestManagementController extends Controller
             return back()->withErrors($e->errors());
         }
 
-        return redirect()
-            ->route('app-management.licensing-change-requests.show', $changeRequest)
+        return ListReturn::redirectPreserving(route('app-management.licensing-change-requests.show', $changeRequest))
             ->with('status', __('Change request approved and applied.'));
     }
 
@@ -77,8 +77,7 @@ class LicenseChangeRequestManagementController extends Controller
             return back()->withErrors($e->errors());
         }
 
-        return redirect()
-            ->route('app-management.licensing-change-requests.index')
+        return ListReturn::redirect(route('app-management.licensing-change-requests.index'))
             ->with('status', __('Change request rejected.'));
     }
 }

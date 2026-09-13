@@ -162,6 +162,7 @@
                                 @if(! $legacyApplication->hasPublishedExamResults())
                                     <form method="POST" action="{{ route('app-management.registrations.prior-course', $user) }}" class="mt-4 rounded-lg border border-gray-200 bg-gray-50 p-4 space-y-3">
                                         @csrf
+                                        <x-return-input />
                                         <x-prior-course-select :courses="$priorCourses" :selected="$legacyApplication->course_id" />
                                         <x-primary-button type="submit">
                                             {{ $legacyApplication->course_id ? __('Update prior course') : __('Link prior course') }}
@@ -218,10 +219,12 @@
                             <h3 class="font-medium text-gray-900">{{ __('Actions') }}</h3>
                             <form method="POST" action="{{ route('app-management.registrations.approve', $user) }}">
                                 @csrf
+                                <x-return-input />
                                 <x-primary-button type="submit" class="bg-green-600 hover:bg-green-700">{{ __('Approve registration') }}</x-primary-button>
                             </form>
                             <form method="POST" action="{{ route('app-management.registrations.reject', $user) }}" class="space-y-3 pt-4 border-t">
                                 @csrf
+                                <x-return-input />
                                 <div>
                                     <x-input-label for="registration_rejection_reason" :value="__('Rejection reason')" />
                                     <textarea id="registration_rejection_reason" name="registration_rejection_reason" rows="3" required

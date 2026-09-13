@@ -62,7 +62,7 @@
                                 <td class="px-4 py-3 text-sm">{{ $s->course->name }}</td>
                                 <td class="px-4 py-3 text-sm">{{ $s->session_date->format('Y-m-d') }}</td>
                                 <td class="px-4 py-3 text-right">
-                                    <a href="{{ route('app-management.attendance.show', $s) }}" class="text-indigo-600 hover:text-indigo-800 text-sm font-medium">{{ __('View QR & attendance') }}</a>
+                                    <x-list-detail-link :href="route('app-management.attendance.show', $s)" class="text-indigo-600 hover:text-indigo-800 text-sm font-medium">{{ __('View QR & attendance') }}</x-list-detail-link>
                                 </td>
                             </tr>
                         @empty

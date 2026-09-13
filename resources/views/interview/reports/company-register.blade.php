@@ -138,7 +138,7 @@
                                     {{ \App\Support\Interview\InterviewCompanyReport::decisionLabel($session->result?->decision_status) }}
                                 </td>
                                 <td class="px-4 py-3 text-right text-sm whitespace-nowrap">
-                                    <a href="{{ route('interview.sessions.show', $session) }}" class="text-indigo-600 hover:underline">{{ __('View') }}</a>
+                                    <x-list-detail-link :href="route('interview.sessions.show', $session)" class="text-indigo-600 hover:underline">{{ __('View') }}</x-list-detail-link>
                                     @if($session->result)
                                         <a href="{{ route('interview.review.show', $session) }}" class="ml-2 text-indigo-600 hover:underline">{{ __('Review') }}</a>
                                     @endif
