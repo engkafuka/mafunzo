@@ -68,6 +68,11 @@
                                             {{ __('View registration number') }}
                                         </a>
                                     @endif
+                                    @if($app->course?->hasPublishedMaterials())
+                                        <a href="{{ route('training.materials') }}" class="text-sm font-medium text-indigo-600 hover:text-indigo-800">
+                                            {{ __('View materials') }}
+                                        </a>
+                                    @endif
                                     @if($app->hasPublishedExamResults())
                                         <a href="{{ route('training.exam-results') }}" class="text-sm font-medium text-indigo-600 hover:text-indigo-800">
                                             {{ __('View exam result') }}

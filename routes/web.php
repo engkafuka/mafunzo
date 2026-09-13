@@ -19,6 +19,7 @@ use App\Http\Controllers\RegistrationVerificationController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\TraineeIdentityCardController;
 use App\Http\Controllers\TraineeProfileController;
+use App\Http\Controllers\CourseMaterialController;
 use App\Http\Controllers\TrainingApplicationController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\TmxAuctionController;
@@ -73,6 +74,9 @@ Route::middleware('auth')->group(function () {
             Route::get('/payment/{application}', [TrainingApplicationController::class, 'payment'])->name('payment');
             Route::get('/confirmation/{application}', [TrainingApplicationController::class, 'confirmation'])->name('confirmation');
             Route::get('/exam-results', [TrainingApplicationController::class, 'examResults'])->name('exam-results');
+            Route::get('/materials', [TrainingApplicationController::class, 'materials'])->name('materials');
+            Route::get('/materials/{material}/view', [TrainingApplicationController::class, 'materialView'])->name('materials.view');
+            Route::get('/materials/{material}/download', [TrainingApplicationController::class, 'materialDownload'])->name('materials.download');
             Route::get('/identity-cards', [TraineeIdentityCardController::class, 'index'])->name('identity-cards');
             Route::get('/identity-cards/{identityCard}/download', [IdentityCardController::class, 'download'])->name('identity-cards.download');
         });
@@ -104,6 +108,8 @@ Route::middleware('auth')->group(function () {
         Route::get('audit-logs', [AuditLogController::class, 'index'])->name('audit-logs.index');
         Route::get('audit-logs/{auditLog}', [AuditLogController::class, 'show'])->name('audit-logs.show');
         Route::post('application-management/exam-results/publish', [ExamResultsController::class, 'publish'])->name('app-management.exam-results.publish');
+        Route::post('application-management/materials/{material}/publish', [CourseMaterialController::class, 'publish'])->name('app-management.materials.publish');
+        Route::post('application-management/materials/{material}/unpublish', [CourseMaterialController::class, 'unpublish'])->name('app-management.materials.unpublish');
         Route::get('application-management/exam-results/export/pdf', [ExamResultsController::class, 'exportPdf'])->name('app-management.exam-results.export.pdf');
         Route::get('application-management/exam-results/export/excel', [ExamResultsController::class, 'exportExcel'])->name('app-management.exam-results.export.excel');
     });
@@ -124,6 +130,11 @@ Route::middleware('auth')->group(function () {
         Route::post('/applications/{application}/review', [ApplicationManagementController::class, 'applicationReview'])->name('applications.review');
         Route::post('/applications/{application}/control-number', [ApplicationManagementController::class, 'updateControlNumber'])->name('applications.control-number');
         Route::post('/applications/{application}/verify-payment', [ApplicationManagementController::class, 'verifyPayment'])->name('applications.verify-payment');
+        Route::get('/materials', [CourseMaterialController::class, 'index'])->name('materials');
+        Route::post('/materials', [CourseMaterialController::class, 'store'])->name('materials.store');
+        Route::post('/materials/{material}/replace', [CourseMaterialController::class, 'replace'])->name('materials.replace');
+        Route::delete('/materials/{material}', [CourseMaterialController::class, 'destroy'])->name('materials.destroy');
+        Route::get('/materials/{material}/download', [CourseMaterialController::class, 'download'])->name('materials.download');
         Route::get('/attendance', [ApplicationManagementController::class, 'attendance'])->name('attendance');
         Route::post('/attendance', [ApplicationManagementController::class, 'attendanceCreate'])->name('attendance.store');
         Route::get('/attendance/{session}', [ApplicationManagementController::class, 'attendanceShow'])->name('attendance.show');

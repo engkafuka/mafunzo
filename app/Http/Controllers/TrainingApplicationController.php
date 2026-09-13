@@ -3,12 +3,16 @@
 namespace App\Http\Controllers;
 
 use App\Models\Course;
+use App\Models\CourseMaterial;
 use App\Models\TrainingApplication;
+use App\Support\CourseMaterialAccess;
+use App\Support\CourseMaterialStorage;
 use App\Support\PaginationHelper;
 use App\Support\ValidationRules;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 class TrainingApplicationController extends Controller
 {
@@ -186,6 +190,82 @@ class TrainingApplicationController extends Controller
             ->withQueryString();
 
         return view('training.exam-results', compact('publishedResults', 'awaitingResults'));
+    }
+
+    public function materials(Request $request): View
+    {
+        $this->authorizeTrainee();
+
+        $applications = $request->user()
+            ->trainingApplications()
+            ->with('course')
+            ->where('status', 'payment_completed')
+            ->where('application_review_status', '!=', 'rejected')
+            ->whereNotNull('course_id')
+            ->latest()
+            ->get();
+
+        $courseGroups = $applications
+            ->unique(fn (TrainingApplication $application) => $application->course_id)
+            ->map(function (TrainingApplication $application) {
+                $materials = CourseMaterial::query()
+                    ->published()
+                    ->where('course_id', $application->course_id)
+                    ->orderBy('sort_order')
+                    ->orderBy('title')
+                    ->get()
+                    ->groupBy('category');
+
+                return [
+                    'application' => $application,
+                    'course' => $application->course,
+                    'materialsByCategory' => $materials,
+                ];
+            })
+            ->filter(fn (array $group) => $group['materialsByCategory']->isNotEmpty())
+            ->values();
+
+        return view('training.materials', [
+            'courseGroups' => $courseGroups,
+            'categoryOrder' => CourseMaterial::CATEGORIES,
+        ]);
+    }
+
+    public function materialView(CourseMaterial $material): BinaryFileResponse
+    {
+        $path = $this->authorizedMaterialPath($material);
+
+        return response()->file($path, [
+            'Content-Type' => $material->mime_type ?? 'application/octet-stream',
+            'Content-Disposition' => 'inline; filename="'.$material->original_filename.'"',
+        ]);
+    }
+
+    public function materialDownload(CourseMaterial $material): BinaryFileResponse
+    {
+        $path = $this->authorizedMaterialPath($material);
+
+        return response()->download(
+            $path,
+            $material->original_filename,
+            ['Content-Type' => $material->mime_type ?? 'application/octet-stream'],
+        );
+    }
+
+    private function authorizedMaterialPath(CourseMaterial $material): string
+    {
+        $this->authorizeTrainee();
+
+        if (! CourseMaterialAccess::traineeCanAccess($material, (int) auth()->id())) {
+            abort(403);
+        }
+
+        $path = CourseMaterialStorage::absolutePath($material->file_path);
+        if (! $path) {
+            abort(404);
+        }
+
+        return $path;
     }
 
     /**

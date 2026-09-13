@@ -99,6 +99,9 @@
                         <div class="flex flex-col gap-2">
                             <a href="{{ route('training.select-course') }}" class="text-indigo-600 hover:text-indigo-800 font-medium text-sm">{{ __('Apply for training') }}</a>
                             <a href="{{ route('training.my-applications') }}" class="text-indigo-600 hover:text-indigo-800 font-medium text-sm">{{ __('My applications') }}</a>
+                            <a href="{{ route('training.materials') }}" class="text-indigo-600 hover:text-indigo-800 font-medium text-sm">
+                                {{ __('Training materials') }}
+                            </a>
                             <a href="{{ route('training.exam-results') }}" class="text-indigo-600 hover:text-indigo-800 font-medium text-sm">
                                 {{ __('My examination results') }}
                                 @if(($publishedExamResultsCount ?? 0) > 0)

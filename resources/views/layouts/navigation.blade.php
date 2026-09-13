@@ -66,6 +66,9 @@
                             {{ __('My Applications') }}
                         </x-nav-link>
                         @if(Auth::user()->hasApprovedRegistration())
+                            <x-nav-link :href="route('training.materials')" :active="request()->routeIs('training.materials*')">
+                                {{ __('Materials') }}
+                            </x-nav-link>
                             <x-nav-link :href="route('training.exam-results')" :active="request()->routeIs('training.exam-results')">
                                 {{ __('Exam results') }}
                             </x-nav-link>
@@ -182,6 +185,9 @@
                     {{ __('My Applications') }}
                 </x-responsive-nav-link>
                 @if(Auth::user()->hasApprovedRegistration())
+                    <x-responsive-nav-link :href="route('training.materials')" :active="request()->routeIs('training.materials*')">
+                        {{ __('Materials') }}
+                    </x-responsive-nav-link>
                     <x-responsive-nav-link :href="route('training.exam-results')" :active="request()->routeIs('training.exam-results')">
                         {{ __('Exam results') }}
                     </x-responsive-nav-link>

@@ -34,6 +34,21 @@ class Course extends Model
         ];
     }
 
+    public function materials()
+    {
+        return $this->hasMany(CourseMaterial::class);
+    }
+
+    public function publishedMaterials()
+    {
+        return $this->hasMany(CourseMaterial::class)->published();
+    }
+
+    public function hasPublishedMaterials(): bool
+    {
+        return $this->publishedMaterials()->exists();
+    }
+
     public function trainingApplications()
     {
         return $this->hasMany(TrainingApplication::class);

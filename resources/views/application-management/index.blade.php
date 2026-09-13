@@ -29,6 +29,10 @@
                         <p class="mt-2 text-amber-600 font-medium">{{ $stats['pending_payment_verify'] }} {{ __('pending') }}</p>
                     @endif
                 </a>
+                <a href="{{ route('app-management.materials') }}" class="block p-6 bg-white rounded-lg shadow hover:shadow-md border border-gray-200">
+                    <h3 class="text-lg font-semibold text-gray-900">{{ __('Training materials') }}</h3>
+                    <p class="mt-1 text-sm text-gray-600">{{ __('Upload and publish timetables, slides, handouts, and other course files.') }}</p>
+                </a>
                 <a href="{{ route('app-management.attendance') }}" class="block p-6 bg-white rounded-lg shadow hover:shadow-md border border-gray-200">
                     <h3 class="text-lg font-semibold text-gray-900">{{ __('Attendance (QR)') }}</h3>
                     <p class="mt-1 text-sm text-gray-600">{{ __('Create sessions and record attendance via QR code.') }}</p>
