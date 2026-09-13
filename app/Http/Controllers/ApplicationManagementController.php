@@ -9,13 +9,16 @@ use App\Models\LicenseChangeRequest;
 use App\Models\TrainingApplication;
 use App\Models\User;
 use App\Notifications\TraineeStatusNotification;
+use App\Support\ApplicationsExporter;
 use App\Support\CertificateDateFormatter;
 use App\Support\CertificateSignatureStorage;
 use App\Support\PaginationHelper;
 use App\Support\QrCodeGenerator;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
 use Illuminate\View\View;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class ApplicationManagementController extends Controller
 {
@@ -46,43 +49,22 @@ class ApplicationManagementController extends Controller
      */
     public function applications(Request $request): View
     {
-        $query = TrainingApplication::with(['course', 'user'])
-            ->where('status', '!=', 'pending_registration')
-            ->whereNotNull('course_id')
-            ->where('application_type', '!=', 'legacy_expert')
-            ->orderByDesc('created_at');
-
-        if ($request->filled('status_filter')) {
-            if ($request->status_filter === 'pending_review') {
-                $query->where('application_review_status', 'pending')->where('status', 'payment_completed');
-            } elseif ($request->status_filter === 'pending_payment') {
-                $query->whereNull('payment_verified_at')
-                    ->whereIn('status', ['pending_payment', 'payment_completed']);
-            }
-        }
-        if ($request->filled('course_id')) {
-            $query->where('course_id', $request->course_id);
-        }
-
-        if ($request->filled('q')) {
-            $term = '%'.addcslashes(trim($request->string('q')->toString()), '%_\\').'%';
-            $query->where(function ($qry) use ($term) {
-                $qry->where('registration_number', 'like', $term)
-                    ->orWhere('control_number', 'like', $term)
-                    ->orWhere('first_name', 'like', $term)
-                    ->orWhere('middle_name', 'like', $term)
-                    ->orWhere('last_name', 'like', $term)
-                    ->orWhere('email', 'like', $term)
-                    ->orWhere('phone', 'like', $term)
-                    ->orWhere('company_name', 'like', $term)
-                    ->orWhereHas('course', fn ($course) => $course->where('name', 'like', $term));
-            });
-        }
-
-        $applications = $query->paginate(PaginationHelper::PER_PAGE)->withQueryString();
+        $applications = ApplicationsExporter::filteredQuery($request)
+            ->paginate(PaginationHelper::PER_PAGE)
+            ->withQueryString();
         $courses = Course::orderBy('name')->get();
 
         return view('application-management.applications', compact('applications', 'courses'));
+    }
+
+    public function applicationsExportPdf(Request $request): Response
+    {
+        return ApplicationsExporter::exportPdf($request);
+    }
+
+    public function applicationsExportExcel(Request $request): StreamedResponse
+    {
+        return ApplicationsExporter::exportExcel($request);
     }
 
     /**

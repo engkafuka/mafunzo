@@ -29,6 +29,20 @@
                 <button type="submit" class="px-3 py-1.5 bg-gray-200 rounded-md text-sm hover:bg-gray-300">{{ __('Filter') }}</button>
             </form>
 
+            <div class="mb-6 flex flex-wrap items-center gap-3">
+                <a href="{{ route('app-management.applications.export.pdf', request()->query()) }}"
+                   class="inline-flex items-center px-4 py-2 bg-gray-700 text-white text-sm font-medium rounded-md hover:bg-gray-800">
+                    {{ __('Download PDF') }}
+                </a>
+                <a href="{{ route('app-management.applications.export.excel', request()->query()) }}"
+                   class="inline-flex items-center px-4 py-2 bg-emerald-700 text-white text-sm font-medium rounded-md hover:bg-emerald-800">
+                    {{ __('Download Excel') }}
+                </a>
+                <p class="text-sm text-gray-600">
+                    {{ __('Exports use the current search and filters.') }}
+                </p>
+            </div>
+
             <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
                 <div class="overflow-x-auto">
                     <table class="min-w-full divide-y divide-gray-200">

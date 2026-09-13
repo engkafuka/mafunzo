@@ -118,6 +118,8 @@ Route::middleware('auth')->group(function () {
         Route::post('/registrations/{user}/prior-course', [RegistrationVerificationController::class, 'updatePriorCourse'])->name('registrations.prior-course');
         Route::get('/registrations/training-certificate/{application}', [RegistrationVerificationController::class, 'trainingCertificate'])->name('registrations.training-certificate');
         Route::get('/applications', [ApplicationManagementController::class, 'applications'])->name('applications');
+        Route::get('/applications/export/pdf', [ApplicationManagementController::class, 'applicationsExportPdf'])->name('applications.export.pdf');
+        Route::get('/applications/export/excel', [ApplicationManagementController::class, 'applicationsExportExcel'])->name('applications.export.excel');
         Route::get('/applications/{application}', [ApplicationManagementController::class, 'applicationShow'])->name('applications.show');
         Route::post('/applications/{application}/review', [ApplicationManagementController::class, 'applicationReview'])->name('applications.review');
         Route::post('/applications/{application}/control-number', [ApplicationManagementController::class, 'updateControlNumber'])->name('applications.control-number');
