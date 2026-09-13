@@ -10,6 +10,7 @@ use App\Models\TrainingApplication;
 use App\Models\User;
 use App\Notifications\TraineeStatusNotification;
 use App\Support\ApplicationsExporter;
+use App\Support\AttendanceExporter;
 use App\Support\CertificateDateFormatter;
 use App\Support\CertificateSignatureStorage;
 use App\Support\ListReturn;
@@ -250,9 +251,25 @@ class ApplicationManagementController extends Controller
             ->orderByDesc('scanned_at')
             ->paginate(PaginationHelper::PER_PAGE)
             ->withQueryString();
-        $scanUrl = url('/attendance/scan?token=' . $session->qr_token);
+        $scanUrl = AttendanceExporter::scanUrl($session);
+        $qrDataUri = QrCodeGenerator::pngDataUri($scanUrl, 200);
 
-        return view('application-management.attendance-show', compact('session', 'scanUrl', 'attendanceRecords'));
+        return view('application-management.attendance-show', compact('session', 'scanUrl', 'qrDataUri', 'attendanceRecords'));
+    }
+
+    public function attendanceExportQr(AttendanceSession $session): Response
+    {
+        return AttendanceExporter::exportQrPdf($session);
+    }
+
+    public function attendanceExportCsv(AttendanceSession $session): StreamedResponse
+    {
+        return AttendanceExporter::exportCsv($session);
+    }
+
+    public function attendanceExportPdf(AttendanceSession $session): Response
+    {
+        return AttendanceExporter::exportPdf($session);
     }
 
     /**

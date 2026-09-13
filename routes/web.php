@@ -138,6 +138,9 @@ Route::middleware('auth')->group(function () {
         Route::get('/attendance', [ApplicationManagementController::class, 'attendance'])->name('attendance');
         Route::post('/attendance', [ApplicationManagementController::class, 'attendanceCreate'])->name('attendance.store');
         Route::get('/attendance/{session}', [ApplicationManagementController::class, 'attendanceShow'])->name('attendance.show');
+        Route::get('/attendance/{session}/export/qr', [ApplicationManagementController::class, 'attendanceExportQr'])->name('attendance.export.qr');
+        Route::get('/attendance/{session}/export/csv', [ApplicationManagementController::class, 'attendanceExportCsv'])->name('attendance.export.csv');
+        Route::get('/attendance/{session}/export/pdf', [ApplicationManagementController::class, 'attendanceExportPdf'])->name('attendance.export.pdf');
         Route::get('/attendance/scan/{token}', fn ($token) => redirect()->route('app-management.attendance.scan-page', ['token' => $token]))->name('attendance.scan');
         Route::get('/exam-results', [ExamResultsController::class, 'index'])->name('exam-results');
         Route::post('/exam-results', [ExamResultsController::class, 'store'])->name('exam-results.save');

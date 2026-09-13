@@ -13,17 +13,33 @@
 
             <div class="grid gap-6 lg:grid-cols-2">
                 <div class="bg-white shadow-sm sm:rounded-lg p-6">
-                    <h3 class="font-medium text-gray-900 mb-2">{{ __('QR Code for attendance') }}</h3>
+                    <div class="flex flex-wrap items-start justify-between gap-3 mb-2">
+                        <h3 class="font-medium text-gray-900">{{ __('QR Code for attendance') }}</h3>
+                        <a href="{{ route('app-management.attendance.export.qr', $session) }}"
+                           class="inline-flex items-center px-4 py-2 bg-gray-700 text-white text-sm font-medium rounded-md hover:bg-gray-800">
+                            {{ __('Download QR PDF') }}
+                        </a>
+                    </div>
                     <p class="text-sm text-gray-600 mb-4">{{ __('Trainees scan this QR or open the link and enter their registration number.') }}</p>
                     <div class="flex justify-center p-4 bg-gray-50 rounded-lg">
-                        <img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data={{ urlencode($scanUrl) }}" alt="QR Code" class="w-48 h-48">
+                        <img src="{{ $qrDataUri }}" alt="{{ __('QR Code') }}" class="w-48 h-48">
                     </div>
                     <p class="mt-4 text-xs text-gray-500 break-all">{{ $scanUrl }}</p>
                 </div>
 
                 <div class="bg-white shadow-sm sm:rounded-lg overflow-hidden">
-                    <div class="px-6 py-4 border-b border-gray-100">
+                    <div class="px-6 py-4 border-b border-gray-100 flex flex-wrap items-center justify-between gap-3">
                         <h3 class="font-medium text-gray-900">{{ __('Attendance recorded') }} ({{ $attendanceRecords->total() }})</h3>
+                        <div class="flex flex-wrap items-center gap-2">
+                            <a href="{{ route('app-management.attendance.export.pdf', $session) }}"
+                               class="inline-flex items-center px-4 py-2 bg-gray-700 text-white text-sm font-medium rounded-md hover:bg-gray-800">
+                                {{ __('Download PDF') }}
+                            </a>
+                            <a href="{{ route('app-management.attendance.export.csv', $session) }}"
+                               class="inline-flex items-center px-4 py-2 bg-emerald-700 text-white text-sm font-medium rounded-md hover:bg-emerald-800">
+                                {{ __('Download CSV') }}
+                            </a>
+                        </div>
                     </div>
                     <div class="overflow-x-auto">
                         <table class="min-w-full divide-y divide-gray-200">

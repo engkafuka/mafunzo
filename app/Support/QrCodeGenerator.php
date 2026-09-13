@@ -30,4 +30,35 @@ class QrCodeGenerator
 
         return 'data:'.$mime.';base64,'.$dataUri;
     }
+
+    /**
+     * @return array{body: string, mime: string, extension: string}
+     */
+    public static function downloadableImage(string $content, int $size = 400): array
+    {
+        $scale = max(1, (int) round($size / 25));
+        $outputInterface = extension_loaded('gd') ? QRGdImagePNG::class : QRMarkupSVG::class;
+
+        $options = new QROptions([
+            'outputInterface' => $outputInterface,
+            'scale' => $scale,
+            'outputBase64' => false,
+        ]);
+
+        $body = (new QRCode($options))->render($content);
+
+        if ($outputInterface === QRGdImagePNG::class) {
+            return [
+                'body' => $body,
+                'mime' => 'image/png',
+                'extension' => 'png',
+            ];
+        }
+
+        return [
+            'body' => $body,
+            'mime' => 'image/svg+xml',
+            'extension' => 'svg',
+        ];
+    }
 }
