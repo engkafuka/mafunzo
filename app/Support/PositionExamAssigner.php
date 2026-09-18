@@ -51,6 +51,15 @@ class PositionExamAssigner
             ];
         }
 
+        // Failed overall (< pass threshold): keep applied position, no fallback reassignment.
+        if (! $examPassed) {
+            return [
+                'exam_passed' => false,
+                'assigned_position' => $applied,
+                'note' => null,
+            ];
+        }
+
         $fallback = self::pickFallback($application, $fallbacks);
 
         return [
