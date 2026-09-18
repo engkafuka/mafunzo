@@ -94,16 +94,17 @@
         flex-direction: column;
     }
     .header {
-        display: grid;
-        grid-template-columns: 28mm 1fr 28mm;
-        gap: 5mm;
+        display: flex;
         align-items: center;
+        justify-content: center;
+        gap: 3mm;
         text-align: center;
     }
     .header img.govt,
     .header img.board {
         width: 28mm;
         height: 28mm;
+        flex: 0 0 28mm;
         object-fit: contain;
         background: transparent;
     }
@@ -111,17 +112,19 @@
         display: flex;
         flex-direction: column;
         justify-content: center;
+        flex: 0 0 auto;
         gap: 0;
     }
     .org-line {
         font-family: Arial, Helvetica, sans-serif;
-        font-size: 14pt;
+        font-size: 16pt;
         font-weight: 800;
-        letter-spacing: 0.04em;
+        letter-spacing: 0.05em;
         text-transform: uppercase;
         color: #111;
-        line-height: 1.2;
+        line-height: 1.15;
         margin: 0;
+        white-space: nowrap;
     }
     .cert-heading {
         text-align: center;
