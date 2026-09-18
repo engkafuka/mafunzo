@@ -361,6 +361,15 @@ class TrainingApplication extends Model
         return self::positionLabel($this->effectivePosition());
     }
 
+    public function certificateVerificationUrl(): ?string
+    {
+        if (! filled($this->registration_number)) {
+            return null;
+        }
+
+        return route('certificates.verify', ['reg' => $this->registration_number]);
+    }
+
     /**
      * Official WRRB series format: WRRB/YYYY/1/XXXX
      */

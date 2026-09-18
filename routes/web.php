@@ -4,6 +4,7 @@ use App\Http\Controllers\LicenseNominationController;
 use App\Http\Controllers\LicenseChangeRequestController;
 use App\Http\Controllers\LicenseChangeRequestManagementController;
 use App\Http\Controllers\ApplicationManagementController;
+use App\Http\Controllers\CertificateVerificationController;
 use App\Http\Controllers\AuditLogController;
 use App\Http\Controllers\CourseController;
 use App\Http\Controllers\DashboardController;
@@ -36,6 +37,9 @@ Route::post('/attendance/scan', [ApplicationManagementController::class, 'attend
 
 // Public verification for warehouse identity cards
 Route::get('/verify/id/{token}', [IdentityCardVerificationController::class, 'show'])->name('identity-cards.verify');
+
+// Public verification for training completion certificates (QR on certificate)
+Route::get('/verify/certificate', [CertificateVerificationController::class, 'show'])->name('certificates.verify');
 
 Route::get('/dashboard', DashboardController::class)->middleware(['auth', 'verified'])->name('dashboard');
 

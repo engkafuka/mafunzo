@@ -374,8 +374,6 @@ class ApplicationManagementController extends Controller
             abort(403, __('This trainee is not eligible for a certificate yet.'));
         }
 
-        $application->loadMissing('course');
-
         $fullName = trim(collect([
             $application->first_name,
             $application->middle_name,
@@ -390,16 +388,14 @@ class ApplicationManagementController extends Controller
             'organization' => config('certificate.organization'),
             'title' => config('certificate.title'),
             'awardedTo' => config('certificate.awarded_to'),
-            'completionLine' => __(config('certificate.completion_line'), [
-                'course' => $application->course?->name ?? __('Warehouse Management Training'),
-            ]),
+            'bodyText' => config('certificate.body_text'),
             'dateLine' => CertificateDateFormatter::longEnglish($issuedAt),
             'mdTitle' => config('certificate.md_title'),
             'govtLogoUrl' => asset(config('certificate.govt_logo')),
             'boardLogoUrl' => asset(config('certificate.board_logo')),
             'signatureUrl' => CertificateSignatureStorage::url(),
             'qrDataUri' => QrCodeGenerator::pngDataUri(
-                'CSN.'.($application->registration_number ?? $application->id),
+                $application->certificateVerificationUrl() ?? url('/'),
                 160
             ),
         ]);
