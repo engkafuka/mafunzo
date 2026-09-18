@@ -20,11 +20,12 @@
                 </x-back-link>
             </div>
 
-            <form method="GET" class="filter-bar mb-6">
+            <form method="GET" class="filter-bar mb-6" x-data="{ refresh() { $el.submit() } }">
                 <input type="text" name="q" value="{{ request('q') }}"
                        placeholder="{{ __('Search name, registration, email…') }}"
-                       class="rounded-md border-gray-300 text-sm min-w-[14rem]">
-                <select name="course_id" class="rounded-md border-gray-300 text-sm">
+                       class="rounded-md border-gray-300 text-sm min-w-[14rem]"
+                       @input.debounce.500ms="refresh()">
+                <select name="course_id" class="rounded-md border-gray-300 text-sm" @change="refresh()">
                     <option value="">{{ __('— Select course —') }}</option>
                     @foreach($courses as $c)
                         <option value="{{ $c->id }}" {{ ($courseId ?? '') == $c->id ? 'selected' : '' }}>
@@ -32,7 +33,7 @@
                         </option>
                     @endforeach
                 </select>
-                <select name="sort" class="rounded-md border-gray-300 text-sm">
+                <select name="sort" class="rounded-md border-gray-300 text-sm" @change="refresh()">
                     <option value="registration" {{ request('sort', 'registration') === 'registration' ? 'selected' : '' }}>{{ __('Sort: Registration') }}</option>
                     <option value="name" {{ request('sort') === 'name' ? 'selected' : '' }}>{{ __('Sort: Name') }}</option>
                     <option value="score" {{ request('sort') === 'score' ? 'selected' : '' }}>{{ __('Sort: Score') }}</option>
