@@ -35,6 +35,7 @@
             <tr>
                 <th>{{ __('Registration') }}</th>
                 <th>{{ __('Name') }}</th>
+                <th>{{ __('Gender') }}</th>
                 <th>{{ __('Email') }}</th>
                 <th>{{ __('Phone') }}</th>
                 <th>{{ __('Course') }}</th>
@@ -48,6 +49,7 @@
                 <tr>
                     <td>{{ $application->registration_number ?? $application->control_number ?? '—' }}</td>
                     <td>{{ trim($application->first_name.' '.($application->middle_name ?? '').' '.$application->last_name) }}</td>
+                    <td>{{ $application->gender ? __(ucfirst($application->gender)) : '—' }}</td>
                     <td>{{ $application->email }}</td>
                     <td>{{ $application->phone }}</td>
                     <td>{{ $application->course?->name ?? '—' }}</td>
@@ -57,7 +59,7 @@
                 </tr>
             @empty
                 <tr>
-                    <td colspan="8" class="empty">{{ __('No applications found.') }}</td>
+                    <td colspan="9" class="empty">{{ __('No applications found.') }}</td>
                 </tr>
             @endforelse
         </tbody>
