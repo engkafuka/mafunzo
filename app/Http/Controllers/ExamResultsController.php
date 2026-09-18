@@ -22,15 +22,46 @@ class ExamResultsController extends Controller
     public function index(Request $request): View
     {
         $courseId = $request->query('course_id');
-        $courses = Course::orderBy('name')->get();
+        $courses = Course::query()
+            ->where('is_active', true)
+            ->orderByDesc('session_year')
+            ->orderBy('name')
+            ->get();
+
+        if ($courseId && ! $courses->contains('id', (int) $courseId)) {
+            $selectedCourse = Course::find($courseId);
+            if ($selectedCourse) {
+                $courses = $courses->push($selectedCourse)->sortByDesc('session_year')->sortBy('name')->values();
+            }
+        }
         $applications = collect();
         $examStats = null;
 
         if ($courseId) {
-            $applications = TrainingApplication::with(['course', 'user.educationBackgrounds'])
+            $applicationsQuery = TrainingApplication::with(['course', 'user.educationBackgrounds'])
                 ->where('course_id', $courseId)
-                ->where('status', 'payment_completed')
-                ->orderBy('registration_number')
+                ->where('status', 'payment_completed');
+
+            if ($request->filled('q')) {
+                $term = '%'.addcslashes(trim($request->string('q')->toString()), '%_\\').'%';
+                $applicationsQuery->where(function ($qry) use ($term) {
+                    $qry->where('registration_number', 'like', $term)
+                        ->orWhere('first_name', 'like', $term)
+                        ->orWhere('middle_name', 'like', $term)
+                        ->orWhere('last_name', 'like', $term)
+                        ->orWhere('email', 'like', $term)
+                        ->orWhere('phone', 'like', $term)
+                        ->orWhere('company_name', 'like', $term);
+                });
+            }
+
+            match ($request->string('sort')->toString()) {
+                'name' => $applicationsQuery->orderBy('last_name')->orderBy('first_name'),
+                'score' => $applicationsQuery->orderByRaw('exam_score IS NULL')->orderByDesc('exam_score'),
+                default => $applicationsQuery->orderBy('registration_number'),
+            };
+
+            $applications = $applicationsQuery
                 ->paginate(PaginationHelper::PER_PAGE)
                 ->withQueryString();
 
@@ -129,8 +160,11 @@ class ExamResultsController extends Controller
             $message = __('No exam results were saved.');
         }
 
-        return redirect()->route($redirectRoute, ['course_id' => $courseId])
-            ->with('status', $message);
+        return redirect()->route($redirectRoute, array_filter([
+            'course_id' => $courseId,
+            'q' => $request->input('q'),
+            'sort' => $request->input('sort'),
+        ]))->with('status', $message);
     }
 
     public function publish(Request $request): RedirectResponse

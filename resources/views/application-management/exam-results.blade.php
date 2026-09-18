@@ -20,14 +20,24 @@
                 </x-back-link>
             </div>
 
-            <form method="GET" class="mb-6">
-                <label class="text-sm font-medium text-gray-700">{{ __('Select course') }}</label>
-                <select name="course_id" class="mt-1 rounded-md border-gray-300" onchange="this.form.submit()">
+            <form method="GET" class="filter-bar mb-6">
+                <input type="text" name="q" value="{{ request('q') }}"
+                       placeholder="{{ __('Search name, registration, email…') }}"
+                       class="rounded-md border-gray-300 text-sm min-w-[14rem]">
+                <select name="course_id" class="rounded-md border-gray-300 text-sm">
                     <option value="">{{ __('— Select course —') }}</option>
                     @foreach($courses as $c)
-                        <option value="{{ $c->id }}" {{ ($courseId ?? '') == $c->id ? 'selected' : '' }}>{{ $c->name }}</option>
+                        <option value="{{ $c->id }}" {{ ($courseId ?? '') == $c->id ? 'selected' : '' }}>
+                            {{ $c->displayNameWithSession() }}
+                        </option>
                     @endforeach
                 </select>
+                <select name="sort" class="rounded-md border-gray-300 text-sm">
+                    <option value="registration" {{ request('sort', 'registration') === 'registration' ? 'selected' : '' }}>{{ __('Sort: Registration') }}</option>
+                    <option value="name" {{ request('sort') === 'name' ? 'selected' : '' }}>{{ __('Sort: Name') }}</option>
+                    <option value="score" {{ request('sort') === 'score' ? 'selected' : '' }}>{{ __('Sort: Score') }}</option>
+                </select>
+                <button type="submit" class="px-3 py-1.5 bg-gray-200 rounded-md text-sm hover:bg-gray-300">{{ __('Filter') }}</button>
             </form>
 
             @if($courseId && isset($examStats))
@@ -77,6 +87,12 @@
             @if($courseId && $applications->total() > 0)
                 <form method="POST" action="{{ ($isTrainerPortal ?? false) ? route('trainer.exam-results.save') : route('app-management.exam-results.save') }}">
                     @csrf
+                    @if(request('q'))
+                        <input type="hidden" name="q" value="{{ request('q') }}">
+                    @endif
+                    @if(request('sort'))
+                        <input type="hidden" name="sort" value="{{ request('sort') }}">
+                    @endif
                     <div class="bg-white shadow-sm sm:rounded-lg overflow-hidden">
                         <x-responsive-table>
                         <table class="min-w-full divide-y divide-gray-200">
@@ -173,7 +189,9 @@
                     </div>
                 </form>
             @elseif($courseId)
-                <p class="text-gray-500">{{ __('No paid applications for this course.') }}</p>
+                <p class="text-gray-500">
+                    {{ request('q') ? __('No trainees match your search for this course.') : __('No paid applications for this course.') }}
+                </p>
             @else
                 <p class="text-gray-500">{{ __('Select a course to upload exam results.') }}</p>
             @endif
