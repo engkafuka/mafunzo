@@ -26,6 +26,15 @@
     }
     .btn-print { background: #0a71ab; color: #fff; }
     .btn-back { background: #e2e8f0; color: #1e293b; }
+    .print-hint {
+        max-width: 210mm;
+        margin: 0.75rem auto 0;
+        font-family: system-ui, sans-serif;
+        font-size: 0.8125rem;
+        color: #475569;
+        text-align: center;
+        line-height: 1.45;
+    }
     .sheet {
         width: 210mm;
         min-height: 297mm;
@@ -33,8 +42,11 @@
         padding: 10mm;
         background:
             radial-gradient(ellipse at center, #eaf7fb 0%, #e4f5d8 55%, #d8efc2 100%);
+        background-color: #e4f5d8;
         position: relative;
         box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
     }
     .sheet + .sheet {
         margin-top: 2rem;
@@ -54,18 +66,24 @@
     .watermark {
         position: absolute;
         inset: 6mm;
-        display: flex;
-        align-items: center;
-        justify-content: center;
         pointer-events: none;
         z-index: 0;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
     }
-    .watermark img {
+    .watermark::before {
+        content: '';
+        position: absolute;
+        left: 50%;
+        top: 50%;
         width: 72%;
         max-width: 130mm;
-        height: auto;
-        object-fit: contain;
+        aspect-ratio: 1;
+        transform: translate(-50%, -50%);
+        background: var(--watermark-url) center / contain no-repeat;
         opacity: 0.11;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
     }
     .inner {
         position: relative;
@@ -243,18 +261,34 @@
         font-style: italic;
     }
     @media print {
-        body { background: #fff; }
+        body {
+            background: #fff;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+        }
         .toolbar { display: none !important; }
+        .print-hint { display: none !important; }
+        .sheet,
+        .border-frame,
+        .seal,
+        .watermark,
+        .watermark::before {
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+        }
         .sheet {
             margin: 0 auto;
             box-shadow: none;
             width: 210mm;
             min-height: 297mm;
+            background:
+                radial-gradient(ellipse at center, #eaf7fb 0%, #e4f5d8 55%, #d8efc2 100%);
+            background-color: #e4f5d8;
             page-break-after: always;
             break-after: page;
         }
-        .watermark img {
-            opacity: 0.13;
+        .watermark::before {
+            opacity: 0.14;
         }
         .sheet:last-child {
             page-break-after: auto;

@@ -18,6 +18,9 @@
             {{ __('Course') }}: {{ $course->displayNameWithSession() }}
             · {{ __('Eligible certificates') }}: {{ $certificates->count() }}
         </p>
+        <p class="print-hint">
+            {{ __('If the green background or WRRB watermark is missing on paper, turn on “Background graphics” in the print dialog (Chrome/Edge: More settings).') }}
+        </p>
     </div>
 
     @foreach($certificates as $certificate)
