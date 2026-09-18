@@ -100,20 +100,12 @@
         align-items: center;
         text-align: center;
     }
-    .header img.govt {
-        width: 28mm;
-        height: 28mm;
-        object-fit: contain;
-        background: #fff;
-        border-radius: 4px;
-    }
+    .header img.govt,
     .header img.board {
         width: 28mm;
         height: 28mm;
         object-fit: contain;
-        background: #fff;
-        border-radius: 50%;
-        padding: 1mm;
+        background: transparent;
     }
     .header-org {
         display: flex;
@@ -226,8 +218,8 @@
         width: 24mm;
         height: 24mm;
         display: block;
-        background: #fff;
-        border: 1px solid #ccc;
+        background: transparent;
+        border: 0;
     }
     .csn {
         margin-top: 2mm;
