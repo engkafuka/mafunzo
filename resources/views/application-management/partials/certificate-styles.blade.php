@@ -46,13 +46,30 @@
         outline: 1px solid #c5e1a5;
         outline-offset: 3px;
         pointer-events: none;
+        z-index: 1;
         background-image:
             repeating-linear-gradient(0deg, transparent, transparent 7px, rgba(124,179,66,0.08) 7px, rgba(124,179,66,0.08) 8px),
             repeating-linear-gradient(90deg, transparent, transparent 7px, rgba(124,179,66,0.08) 7px, rgba(124,179,66,0.08) 8px);
     }
+    .watermark {
+        position: absolute;
+        inset: 6mm;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        pointer-events: none;
+        z-index: 0;
+    }
+    .watermark img {
+        width: 72%;
+        max-width: 130mm;
+        height: auto;
+        object-fit: contain;
+        opacity: 0.11;
+    }
     .inner {
         position: relative;
-        z-index: 1;
+        z-index: 2;
         min-height: calc(297mm - 20mm);
         padding: 8mm 10mm;
         display: flex;
@@ -235,6 +252,9 @@
             min-height: 297mm;
             page-break-after: always;
             break-after: page;
+        }
+        .watermark img {
+            opacity: 0.13;
         }
         .sheet:last-child {
             page-break-after: auto;

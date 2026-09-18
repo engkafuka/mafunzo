@@ -15,6 +15,9 @@
 
 <div class="sheet">
     <div class="border-frame" aria-hidden="true"></div>
+    <div class="watermark" aria-hidden="true">
+        <img src="{{ $boardLogoUrl }}" alt="">
+    </div>
     <div class="inner">
         <div class="header">
             <img class="govt" src="{{ $govtLogoUrl }}" alt="{{ __('United Republic of Tanzania') }}">
