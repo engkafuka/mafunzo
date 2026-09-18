@@ -1,8 +1,10 @@
 @props([
     'application',
     'fullName',
-    'organization',
-    'title',
+    'organizationLine1',
+    'organizationLine2',
+    'titleLine1',
+    'titleLine2',
     'awardedTo',
     'bodyText',
     'dateLine',
@@ -19,11 +21,16 @@
     <div class="inner">
         <div class="header">
             <img class="govt" src="{{ $govtLogoUrl }}" alt="{{ __('United Republic of Tanzania') }}">
-            <div>
-                <p class="org">{{ $organization }}</p>
-                <p class="cert-title">{{ $title }}</p>
+            <div class="header-org">
+                <p class="org-line">{{ $organizationLine1 }}</p>
+                <p class="org-line">{{ $organizationLine2 }}</p>
             </div>
             <img class="board" src="{{ $boardLogoUrl }}" alt="WRRB">
+        </div>
+
+        <div class="cert-heading">
+            <p class="cert-title-main">{{ $titleLine1 }}</p>
+            <p class="cert-title-sub">{{ $titleLine2 }}</p>
         </div>
 
         <div class="body">

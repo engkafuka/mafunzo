@@ -96,48 +96,69 @@
     .header {
         display: grid;
         grid-template-columns: 28mm 1fr 28mm;
-        gap: 6mm;
+        gap: 5mm;
         align-items: center;
         text-align: center;
     }
     .header img.govt {
-        width: 26mm;
-        height: 26mm;
+        width: 28mm;
+        height: 28mm;
         object-fit: contain;
         background: #fff;
         border-radius: 4px;
     }
     .header img.board {
-        width: 26mm;
-        height: 26mm;
+        width: 28mm;
+        height: 28mm;
         object-fit: contain;
         background: #fff;
         border-radius: 50%;
         padding: 1mm;
     }
-    .org {
+    .header-org {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        gap: 0;
+    }
+    .org-line {
         font-family: Arial, Helvetica, sans-serif;
-        font-size: 15pt;
+        font-size: 14pt;
         font-weight: 800;
-        letter-spacing: 0.02em;
+        letter-spacing: 0.04em;
         text-transform: uppercase;
         color: #111;
-        line-height: 1.15;
+        line-height: 1.2;
         margin: 0;
     }
-    .cert-title {
+    .cert-heading {
+        text-align: center;
+        margin: 4mm 0 2mm;
+    }
+    .cert-title-main {
+        font-family: Arial, Helvetica, sans-serif;
+        font-size: 26pt;
+        font-weight: 800;
+        color: #8b1e2d;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        line-height: 1.05;
+        margin: 0;
+    }
+    .cert-title-sub {
         font-family: Arial, Helvetica, sans-serif;
         font-size: 20pt;
         font-weight: 800;
         color: #8b1e2d;
         text-transform: uppercase;
-        margin: 3mm 0 0;
-        letter-spacing: 0.03em;
+        letter-spacing: 0.05em;
+        line-height: 1.1;
+        margin: 1mm 0 0;
     }
     .body {
         flex: 1;
         text-align: center;
-        padding-top: 18mm;
+        padding-top: 12mm;
         padding-bottom: 8mm;
         display: flex;
         flex-direction: column;

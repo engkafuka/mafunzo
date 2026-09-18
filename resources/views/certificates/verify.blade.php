@@ -3,7 +3,7 @@
         <div class="page-inner-md mx-auto">
             <div class="bg-white shadow-sm sm:rounded-lg overflow-hidden">
                 <div class="px-6 py-4 bg-[#0a71ab] text-white text-center">
-                    <h1 class="text-lg font-semibold">{{ config('certificate.organization') }}</h1>
+                    <h1 class="text-lg font-semibold">{{ config('certificate.organization_line_1') }} {{ config('certificate.organization_line_2') }}</h1>
                     <p class="text-sm text-white/90 mt-1">{{ __('Training certificate verification') }}</p>
                 </div>
 

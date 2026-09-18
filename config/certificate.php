@@ -1,8 +1,10 @@
 <?php
 
 return [
-    'organization' => 'WAREHOUSE RECEIPTS REGULATORY BOARD',
-    'title' => 'CERTIFICATE OF COMPLETION',
+    'organization_line_1' => 'WAREHOUSE RECEIPTS',
+    'organization_line_2' => 'REGULATORY BOARD',
+    'title_line_1' => 'CERTIFICATE',
+    'title_line_2' => 'OF COMPLETION',
     'awarded_to' => 'THIS CERTIFICATE IS AWARDED TO',
     'body_text' => 'For successfully completing <strong>Warehouse Management Training and Examination under the Warehouse Receipts System.</strong>',
     'md_title' => 'Managing Director',

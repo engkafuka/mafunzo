@@ -447,8 +447,10 @@ class ApplicationManagementController extends Controller
     private function sharedCertificateViewData(): array
     {
         return [
-            'organization' => config('certificate.organization'),
-            'title' => config('certificate.title'),
+            'organizationLine1' => config('certificate.organization_line_1'),
+            'organizationLine2' => config('certificate.organization_line_2'),
+            'titleLine1' => config('certificate.title_line_1'),
+            'titleLine2' => config('certificate.title_line_2'),
             'awardedTo' => config('certificate.awarded_to'),
             'bodyText' => config('certificate.body_text'),
             'mdTitle' => config('certificate.md_title'),
