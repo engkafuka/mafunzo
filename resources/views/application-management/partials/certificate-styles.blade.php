@@ -94,17 +94,24 @@
         flex-direction: column;
     }
     .header {
-        display: flex;
+        display: grid;
+        grid-template-columns: 28mm 1fr 28mm;
+        gap: 2mm;
         align-items: center;
-        justify-content: center;
-        gap: 3mm;
+        width: 100%;
         text-align: center;
     }
-    .header img.govt,
+    .header img.govt {
+        width: 28mm;
+        height: 28mm;
+        justify-self: start;
+        object-fit: contain;
+        background: transparent;
+    }
     .header img.board {
         width: 28mm;
         height: 28mm;
-        flex: 0 0 28mm;
+        justify-self: end;
         object-fit: contain;
         background: transparent;
     }
@@ -112,17 +119,18 @@
         display: flex;
         flex-direction: column;
         justify-content: center;
-        flex: 0 0 auto;
+        align-items: center;
         gap: 0;
+        min-width: 0;
     }
     .org-line {
         font-family: Arial, Helvetica, sans-serif;
-        font-size: 16pt;
+        font-size: 18pt;
         font-weight: 800;
-        letter-spacing: 0.05em;
+        letter-spacing: 0.07em;
         text-transform: uppercase;
         color: #111;
-        line-height: 1.15;
+        line-height: 1.12;
         margin: 0;
         white-space: nowrap;
     }
