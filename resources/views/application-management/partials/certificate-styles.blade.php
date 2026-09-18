@@ -138,6 +138,9 @@
         line-height: 1.5;
         color: #111;
     }
+    .desc strong {
+        font-weight: 700;
+    }
     .reg-line {
         margin: 10mm auto 0;
         font-family: Arial, Helvetica, sans-serif;

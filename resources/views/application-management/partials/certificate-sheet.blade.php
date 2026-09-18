@@ -28,7 +28,7 @@
         <div class="body">
             <p class="awarded">{{ $awardedTo }}</p>
             <div class="recipient">{{ $fullName }}</div>
-            <p class="desc">{{ $bodyText }}</p>
+            <p class="desc">{!! $bodyText !!}</p>
             <p class="reg-line">{{ __('Registration number') }}: {{ $application->registration_number }}</p>
             <p class="date-line">{{ $dateLine }}</p>
         </div>
