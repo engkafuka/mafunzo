@@ -149,6 +149,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/exam-results', [ExamResultsController::class, 'index'])->name('exam-results');
         Route::post('/exam-results', [ExamResultsController::class, 'store'])->name('exam-results.save');
         Route::get('/certificates', [ApplicationManagementController::class, 'certificates'])->name('certificates');
+        Route::get('/certificates/print', [ApplicationManagementController::class, 'certificatesPrintByCourse'])->name('certificates.print');
         Route::post('/certificates/signature', [ApplicationManagementController::class, 'uploadCertificateSignature'])->name('certificates.signature');
         Route::get('/certificates/{application}', [ApplicationManagementController::class, 'certificateShow'])->name('certificates.show');
         Route::post('/certificates/{application}/issue', [ApplicationManagementController::class, 'certificateIssue'])->name('certificates.issue');

@@ -326,25 +326,59 @@ class ApplicationManagementController extends Controller
      */
     public function certificates(Request $request): View
     {
-        $query = TrainingApplication::with('course')
-            ->where('status', 'payment_completed')
-            ->where('application_review_status', 'approved')
-            ->where(function ($q) {
-                $q->whereNotNull('account_verified_at')
-                    ->orWhereNotNull('payment_verified_at');
-            })
-            ->whereNotNull('payment_verified_at')
-            ->whereNotNull('course_id')
-            ->where('exam_passed', true);
+        $query = $this->eligibleCertificatesQuery();
 
         if ($request->filled('course_id')) {
             $query->where('course_id', $request->course_id);
         }
+
+        $printableCount = null;
+        if ($request->filled('course_id')) {
+            $printableCount = (clone $query)
+                ->get()
+                ->filter(fn (TrainingApplication $application) => $application->isEligibleForCertificate())
+                ->count();
+        }
+
         $applications = $query->orderBy('registration_number')->paginate(PaginationHelper::PER_PAGE)->withQueryString();
         $courses = Course::orderBy('name')->get();
         $signatureUrl = CertificateSignatureStorage::url();
 
-        return view('application-management.certificates', compact('applications', 'courses', 'signatureUrl'));
+        return view('application-management.certificates', compact('applications', 'courses', 'signatureUrl', 'printableCount'));
+    }
+
+    public function certificatesPrintByCourse(Request $request): View|RedirectResponse
+    {
+        $request->validate([
+            'course_id' => ['required', 'exists:courses,id'],
+        ]);
+
+        $course = Course::findOrFail($request->integer('course_id'));
+
+        $applications = $this->eligibleCertificatesQuery()
+            ->where('course_id', $course->id)
+            ->orderBy('registration_number')
+            ->get()
+            ->filter(fn (TrainingApplication $application) => $application->isEligibleForCertificate())
+            ->values();
+
+        if ($applications->isEmpty()) {
+            return redirect()
+                ->route('app-management.certificates', ['course_id' => $course->id])
+                ->with('error', __('No eligible certificates for this course.'));
+        }
+
+        $shared = $this->sharedCertificateViewData();
+        $certificates = $applications->map(fn (TrainingApplication $application) => array_merge(
+            ['application' => $application],
+            $this->certificateViewDataFor($application),
+            $shared,
+        ));
+
+        return view('application-management.certificate-batch-print', [
+            'course' => $course,
+            'certificates' => $certificates,
+        ]);
     }
 
     /**
@@ -374,31 +408,11 @@ class ApplicationManagementController extends Controller
             abort(403, __('This trainee is not eligible for a certificate yet.'));
         }
 
-        $fullName = trim(collect([
-            $application->first_name,
-            $application->middle_name,
-            $application->last_name,
-        ])->filter()->implode(' '));
-
-        $issuedAt = $application->certificate_issued_at ?? now();
-
-        return view('application-management.certificate-view', [
-            'application' => $application,
-            'fullName' => $fullName,
-            'organization' => config('certificate.organization'),
-            'title' => config('certificate.title'),
-            'awardedTo' => config('certificate.awarded_to'),
-            'bodyText' => config('certificate.body_text'),
-            'dateLine' => CertificateDateFormatter::longEnglish($issuedAt),
-            'mdTitle' => config('certificate.md_title'),
-            'govtLogoUrl' => asset(config('certificate.govt_logo')),
-            'boardLogoUrl' => asset(config('certificate.board_logo')),
-            'signatureUrl' => CertificateSignatureStorage::url(),
-            'qrDataUri' => QrCodeGenerator::pngDataUri(
-                $application->certificateVerificationUrl() ?? url('/'),
-                160
-            ),
-        ]);
+        return view('application-management.certificate-view', array_merge(
+            ['application' => $application],
+            $this->certificateViewDataFor($application),
+            $this->sharedCertificateViewData(),
+        ));
     }
 
     /**
@@ -411,5 +425,59 @@ class ApplicationManagementController extends Controller
         }
         $application->update(['certificate_issued_at' => now()]);
         return ListReturn::redirect(route('app-management.certificates'))->with('status', __('Certificate issued.'));
+    }
+
+    private function eligibleCertificatesQuery()
+    {
+        return TrainingApplication::with('course')
+            ->where('status', 'payment_completed')
+            ->where('application_review_status', 'approved')
+            ->where(function ($q) {
+                $q->whereNotNull('account_verified_at')
+                    ->orWhereNotNull('payment_verified_at');
+            })
+            ->whereNotNull('payment_verified_at')
+            ->whereNotNull('course_id')
+            ->where('exam_passed', true);
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function sharedCertificateViewData(): array
+    {
+        return [
+            'organization' => config('certificate.organization'),
+            'title' => config('certificate.title'),
+            'awardedTo' => config('certificate.awarded_to'),
+            'bodyText' => config('certificate.body_text'),
+            'mdTitle' => config('certificate.md_title'),
+            'govtLogoUrl' => asset(config('certificate.govt_logo')),
+            'boardLogoUrl' => asset(config('certificate.board_logo')),
+            'signatureUrl' => CertificateSignatureStorage::url(),
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function certificateViewDataFor(TrainingApplication $application): array
+    {
+        $fullName = trim(collect([
+            $application->first_name,
+            $application->middle_name,
+            $application->last_name,
+        ])->filter()->implode(' '));
+
+        $issuedAt = $application->certificate_issued_at ?? now();
+
+        return [
+            'fullName' => $fullName,
+            'dateLine' => CertificateDateFormatter::longEnglish($issuedAt),
+            'qrDataUri' => QrCodeGenerator::pngDataUri(
+                $application->certificateVerificationUrl() ?? url('/'),
+                160
+            ),
+        ];
     }
 }

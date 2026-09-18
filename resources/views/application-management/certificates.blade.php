@@ -40,13 +40,21 @@
                 </div>
             </div>
 
-            <form method="GET" class="mb-6">
-                <select name="course_id" class="rounded-md border-gray-300" onchange="this.form.submit()">
+            <form method="GET" class="filter-bar mb-6">
+                <select name="course_id" class="rounded-md border-gray-300 text-sm">
                     <option value="">{{ __('All courses') }}</option>
                     @foreach($courses as $c)
-                        <option value="{{ $c->id }}" {{ request('course_id') == $c->id ? 'selected' : '' }}>{{ $c->name }}</option>
+                        <option value="{{ $c->id }}" {{ request('course_id') == $c->id ? 'selected' : '' }}>{{ $c->displayNameWithSession() }}</option>
                     @endforeach
                 </select>
+                <button type="submit" class="px-3 py-1.5 bg-gray-200 rounded-md text-sm hover:bg-gray-300">{{ __('Filter') }}</button>
+                @if(request('course_id') && ($printableCount ?? 0) > 0)
+                    <a href="{{ route('app-management.certificates.print', ['course_id' => request('course_id')]) }}"
+                       target="_blank"
+                       class="inline-flex items-center px-4 py-2 bg-[#0a71ab] text-white text-sm font-medium rounded-md hover:bg-[#086090]">
+                        {{ __('Print all certificates') }} ({{ $printableCount }})
+                    </a>
+                @endif
             </form>
 
             <div class="bg-white shadow-sm sm:rounded-lg overflow-hidden">
