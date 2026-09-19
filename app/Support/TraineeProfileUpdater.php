@@ -105,9 +105,9 @@ class TraineeProfileUpdater
             });
     }
 
-    public static function updateLegacyTrainingApplication(User $user, Request $request, array $validated, TrainingApplication $legacyApplication): void
+    public static function syncTrainingApplication(TrainingApplication $application, array $validated): void
     {
-        $legacyApplication->update([
+        $application->update([
             'first_name' => $validated['first_name'],
             'middle_name' => $validated['middle_name'] ?? null,
             'last_name' => $validated['last_name'],
@@ -122,5 +122,10 @@ class TraineeProfileUpdater
             'date_of_birth' => $validated['date_of_birth'],
             'position' => $validated['position'],
         ]);
+    }
+
+    public static function updateLegacyTrainingApplication(User $user, Request $request, array $validated, TrainingApplication $legacyApplication): void
+    {
+        self::syncTrainingApplication($legacyApplication, $validated);
     }
 }

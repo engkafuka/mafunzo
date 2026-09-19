@@ -6,11 +6,10 @@ use App\Models\EducationBackground;
 use App\Support\NewApplicantRegistrationRules;
 use App\Support\PaginationHelper;
 use App\Support\ProfilePhotoStorage;
-use App\Support\TraineeProfileUpdater;
+use App\Support\TraineeProfileUpdateRequestHandler;
 use App\Support\ValidationRules;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\View\View;
 use Symfony\Component\HttpFoundation\Response;
@@ -50,11 +49,13 @@ class TraineeProfileController extends Controller
             return redirect()->route('dashboard');
         }
 
-        if ($user->isTrainedPerson()) {
-            return $this->updateTrainedPersonProfile($request, $user);
+        try {
+            TraineeProfileUpdateRequestHandler::handle($request, $user);
+        } catch (\RuntimeException $exception) {
+            return redirect()->route('trainee.profile.edit')->with('error', $exception->getMessage());
         }
 
-        return $this->updateNewApplicantProfile($request, $user);
+        return redirect()->route('trainee.profile.edit')->with('status', __('Profile updated successfully.'));
     }
 
     public function showCertificate(Request $request, EducationBackground $educationBackground): Response|RedirectResponse
@@ -124,70 +125,4 @@ class TraineeProfileController extends Controller
         return redirect()->route('trainee.profile.edit')->with('status', __('Education background added.'));
     }
 
-    private function updateNewApplicantProfile(Request $request, $user): RedirectResponse
-    {
-        $rules = array_merge(
-            NewApplicantRegistrationRules::personalRules($user->id),
-            NewApplicantRegistrationRules::educationRules(certificatesRequired: false),
-            ['profile_photo' => ProfilePhotoStorage::rules($user->hasProfilePhoto() ? false : true)],
-        );
-
-        $validated = $request->validate(
-            $rules,
-            ValidationRules::registrationMessages(),
-            NewApplicantRegistrationRules::attributeNames(),
-        );
-
-        NewApplicantRegistrationRules::validateEducationRows($request, certificatesRequired: false);
-
-        DB::transaction(function () use ($request, $validated, $user) {
-            TraineeProfileUpdater::updatePersonalDetails($user, $validated);
-            TraineeProfileUpdater::updateProfilePhoto($user, $request);
-            $user->update(['profile_completed_at' => now()]);
-            TraineeProfileUpdater::syncEducationBackgrounds($user, $request, $validated['education']);
-        });
-
-        return redirect()->route('trainee.profile.edit')->with('status', __('Profile updated successfully.'));
-    }
-
-    private function updateTrainedPersonProfile(Request $request, $user): RedirectResponse
-    {
-        $legacyApplication = $user->trainingApplications()
-            ->where('application_type', 'legacy_expert')
-            ->latest()
-            ->first();
-
-        if (! $legacyApplication) {
-            return redirect()->route('trainee.profile.edit')
-                ->with('error', __('Your previous training record could not be found. Please contact WRRB staff.'));
-        }
-
-        $rules = array_merge(
-            NewApplicantRegistrationRules::personalRules($user->id),
-            NewApplicantRegistrationRules::educationRules(certificatesRequired: false, includeWrrb: true),
-            ['profile_photo' => ProfilePhotoStorage::rules($user->hasProfilePhoto() ? false : true)],
-        );
-
-        $validated = $request->validate(
-            $rules,
-            ValidationRules::registrationMessages(),
-            NewApplicantRegistrationRules::attributeNames(),
-        );
-
-        NewApplicantRegistrationRules::validateEducationRows(
-            $request,
-            certificatesRequired: false,
-            requireWrrbCertificate: true,
-        );
-
-        DB::transaction(function () use ($request, $validated, $user, $legacyApplication) {
-            TraineeProfileUpdater::updatePersonalDetails($user, $validated);
-            TraineeProfileUpdater::updateProfilePhoto($user, $request);
-            TraineeProfileUpdater::updateLegacyTrainingApplication($user, $request, $validated, $legacyApplication);
-            TraineeProfileUpdater::syncEducationBackgrounds($user, $request, $validated['education']);
-            $user->update(['profile_completed_at' => now()]);
-        });
-
-        return redirect()->route('trainee.profile.edit')->with('status', __('Profile updated successfully.'));
-    }
 }

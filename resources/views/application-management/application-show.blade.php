@@ -25,12 +25,20 @@
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 {{-- Left column: Applicant information --}}
                 <div class="bg-white shadow-sm sm:rounded-lg overflow-hidden">
-                    <div class="px-6 py-3 bg-gray-50 border-b flex items-center justify-between gap-3">
+                    <div class="px-6 py-3 bg-gray-50 border-b flex flex-wrap items-center justify-between gap-3">
                         <h3 class="font-medium text-gray-900">{{ __('Applicant information') }}</h3>
-                        <button type="button" onclick="document.getElementById('all-documents-modal').classList.remove('hidden'); document.body.classList.add('overflow-hidden');"
-                                class="inline-flex items-center px-3 py-1.5 bg-indigo-600 text-white text-sm font-medium rounded-md hover:bg-indigo-700">
-                            {{ __('View documents') }}
-                        </button>
+                        <div class="flex flex-wrap items-center gap-2">
+                            @if($application->user && $application->user->role === 'trainee')
+                                <a href="{{ \App\Support\ListReturn::attach(route('app-management.applications.trainee-profile.edit', $application)) }}"
+                                   class="inline-flex items-center px-3 py-1.5 bg-white border border-gray-300 text-gray-800 text-sm font-medium rounded-md hover:bg-gray-50">
+                                    {{ __('Edit trainee profile') }}
+                                </a>
+                            @endif
+                            <button type="button" onclick="document.getElementById('all-documents-modal').classList.remove('hidden'); document.body.classList.add('overflow-hidden');"
+                                    class="inline-flex items-center px-3 py-1.5 bg-indigo-600 text-white text-sm font-medium rounded-md hover:bg-indigo-700">
+                                {{ __('View documents') }}
+                            </button>
+                        </div>
                     </div>
                     <div class="p-6">
                         <dl class="grid gap-x-6 gap-y-3 sm:grid-cols-2">

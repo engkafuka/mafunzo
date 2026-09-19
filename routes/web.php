@@ -4,6 +4,7 @@ use App\Http\Controllers\LicenseNominationController;
 use App\Http\Controllers\LicenseChangeRequestController;
 use App\Http\Controllers\LicenseChangeRequestManagementController;
 use App\Http\Controllers\ApplicationManagementController;
+use App\Http\Controllers\StaffTraineeProfileController;
 use App\Http\Controllers\CertificateVerificationController;
 use App\Http\Controllers\AuditLogController;
 use App\Http\Controllers\CourseController;
@@ -131,6 +132,8 @@ Route::middleware('auth')->group(function () {
         Route::get('/applications/export/pdf', [ApplicationManagementController::class, 'applicationsExportPdf'])->name('applications.export.pdf');
         Route::get('/applications/export/excel', [ApplicationManagementController::class, 'applicationsExportExcel'])->name('applications.export.excel');
         Route::get('/applications/{application}', [ApplicationManagementController::class, 'applicationShow'])->name('applications.show');
+        Route::get('/applications/{application}/trainee-profile/edit', [StaffTraineeProfileController::class, 'edit'])->name('applications.trainee-profile.edit');
+        Route::put('/applications/{application}/trainee-profile', [StaffTraineeProfileController::class, 'update'])->name('applications.trainee-profile.update');
         Route::post('/applications/{application}/review', [ApplicationManagementController::class, 'applicationReview'])->name('applications.review');
         Route::post('/applications/{application}/control-number', [ApplicationManagementController::class, 'updateControlNumber'])->name('applications.control-number');
         Route::post('/applications/{application}/verify-payment', [ApplicationManagementController::class, 'verifyPayment'])->name('applications.verify-payment');

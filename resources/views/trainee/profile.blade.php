@@ -1,7 +1,7 @@
 <x-app-layout>
     <x-slot name="header">
         <h2 class="font-semibold text-xl text-gray-800 leading-tight">
-            {{ __('My profile') }}
+            {{ $pageTitle ?? __('My profile') }}
         </h2>
     </x-slot>
 
@@ -58,6 +58,12 @@
                 <div class="mb-4 p-4 rounded-md bg-red-50 text-red-800">{{ session('error') }}</div>
             @endif
 
+            @isset($cancelUrl)
+                <div class="mb-4">
+                    <x-back-link :href="$cancelUrl">{{ __('Back to application') }}</x-back-link>
+                </div>
+            @endisset
+
             <div class="bg-white shadow-sm sm:rounded-lg overflow-hidden"
                  x-data='{
                      category: @json($user->registration_category),
@@ -83,13 +89,14 @@
                      },
                  }'>
                 <div class="px-6 py-5 border-b border-gray-100">
-                    <h3 class="text-lg font-semibold text-gray-900">{{ __('Update your profile') }}</h3>
-                    <p class="mt-1 text-sm text-gray-500">{{ __('Keep your personal details up to date. Changes here are used when you apply for training courses.') }}</p>
+                    <h3 class="text-lg font-semibold text-gray-900">{{ isset($staffIntro) ? __('Edit profile') : __('Update your profile') }}</h3>
+                    <p class="mt-1 text-sm text-gray-500">{{ $staffIntro ?? __('Keep your personal details up to date. Changes here are used when you apply for training courses.') }}</p>
                 </div>
 
-                <form method="POST" action="{{ route('trainee.profile.update') }}" enctype="multipart/form-data" class="p-6 space-y-8">
+                <form method="POST" action="{{ $formAction ?? route('trainee.profile.update') }}" enctype="multipart/form-data" class="p-6 space-y-8">
                     @csrf
                     @method('PUT')
+                    <x-return-input />
 
                     @if ($errors->any())
                         <div class="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-800">
@@ -242,7 +249,11 @@
 
                     <div class="flex flex-wrap items-center gap-4 pt-2 border-t border-gray-100">
                         <x-primary-button type="submit">{{ __('Save profile') }}</x-primary-button>
-                        <a href="{{ route('dashboard') }}" class="text-sm font-medium text-indigo-600 hover:text-indigo-800">{{ __('Go to dashboard') }}</a>
+                        @isset($cancelUrl)
+                            <a href="{{ $cancelUrl }}" class="text-sm font-medium text-indigo-600 hover:text-indigo-800">{{ __('Cancel') }}</a>
+                        @else
+                            <a href="{{ route('dashboard') }}" class="text-sm font-medium text-indigo-600 hover:text-indigo-800">{{ __('Go to dashboard') }}</a>
+                        @endisset
                     </div>
                 </form>
             </div>
