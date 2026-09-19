@@ -32,7 +32,7 @@ class StaffTraineeProfileController extends Controller
             'pageTitle' => __('Edit trainee profile'),
             'formAction' => route('app-management.applications.trainee-profile.update', $application),
             'cancelUrl' => ListReturn::preserve(route('app-management.applications.show', $application)),
-            'staffIntro' => __('Update trainee personal details and education. Changes are saved to the trainee account and this application.'),
+            'staffIntro' => __('Update trainee personal details and education. Changes are saved to the trainee account and synced to all active applications (including applied position).'),
         ]);
     }
 
@@ -42,7 +42,7 @@ class StaffTraineeProfileController extends Controller
         abort_unless($user && $user->role === 'trainee', 404);
 
         try {
-            TraineeProfileUpdateRequestHandler::handle($request, $user, $application);
+            TraineeProfileUpdateRequestHandler::handle($request, $user);
         } catch (\RuntimeException $exception) {
             return ListReturn::redirectPreserving(route('app-management.applications.trainee-profile.edit', $application))
                 ->with('error', $exception->getMessage());

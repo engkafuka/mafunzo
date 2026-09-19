@@ -124,8 +124,76 @@ class TraineeProfileUpdater
         ]);
     }
 
-    public static function updateLegacyTrainingApplication(User $user, Request $request, array $validated, TrainingApplication $legacyApplication): void
+    /**
+     * Push profile personal fields (including applied position) to every linked application.
+     * Does not change assigned_position, exam, payment, or course fields.
+     */
+    public static function syncAllTrainingApplicationsFromProfile(User $user, array $validated): void
     {
-        self::syncTrainingApplication($legacyApplication, $validated);
+        TrainingApplication::query()
+            ->where('user_id', $user->id)
+            ->where('application_review_status', '!=', 'rejected')
+            ->orderBy('id')
+            ->each(fn (TrainingApplication $application) => self::syncTrainingApplication($application, $validated));
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public static function personalSnapshotFromUser(User $user): array
+    {
+        return $user->applicationSnapshotAttributes();
+    }
+
+    public static function applicationMatchesPersonalSnapshot(TrainingApplication $application, array $snapshot): bool
+    {
+        foreach ($snapshot as $key => $expected) {
+            if (! self::personalFieldValuesEqual($key, $application->getAttribute($key), $expected)) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /**
+     * @return bool Whether the application row was updated
+     */
+    public static function syncTrainingApplicationFromUser(TrainingApplication $application, User $user): bool
+    {
+        $snapshot = self::personalSnapshotFromUser($user);
+
+        if (self::applicationMatchesPersonalSnapshot($application, $snapshot)) {
+            return false;
+        }
+
+        self::syncTrainingApplication($application, $snapshot);
+
+        return true;
+    }
+
+    private static function personalFieldValuesEqual(string $key, mixed $actual, mixed $expected): bool
+    {
+        if ($key === 'date_of_birth') {
+            $actualDate = $actual instanceof \DateTimeInterface
+                ? $actual->format('Y-m-d')
+                : (is_string($actual) && $actual !== '' ? $actual : null);
+            $expectedDate = $expected instanceof \DateTimeInterface
+                ? $expected->format('Y-m-d')
+                : (is_string($expected) && $expected !== '' ? $expected : null);
+
+            return $actualDate === $expectedDate;
+        }
+
+        return self::normalizePersonalScalar($actual) === self::normalizePersonalScalar($expected);
+    }
+
+    private static function normalizePersonalScalar(mixed $value): ?string
+    {
+        if ($value === null || $value === '') {
+            return null;
+        }
+
+        return (string) $value;
     }
 }
