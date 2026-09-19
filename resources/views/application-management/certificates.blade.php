@@ -41,6 +41,9 @@
             </div>
 
             <form method="GET" class="filter-bar mb-6">
+                <input type="text" name="q" value="{{ request('q') }}"
+                       placeholder="{{ __('Search name, registration, email…') }}"
+                       class="rounded-md border-gray-300 text-sm min-w-[14rem]">
                 <select name="course_id" class="rounded-md border-gray-300 text-sm">
                     <option value="">{{ __('All courses') }}</option>
                     @foreach($courses as $c)
@@ -92,7 +95,9 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="4" class="px-4 py-8 text-center text-gray-500">{{ __('No eligible trainees.') }}</td>
+                                <td colspan="4" class="px-4 py-8 text-center text-gray-500">
+                                    {{ request('q') ? __('No trainees match your search.') : __('No eligible trainees.') }}
+                                </td>
                             </tr>
                         @endforelse
                     </tbody>

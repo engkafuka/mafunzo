@@ -332,6 +332,8 @@ class ApplicationManagementController extends Controller
             $query->where('course_id', $request->course_id);
         }
 
+        $this->applyApplicantSearch($query, $request);
+
         $printableCount = null;
         if ($request->filled('course_id')) {
             $printableCount = (clone $query)
@@ -425,6 +427,25 @@ class ApplicationManagementController extends Controller
         }
         $application->update(['certificate_issued_at' => now()]);
         return ListReturn::redirect(route('app-management.certificates'))->with('status', __('Certificate issued.'));
+    }
+
+    private function applyApplicantSearch($query, Request $request): void
+    {
+        if (! $request->filled('q')) {
+            return;
+        }
+
+        $term = '%'.addcslashes(trim($request->string('q')->toString()), '%_\\').'%';
+
+        $query->where(function ($qry) use ($term) {
+            $qry->where('registration_number', 'like', $term)
+                ->orWhere('first_name', 'like', $term)
+                ->orWhere('middle_name', 'like', $term)
+                ->orWhere('last_name', 'like', $term)
+                ->orWhere('email', 'like', $term)
+                ->orWhere('phone', 'like', $term)
+                ->orWhere('control_number', 'like', $term);
+        });
     }
 
     private function eligibleCertificatesQuery()
